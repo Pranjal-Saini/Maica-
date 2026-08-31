@@ -2,7 +2,6 @@ import uuid
 
 from fastapi import APIRouter, Depends, Request, UploadFile
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from maica.api.deps import get_current_tenant_id, get_db_session
@@ -10,9 +9,9 @@ from maica.evidence import repository
 from maica.evidence.normalizer import get_normalizer
 from maica.evidence.schemas import RawEvidenceRead, UploadResponse
 from maica.ingest.csv_saved_search import CsvSavedSearchSource
+from maica.web.templating import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="maica/web/templates")
 
 
 @router.get("/uploads/new", response_class=HTMLResponse)

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MAICA — Report</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 p-8">
+  <div class="max-w-2xl mx-auto space-y-8">
+    <div>
+      <h1 class="text-xl font-semibold">Record {{ source_id }}</h1>
+      <p class="text-sm text-gray-500">Analysis {{ analysis_id }}</p>
+    </div>
+
+    <section>
+      <h2 class="text-lg font-medium mb-2">Contributing factors</h2>
+      {% if explained_factors %}
+      <ol class="space-y-3">
+        {% for ef in explained_factors %}
+        <li class="border rounded p-3 bg-white">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+              {{ ef.factor.label }}
+            </span>
+            <span class="text-xs text-gray-400">rank {{ ef.factor.rank }}</span>
+            {% if ef.explanation_source == "fallback" %}
+            <span class="text-xs text-gray-400">(rule-based)</span>
+            {% endif %}
+          </div>
+          <p class="mt-2">{{ ef.explanation }}</p>
+          <p class="text-xs text-gray-500 mt-1">
+            Supporting records: {{ ef.factor.supporting_source_ids | join(", ") }}
+          </p>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="text-gray-500">No contributing factors were found in this evidence.</p>
+      {% endif %}
+    </section>
+
+    <section>
+      <h2 class="text-lg font-medium mb-2">What could not be checked</h2>
+      <ul class="space-y-2">
+        {% for gap in gaps %}
+        <li class="text-sm">
+          <span class="font-medium">{{ gap.description }}</span>
+          <span class="text-gray-500"> — {{ gap.reason }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="border-t pt-4">
+      <h2 class="text-lg font-medium mb-2">Next thing worth looking at</h2>
+      <p>{{ next_step }}</p>
+    </section>
+  </div>
+</body>
+</html>

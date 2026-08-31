@@ -13,7 +13,22 @@
       <input type="file" name="file" accept=".csv" class="block" required />
       <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded">Upload</button>
     </form>
+    <p id="view-records" class="mt-4"></p>
     <pre id="result" class="mt-6 text-sm whitespace-pre-wrap"></pre>
   </div>
+  <script>
+    document.body.addEventListener("htmx:afterRequest", function (event) {
+      if (event.detail.elt.tagName !== "FORM") return;
+      try {
+        var body = JSON.parse(event.detail.xhr.responseText);
+        var analysisId = body.raw_evidence.analysis_id;
+        document.getElementById("view-records").innerHTML =
+          '<a class="text-blue-700 underline" href="/analyses/' + analysisId + '/records">' +
+          "View records for this analysis &rarr;</a>";
+      } catch (e) {
+        document.getElementById("view-records").innerHTML = "";
+      }
+    });
+  </script>
 </body>
 </html>

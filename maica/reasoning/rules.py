@@ -117,3 +117,20 @@ def diagnose(records: Sequence[RecordLike], target_source_id: str) -> DiagnosisR
     gaps.append(_NO_CHANGE_EVIDENCE_GAP)
 
     return DiagnosisResult(target_source_id=target_source_id, factors=factors, gaps=gaps)
+
+
+def suggest_next_step(factors: Sequence[Factor]) -> str:
+    """One deterministic, actionable suggestion — not the LLM's job, since it
+    must stay consistent regardless of whether the LLM step ran or fell back."""
+    if factors:
+        top = factors[0]
+        return (
+            f"Start with the top-ranked factor (rank {top.rank}): {top.summary} "
+            "Pull these records up side by side in NetSuite and compare them."
+        )
+    return (
+        "No correlations were found in this evidence. The next useful step is "
+        "uploading a script deployment list, workflow definition, or execution "
+        "log for this account — this ingestion path alone cannot show what "
+        "changed or which automation ran."
+    )
