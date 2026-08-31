@@ -94,17 +94,24 @@ as a **Beta**, not a finished Phase A. Phase B (the OAuth 2.0 connector) is
 deliberately on hold until Phase A is fully built out — do not start Path B work
 without an explicit decision to do so.
 
-Remaining Phase A work, in rough priority order:
-1. More upload parsers (script deployment list, workflow definition, execution
-   log) — the current reasoning output is thin because it only has transaction
-   snapshots to work with.
-2. Real LLM verification with a configured `ANTHROPIC_API_KEY` — narration has
-   only been proven via its fallback path so far.
-3. Real app login (session cookies + argon2, per the decided stack) replacing the
-   dev-only `X-Tenant-Id` header.
-4. A dashboard/home page listing analyses for a tenant.
-5. UI polish and broader test coverage with messier real-world-shaped exports.
-6. Git remote + CI verification; Docker build verification once available.
+Progress:
+1. **DONE** — System Notes ingestion added (per-record field-change audit trail:
+   old_value/actor/context now populated). Script deployment list, workflow
+   definition, and script execution log deferred — their real column names are
+   unverified against docs.oracle.com; do not guess them, get a real sample
+   export first.
+2. Real LLM verification with a configured `ANTHROPIC_API_KEY` — still blocked,
+   narration has only been proven via its fallback path so far.
+3. **DONE** — Real app login shipped: session cookies + argon2, one login can
+   access multiple client accounts (tenants), replacing the dev-only
+   `X-Tenant-Id` header entirely. Every tenant-scoped route now 403s unless the
+   logged-in user has been granted access.
+4. **DONE** — Fell out of #3: `/dashboard` lists a user's tenants,
+   `/tenants/{id}/analyses` lists analyses within one.
+5. UI polish and broader test coverage with messier real-world-shaped exports —
+   not started.
+6. Git remote + CI verification; Docker build verification once available —
+   not started, needs a decision on where to host (GitHub/GitLab, which account).
 
 ## Rules
 
