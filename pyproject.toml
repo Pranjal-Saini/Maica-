@@ -15,6 +15,7 @@ dependencies = [
     "jinja2>=3.1",
     "structlog>=24.4",
     "networkx>=3.4",
+    "anthropic>=0.40",
 ]
 
 [dependency-groups]

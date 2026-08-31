@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://maica:maica@localhost:5432/maica"
     environment: str = "development"
     dev_tenant_id: UUID = UUID("00000000-0000-0000-0000-000000000001")
+    anthropic_api_key: str | None = None
+    llm_model: str = "claude-haiku-4-5-20251001"
 
 
 @lru_cache
