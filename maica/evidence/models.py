@@ -59,9 +59,10 @@ Index(
 class Record(Base):
     """One field's value on one NetSuite record, normalized out of raw evidence.
 
-    old_value is populated only by sources that carry change history (e.g. a
-    future audit-trail export); a snapshot source like a saved search always
-    leaves it null. Insert-only, same as RawEvidence — no update path exists."""
+    old_value and context are populated only by sources that carry change
+    history (e.g. a System Notes export); a snapshot source like a saved
+    search always leaves them null. Insert-only, same as RawEvidence — no
+    update path exists."""
 
     __tablename__ = "records"
 
@@ -81,6 +82,7 @@ class Record(Base):
     old_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     actor: Mapped[str | None] = mapped_column(Text, nullable=True)
+    context: Mapped[str | None] = mapped_column(Text, nullable=True)
     occurred_at: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 

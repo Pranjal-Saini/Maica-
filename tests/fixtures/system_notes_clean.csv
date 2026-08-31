@@ -1,0 +1,4 @@
+Internal ID,Date,Set By,Context,Type,Field,Old Value,New Value
+1001,1/20/2026,jsmith,UIF,Change,Amount,1500.00,1800.00
+1001,1/20/2026,System,SCH,Change,Status,Pending Approval,Approved
+1003,1/18/2026,jdoe,UIF,Change,Memo,Q1 invoice,Q1 invoice - revised

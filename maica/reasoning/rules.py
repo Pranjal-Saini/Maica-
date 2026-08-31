@@ -1,4 +1,6 @@
 from collections.abc import Sequence
+from datetime import datetime
+from typing import cast
 
 from maica.graph.builder import (
     RecordLike,
@@ -11,36 +13,67 @@ from maica.reasoning.models import DiagnosisResult, Factor, FactorLabel, Gap
 _NO_CHANGE_EVIDENCE_GAP = Gap(
     description=(
         "No script, workflow, integration, or configuration-change evidence was "
-        "ingested for this analysis."
+        "ingested for this record."
     ),
     reason=(
-        "Only a saved-search CSV export was uploaded, which shows a snapshot of "
-        "transaction data, not what changed or which automation touched it. "
-        "Upload a script deployment list, workflow definition, or execution log "
-        "to check for automation causes."
+        "Only a saved-search CSV export (a snapshot, not a change history) was "
+        "uploaded for this record. Upload a System Notes export, script "
+        "deployment list, or execution log to check for automation causes."
     ),
 )
 
 
-def diagnose(records: Sequence[RecordLike], target_source_id: str) -> DiagnosisResult:
-    """Deterministic, rule-based factor ranking — no LLM. Only ever reasons
-    from what the evidence directly shows: shared field values and named
-    gaps. Never infers causation, and never blames a script/workflow/user,
-    because none of that evidence exists yet in this ingestion path."""
-    target_rows = [row for row in records if row.source_id == target_source_id]
+def _build_change_factors(target_rows: Sequence[RecordLike], target_source_id: str) -> list[Factor]:
+    """Field-change factors, from evidence that carries old_value (e.g. a
+    System Notes export) — a direct, confirmed fact about what changed on
+    this record, not merely a correlation with another record. Still never
+    asserted as a cause: a change is not proof of causing the outcome."""
+    dated: list[tuple[datetime | None, Factor]] = []
+    for row in target_rows:
+        if row.old_value is None:
+            continue
 
-    if not target_rows:
-        return DiagnosisResult(
-            target_source_id=target_source_id,
-            factors=[],
-            gaps=[
-                Gap(
-                    description=f"No record with source_id '{target_source_id}' was found.",
-                    reason="Not present in this analysis's ingested evidence.",
-                )
-            ],
+        summary = f"{row.field_name} changed from {row.old_value!r} to {row.new_value!r}"
+        if row.actor:
+            if row.actor.strip().lower() == "system":
+                summary += ", recorded actor: System (an automated process, not a specific person)"
+            else:
+                summary += f", recorded actor: {row.actor}"
+        if row.context:
+            summary += f" (context: {row.context})"
+        summary += (
+            ". A field change alone does not confirm it caused the outcome — check "
+            "the timing against when this transaction posted and whether "
+            f"{row.field_name} affects downstream processing."
         )
 
+        dated.append(
+            (
+                row.occurred_at,
+                Factor(
+                    label=FactorLabel.UNCERTAIN,
+                    rank=0,
+                    summary=summary,
+                    supporting_source_ids=[target_source_id],
+                ),
+            )
+        )
+
+    # Most recent change first; rows with no parseable timestamp go last.
+    known = sorted(
+        (pair for pair in dated if pair[0] is not None),
+        key=lambda pair: cast(datetime, pair[0]),
+        reverse=True,
+    )
+    unknown = [pair for pair in dated if pair[0] is None]
+    return [factor for _, factor in (known + unknown)]
+
+
+def _build_shared_value_factors(
+    records: Sequence[RecordLike], target_rows: Sequence[RecordLike], target_source_id: str
+) -> list[Factor]:
+    """UNCERTAIN factors from records that share a field value with the target
+    — a structural correlation, never treated as a cause on its own."""
     graph = build_dependency_graph(records)
     target_node = record_node_id(target_source_id)
 
@@ -78,12 +111,38 @@ def diagnose(records: Sequence[RecordLike], target_source_id: str) -> DiagnosisR
     # value) rank first — a value shared broadly (e.g. a common GL account) is
     # more likely routine and less likely to isolate this transaction.
     ranked_candidates.sort(key=lambda pair: pair[0])
-    factors = [factor for _, factor in ranked_candidates]
+    return [factor for _, factor in ranked_candidates]
+
+
+def diagnose(records: Sequence[RecordLike], target_source_id: str) -> DiagnosisResult:
+    """Deterministic, rule-based factor ranking — no LLM. Only ever reasons
+    from what the evidence directly shows: confirmed field changes (when
+    change-history evidence exists), shared field values, and named gaps.
+    Never infers causation, and never blames a script/workflow/user without
+    supporting evidence."""
+    target_rows = [row for row in records if row.source_id == target_source_id]
+
+    if not target_rows:
+        return DiagnosisResult(
+            target_source_id=target_source_id,
+            factors=[],
+            gaps=[
+                Gap(
+                    description=f"No record with source_id '{target_source_id}' was found.",
+                    reason="Not present in this analysis's ingested evidence.",
+                )
+            ],
+        )
+
+    change_factors = _build_change_factors(target_rows, target_source_id)
+    shared_value_factors = _build_shared_value_factors(records, target_rows, target_source_id)
+
+    factors = [*change_factors, *shared_value_factors]
     for position, factor in enumerate(factors, start=1):
         factor.rank = position
 
     gaps: list[Gap] = []
-    if not factors:
+    if not shared_value_factors:
         gaps.append(
             Gap(
                 description="No shared-field relationships found for this record.",
@@ -100,8 +159,8 @@ def diagnose(records: Sequence[RecordLike], target_source_id: str) -> DiagnosisR
             Gap(
                 description="No actor/user information is available for this record.",
                 reason=(
-                    "The uploaded export did not include a 'created by' or "
-                    "'last modified by' column."
+                    "The uploaded export did not include a 'created by', "
+                    "'last modified by', or 'set by' column."
                 ),
             )
         )
@@ -114,7 +173,8 @@ def diagnose(records: Sequence[RecordLike], target_source_id: str) -> DiagnosisR
             )
         )
 
-    gaps.append(_NO_CHANGE_EVIDENCE_GAP)
+    if not change_factors:
+        gaps.append(_NO_CHANGE_EVIDENCE_GAP)
 
     return DiagnosisResult(target_source_id=target_source_id, factors=factors, gaps=gaps)
 
@@ -130,7 +190,7 @@ def suggest_next_step(factors: Sequence[Factor]) -> str:
         )
     return (
         "No correlations were found in this evidence. The next useful step is "
-        "uploading a script deployment list, workflow definition, or execution "
+        "uploading a System Notes export, script deployment list, or execution "
         "log for this account — this ingestion path alone cannot show what "
         "changed or which automation ran."
     )

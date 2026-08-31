@@ -3,42 +3,42 @@ from datetime import UTC, datetime
 from maica.ingest.csv_utils import build_dict_reader, decode_text, normalize_header, try_parse_date
 from maica.ingest.interface import IngestRequestMeta, IngestResult, IngestSource
 
-# Known NetSuite saved-search export header variants -> normalized field name.
-# Extend this map as new export shapes are seen; unmapped columns are tolerated,
-# not rejected — they land in columns_ignored.
+# NetSuite System Notes subtab / saved-search export columns, per Oracle docs
+# ("Viewing System Notes", "Searching System Notes"). Unlike the saved-search
+# CSV, each row here already represents one field-level change — Type here
+# means the kind of change (Create/Set/Change/Unset), not a record type.
 _HEADER_ALIASES: dict[str, str] = {
     "internal id": "internal_id",
     "internalid": "internal_id",
-    "internal_id": "internal_id",
     "doc number": "document_number",
     "document number": "document_number",
     "date": "occurred_at",
     "trandate": "occurred_at",
     "transaction date": "occurred_at",
-    "type": "record_type",
-    "transaction type": "record_type",
-    "name": "entity",
-    "entity": "entity",
-    "amount": "amount",
-    "account": "account",
-    "memo": "memo",
-    "created by": "actor",
-    "last modified by": "actor",
+    "set by": "actor",
+    "context": "context",
+    "type": "change_type",
+    "field": "field_name",
+    "old value": "old_value",
+    "new value": "new_value",
+    "record type": "record_type",
 }
 
-# Identifying columns — a row missing all of these cannot be traced back to a
-# NetSuite record later, so it is dropped rather than kept as unusable noise.
+# A row missing both an identifying column and a field name cannot become a
+# usable record-level change, so it is dropped rather than kept as noise.
 _IDENTIFYING_COLUMNS = {"internal_id", "document_number"}
 
 
-class CsvSavedSearchSource(IngestSource):
-    """Parses a NetSuite saved-search CSV export. Tolerant of extra columns,
-    renamed headers, blank rows, and partial/unparsed dates — nothing is
-    silently dropped or guessed; unusable rows are named in skip_reasons."""
+class SystemNotesCsvSource(IngestSource):
+    """Parses a NetSuite System Notes export (per-record audit trail: who/what
+    changed which field, from what value to what value, and via what
+    execution context). Tolerant of extra columns, renamed headers, blank
+    rows, and partial/unparsed dates, matching the saved-search CSV parser's
+    approach — nothing is silently dropped or guessed."""
 
     def ingest(self, raw_input: bytes) -> IngestResult:
         request = IngestRequestMeta(
-            source_type="upload:saved_search_csv",
+            source_type="upload:system_notes_csv",
             requested_at=datetime.now(UTC),
             request_detail={"size_bytes": len(raw_input)},
         )
@@ -92,7 +92,12 @@ class CsvSavedSearchSource(IngestSource):
                 skip_reasons.append(f"row {line_number}: no identifying column present, dropped")
                 continue
 
-            if "occurred_at" in normalized_row and normalized_row["occurred_at"]:
+            if not normalized_row.get("field_name"):
+                rows_skipped += 1
+                skip_reasons.append(f"row {line_number}: no field name present, dropped")
+                continue
+
+            if normalized_row.get("occurred_at"):
                 parsed = try_parse_date(normalized_row["occurred_at"])
                 if parsed is not None:
                     normalized_row["occurred_at"] = parsed
@@ -106,7 +111,7 @@ class CsvSavedSearchSource(IngestSource):
 
         unavailable_reason = None
         if not rows:
-            unavailable_reason = "no recognizable saved-search rows found"
+            unavailable_reason = "no recognizable system notes rows found"
 
         return IngestResult(
             request=request,

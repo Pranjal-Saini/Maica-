@@ -7,6 +7,6 @@ from maica.ingest.errors import IngestValidationError
 async def ingest_validation_error_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, IngestValidationError)
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={"error": {"code": "ingest_validation_error", "message": str(exc)}},
     )

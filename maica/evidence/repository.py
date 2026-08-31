@@ -90,6 +90,7 @@ async def store_records(
             old_value=draft.old_value,
             new_value=draft.new_value,
             actor=draft.actor,
+            context=draft.context,
             occurred_at=draft.occurred_at,
         )
         for draft in drafts

@@ -1,0 +1,7 @@
+internalid,TranDate,Set By,Context,Type,Field,Old Value,New Value,Custom Note
+
+1001,1/20/2026,jsmith,UIF,Change,Amount,1500.00,1800.00,foo
+,1/20/2026,System,SCH,Change,Status,Pending Approval,Approved,no id - drop me
+
+1001,3/2026,System,SCH,Change,Memo,old memo,new memo,unparseable date
+1003,1/18/2026,jdoe,UIF,Change,,Q1 invoice,Q1 invoice - revised,no field name - drop me

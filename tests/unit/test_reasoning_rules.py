@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -80,3 +81,71 @@ def test_diagnose_of_unknown_source_id_reports_not_found_gap() -> None:
     assert result.factors == []
     assert len(result.gaps) == 1
     assert "9999" in result.gaps[0].description
+
+
+def _change_draft(
+    source_id: str,
+    field_name: str,
+    old_value: str,
+    new_value: str,
+    actor: str | None,
+    context: str | None = None,
+    occurred_at: datetime | None = None,
+) -> NormalizedRecordDraft:
+    return NormalizedRecordDraft(
+        source_id=source_id,
+        record_type="Journal Entry",
+        field_name=field_name,
+        old_value=old_value,
+        new_value=new_value,
+        actor=actor,
+        context=context,
+        occurred_at=occurred_at,
+    )
+
+
+def test_diagnose_surfaces_field_change_factor_from_change_evidence() -> None:
+    drafts = [_change_draft("1001", "Amount", "1500.00", "1800.00", "jsmith", "UIF")]
+
+    result = diagnose(drafts, "1001")
+
+    assert len(result.factors) == 1
+    assert result.factors[0].label == FactorLabel.UNCERTAIN
+    assert "Amount changed from '1500.00' to '1800.00'" in result.factors[0].summary
+    assert "jsmith" in result.factors[0].summary
+    assert not any(
+        "No script, workflow, integration, or configuration-change evidence" in g.description
+        for g in result.gaps
+    )
+
+
+def test_diagnose_hedges_system_actor_as_not_necessarily_manual() -> None:
+    drafts = [_change_draft("1001", "Status", "Pending", "Approved", "System", "SCH")]
+
+    result = diagnose(drafts, "1001")
+
+    summary = result.factors[0].summary
+    assert "System" in summary
+    assert "not a specific person" in summary
+
+
+def test_diagnose_ranks_change_factors_most_recent_first() -> None:
+    older = _change_draft("1001", "Memo", "a", "b", "jsmith", occurred_at=datetime(2026, 1, 1))
+    newer = _change_draft("1001", "Amount", "1", "2", "jsmith", occurred_at=datetime(2026, 1, 20))
+    drafts = [older, newer]
+
+    result = diagnose(drafts, "1001")
+
+    assert result.factors[0].summary.startswith("Amount")
+    assert result.factors[1].summary.startswith("Memo")
+
+
+def test_diagnose_ranks_change_factors_before_shared_value_factors() -> None:
+    drafts = [
+        *_drafts_from_clean_fixture(),
+        _change_draft("1001", "Amount", "1500.00", "1800.00", "jsmith"),
+    ]
+
+    result = diagnose(drafts, "1001")
+
+    assert result.factors[0].summary.startswith("Amount changed")

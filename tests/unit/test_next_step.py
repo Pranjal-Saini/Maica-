@@ -4,7 +4,7 @@ from maica.reasoning.rules import suggest_next_step
 
 def test_suggests_upload_more_evidence_when_no_factors() -> None:
     suggestion = suggest_next_step([])
-    assert "uploading a script deployment list" in suggestion
+    assert "uploading a System Notes export" in suggestion
 
 
 def test_suggests_top_ranked_factor_when_present() -> None:

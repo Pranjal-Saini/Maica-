@@ -78,4 +78,4 @@ async def test_report_page_for_record_with_no_correlations(client: AsyncClient) 
 
     assert response.status_code == 200
     assert "No contributing factors were found" in response.text
-    assert "uploading a script deployment list" in response.text
+    assert "uploading a System Notes export" in response.text

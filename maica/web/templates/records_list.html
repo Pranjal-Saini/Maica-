@@ -22,6 +22,11 @@
     {% else %}
     <p class="text-gray-500">No records found for this analysis.</p>
     {% endif %}
+    <p class="mt-6">
+      <a class="text-blue-700 underline" href="/uploads/new?analysis_id={{ analysis_id }}">
+        Upload more evidence for this analysis &rarr;
+      </a>
+    </p>
   </div>
 </body>
 </html>

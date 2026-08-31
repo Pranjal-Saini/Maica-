@@ -13,9 +13,9 @@ _SOURCE_ID_FIELDS = ("internal_id", "document_number")
 
 
 class NormalizedRecordDraft(BaseModel):
-    """One field's value on one NetSuite record. old_value is populated only by
-    sources that carry change history; a snapshot export like a saved search
-    always leaves it null."""
+    """One field's value on one NetSuite record. old_value and context are
+    populated only by sources that carry change history (e.g. System Notes);
+    a snapshot export like a saved search always leaves them null."""
 
     source_id: str
     record_type: str | None
@@ -23,6 +23,7 @@ class NormalizedRecordDraft(BaseModel):
     old_value: str | None
     new_value: str | None
     actor: str | None
+    context: str | None = None
     occurred_at: datetime | None
 
 
@@ -106,8 +107,62 @@ class SavedSearchCsvNormalizer(Normalizer):
         )
 
 
+class SystemNotesNormalizer(Normalizer):
+    """Each System Notes row already represents exactly one field-level
+    change, so no explosion is needed — one row becomes one
+    NormalizedRecordDraft directly, unlike the saved-search CSV normalizer."""
+
+    def normalize(
+        self, raw_evidence: RawEvidence
+    ) -> tuple[list[NormalizedRecordDraft], NormalizationResult]:
+        rows: list[dict] = raw_evidence.payload.get("rows", [])
+        drafts: list[NormalizedRecordDraft] = []
+        notes: list[str] = []
+        rows_skipped = 0
+
+        for row in rows:
+            source_id = next((row[f] for f in _SOURCE_ID_FIELDS if row.get(f)), None)
+            field_name = row.get("field_name")
+            if not source_id or not field_name:
+                rows_skipped += 1
+                notes.append(
+                    "row missing source_id or field name survived ingest — "
+                    "skipped during normalization"
+                )
+                continue
+
+            occurred_at_raw = row.get("occurred_at")
+            occurred_at = _try_parse_occurred_at(occurred_at_raw)
+            if occurred_at_raw and occurred_at is None:
+                notes.append(
+                    f"source_id {source_id}: occurred_at '{occurred_at_raw}' unparseable, "
+                    "stored as null"
+                )
+
+            drafts.append(
+                NormalizedRecordDraft(
+                    source_id=source_id,
+                    record_type=row.get("record_type"),
+                    field_name=field_name,
+                    old_value=row.get("old_value"),
+                    new_value=row.get("new_value"),
+                    actor=row.get("actor"),
+                    context=row.get("context"),
+                    occurred_at=occurred_at,
+                )
+            )
+
+        return drafts, NormalizationResult(
+            records_created=len(drafts),
+            rows_normalized=len(rows) - rows_skipped,
+            rows_skipped=rows_skipped,
+            notes=notes,
+        )
+
+
 NORMALIZERS: dict[str, Normalizer] = {
     "upload:saved_search_csv": SavedSearchCsvNormalizer(),
+    "upload:system_notes_csv": SystemNotesNormalizer(),
 }
 
 

@@ -17,8 +17,10 @@ class RecordLike(Protocol):
     source_id: str
     record_type: str | None
     field_name: str
+    old_value: str | None
     new_value: str | None
     actor: str | None
+    context: str | None
     occurred_at: datetime | None
 
 
