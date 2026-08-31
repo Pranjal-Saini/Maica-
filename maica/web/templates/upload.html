@@ -12,7 +12,8 @@
     {% if analysis_id %}
     <p class="text-sm text-gray-500 mb-4">Adding to analysis {{ analysis_id }}</p>
     {% endif %}
-    <form hx-encoding="multipart/form-data" hx-post="/uploads" hx-target="#result" class="space-y-4">
+    <form hx-encoding="multipart/form-data" hx-post="/tenants/{{ tenant_id }}/uploads"
+          hx-target="#result" class="space-y-4">
       {% if analysis_id %}
       <input type="hidden" name="analysis_id" value="{{ analysis_id }}" />
       {% endif %}
@@ -34,9 +35,11 @@
       if (event.detail.elt.tagName !== "FORM") return;
       try {
         var body = JSON.parse(event.detail.xhr.responseText);
+        var tenantId = body.raw_evidence.tenant_id;
         var analysisId = body.raw_evidence.analysis_id;
         document.getElementById("view-records").innerHTML =
-          '<a class="text-blue-700 underline" href="/analyses/' + analysisId + '/records">' +
+          '<a class="text-blue-700 underline" href="/tenants/' + tenantId + '/analyses/' +
+          analysisId + '/records">' +
           "View records for this analysis &rarr;</a>";
       } catch (e) {
         document.getElementById("view-records").innerHTML = "";

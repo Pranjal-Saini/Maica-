@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MAICA — Sign up</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 p-8">
+  <div class="max-w-sm mx-auto">
+    <h1 class="text-xl font-semibold mb-4">Create an account</h1>
+    {% if error %}
+    <p class="text-red-700 text-sm mb-4">{{ error }}</p>
+    {% endif %}
+    <form method="post" action="/signup" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1" for="email">Email</label>
+        <input type="email" id="email" name="email" required class="border rounded px-2 py-1 w-full" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1" for="password">Password</label>
+        <input type="password" id="password" name="password" required minlength="8"
+               class="border rounded px-2 py-1 w-full" />
+      </div>
+      <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded">Sign up</button>
+    </form>
+    <p class="mt-4 text-sm">Already have an account? <a class="text-blue-700 underline" href="/login">Log in</a></p>
+  </div>
+</body>
+</html>

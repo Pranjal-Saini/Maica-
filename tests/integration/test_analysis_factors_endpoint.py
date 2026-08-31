@@ -2,25 +2,24 @@ from pathlib import Path
 
 from httpx import AsyncClient
 
+from tests.conftest import signup_with_tenant
+
 FIXTURES = Path(__file__).parent.parent / "fixtures"
-TENANT_ID = "77777777-7777-7777-7777-777777777777"
 
 
 async def test_factors_endpoint_returns_ranked_uncertain_factors_and_gaps(
     client: AsyncClient,
 ) -> None:
+    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
     upload_response = await client.post(
-        "/uploads",
+        f"/tenants/{tenant_id}/uploads",
         files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
-        headers={"X-Tenant-Id": TENANT_ID},
     )
     analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
 
-    response = await client.get(
-        f"/analyses/{analysis_id}/records/1001/factors", headers={"X-Tenant-Id": TENANT_ID}
-    )
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/factors")
 
     assert response.status_code == 200
     body = response.json()
@@ -31,18 +30,16 @@ async def test_factors_endpoint_returns_ranked_uncertain_factors_and_gaps(
 
 
 async def test_factors_endpoint_for_unknown_source_id(client: AsyncClient) -> None:
+    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
     upload_response = await client.post(
-        "/uploads",
+        f"/tenants/{tenant_id}/uploads",
         files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
-        headers={"X-Tenant-Id": TENANT_ID},
     )
     analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
 
-    response = await client.get(
-        f"/analyses/{analysis_id}/records/9999/factors", headers={"X-Tenant-Id": TENANT_ID}
-    )
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/9999/factors")
 
     assert response.status_code == 200
     body = response.json()

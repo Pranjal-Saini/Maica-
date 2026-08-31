@@ -2,28 +2,29 @@ from pathlib import Path
 
 from httpx import AsyncClient
 
+from tests.conftest import signup_with_tenant
+
 FIXTURES = Path(__file__).parent.parent / "fixtures"
-TENANT_ID = "12121212-1212-1212-1212-121212121212"
 
 
 async def test_uploading_system_notes_into_existing_analysis_combines_evidence(
     client: AsyncClient,
 ) -> None:
+    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+
     saved_search_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
     first_response = await client.post(
-        "/uploads",
+        f"/tenants/{tenant_id}/uploads",
         data={"evidence_type": "saved_search_csv"},
         files={"file": ("saved_search_clean.csv", saved_search_bytes, "text/csv")},
-        headers={"X-Tenant-Id": TENANT_ID},
     )
     analysis_id = first_response.json()["raw_evidence"]["analysis_id"]
 
     system_notes_bytes = (FIXTURES / "system_notes_clean.csv").read_bytes()
     second_response = await client.post(
-        "/uploads",
+        f"/tenants/{tenant_id}/uploads",
         data={"evidence_type": "system_notes_csv", "analysis_id": analysis_id},
         files={"file": ("system_notes_clean.csv", system_notes_bytes, "text/csv")},
-        headers={"X-Tenant-Id": TENANT_ID},
     )
 
     assert second_response.status_code == 200
@@ -32,7 +33,7 @@ async def test_uploading_system_notes_into_existing_analysis_combines_evidence(
     assert second_body["records_created"] == 3
 
     factors_response = await client.get(
-        f"/analyses/{analysis_id}/records/1001/factors", headers={"X-Tenant-Id": TENANT_ID}
+        f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/factors"
     )
     body = factors_response.json()
 
@@ -48,11 +49,12 @@ async def test_uploading_system_notes_into_existing_analysis_combines_evidence(
 
 
 async def test_upload_with_unknown_evidence_type_is_rejected(client: AsyncClient) -> None:
+    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+
     response = await client.post(
-        "/uploads",
+        f"/tenants/{tenant_id}/uploads",
         data={"evidence_type": "not_a_real_type"},
         files={"file": ("whatever.csv", b"a,b\n1,2\n", "text/csv")},
-        headers={"X-Tenant-Id": TENANT_ID},
     )
 
     assert response.status_code == 422

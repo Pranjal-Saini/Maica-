@@ -6,6 +6,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from maica.auth import models as auth_models  # noqa: F401 - registers tables on Base.metadata
 from maica.config.settings import get_settings
 from maica.evidence import models  # noqa: F401 - registers tables on Base.metadata
 from maica.evidence.db import Base

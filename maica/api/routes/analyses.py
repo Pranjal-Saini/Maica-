@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from maica.api.deps import get_current_tenant_id, get_db_session, get_llm_client
+from maica.api.deps import get_authorized_tenant_id, get_db_session, get_llm_client
 from maica.config.settings import get_settings
 from maica.evidence import repository
 from maica.graph.builder import build_dependency_graph
@@ -18,10 +18,22 @@ from maica.web.templating import templates
 router = APIRouter()
 
 
-@router.get("/analyses/{analysis_id}/graph", response_class=PlainTextResponse)
+@router.get("/tenants/{tenant_id}/analyses", response_class=HTMLResponse)
+async def list_tenant_analyses(
+    request: Request,
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    analyses = await repository.get_analyses_for_tenant(session, tenant_id)
+    return templates.TemplateResponse(
+        request, "analyses_list.html", {"tenant_id": tenant_id, "analyses": analyses}
+    )
+
+
+@router.get("/tenants/{tenant_id}/analyses/{analysis_id}/graph", response_class=PlainTextResponse)
 async def get_analysis_graph(
     analysis_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> str:
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
@@ -31,11 +43,14 @@ async def get_analysis_graph(
     return render_text(graph, records)
 
 
-@router.get("/analyses/{analysis_id}/records/{source_id}/factors", response_model=DiagnosisResult)
+@router.get(
+    "/tenants/{tenant_id}/analyses/{analysis_id}/records/{source_id}/factors",
+    response_model=DiagnosisResult,
+)
 async def get_record_factors(
     analysis_id: uuid.UUID,
     source_id: str,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> DiagnosisResult:
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
@@ -43,12 +58,13 @@ async def get_record_factors(
 
 
 @router.get(
-    "/analyses/{analysis_id}/records/{source_id}/explain", response_model=ExplainedDiagnosis
+    "/tenants/{tenant_id}/analyses/{analysis_id}/records/{source_id}/explain",
+    response_model=ExplainedDiagnosis,
 )
 async def get_record_explanation(
     analysis_id: uuid.UUID,
     source_id: str,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     session: AsyncSession = Depends(get_db_session),
     client: AsyncAnthropic | None = Depends(get_llm_client),
 ) -> ExplainedDiagnosis:
@@ -57,11 +73,11 @@ async def get_record_explanation(
     return await explain_factors(diagnosis, client=client, model=get_settings().llm_model)
 
 
-@router.get("/analyses/{analysis_id}/records", response_class=HTMLResponse)
+@router.get("/tenants/{tenant_id}/analyses/{analysis_id}/records", response_class=HTMLResponse)
 async def list_analysis_records(
     request: Request,
     analysis_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
@@ -72,16 +88,19 @@ async def list_analysis_records(
     return templates.TemplateResponse(
         request,
         "records_list.html",
-        {"analysis_id": analysis_id, "records": distinct_records},
+        {"tenant_id": tenant_id, "analysis_id": analysis_id, "records": distinct_records},
     )
 
 
-@router.get("/analyses/{analysis_id}/records/{source_id}/report", response_class=HTMLResponse)
+@router.get(
+    "/tenants/{tenant_id}/analyses/{analysis_id}/records/{source_id}/report",
+    response_class=HTMLResponse,
+)
 async def get_record_report(
     request: Request,
     analysis_id: uuid.UUID,
     source_id: str,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     session: AsyncSession = Depends(get_db_session),
     client: AsyncAnthropic | None = Depends(get_llm_client),
 ) -> HTMLResponse:
@@ -92,6 +111,7 @@ async def get_record_report(
         request,
         "report.html",
         {
+            "tenant_id": tenant_id,
             "analysis_id": analysis_id,
             "source_id": source_id,
             "explained_factors": explained.explained_factors,

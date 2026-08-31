@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from maica.api.deps import get_current_tenant_id, get_db_session
+from maica.api.deps import get_authorized_tenant_id, get_db_session
 from maica.evidence import repository
 from maica.evidence.normalizer import get_normalizer
 from maica.evidence.schemas import RawEvidenceRead, UploadResponse
@@ -15,17 +15,23 @@ from maica.web.templating import templates
 router = APIRouter()
 
 
-@router.get("/uploads/new", response_class=HTMLResponse)
-async def upload_form(request: Request, analysis_id: uuid.UUID | None = None) -> HTMLResponse:
-    return templates.TemplateResponse(request, "upload.html", {"analysis_id": analysis_id})
+@router.get("/tenants/{tenant_id}/uploads/new", response_class=HTMLResponse)
+async def upload_form(
+    request: Request,
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
+    analysis_id: uuid.UUID | None = None,
+) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request, "upload.html", {"tenant_id": tenant_id, "analysis_id": analysis_id}
+    )
 
 
-@router.post("/uploads", response_model=UploadResponse)
+@router.post("/tenants/{tenant_id}/uploads", response_model=UploadResponse)
 async def upload_saved_search(
     file: UploadFile,
     evidence_type: str = Form("saved_search_csv"),
     analysis_id: uuid.UUID | None = Form(None),
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     session: AsyncSession = Depends(get_db_session),
 ) -> UploadResponse:
     ingest_source = get_ingest_source(evidence_type)
@@ -33,8 +39,6 @@ async def upload_saved_search(
         raise IngestValidationError(f"unknown evidence_type '{evidence_type}'")
 
     raw_input = await file.read()
-
-    await repository.ensure_tenant(session, tenant_id, name="dev-tenant")
 
     analysis = None
     if analysis_id is not None:

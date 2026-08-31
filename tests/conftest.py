@@ -10,9 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from maica.api.deps import get_db_session
 from maica.api.main import create_app
+from maica.auth.models import (  # noqa: F401 - registers tables on Base.metadata
+    User,
+    UserTenantAccess,
+)
 from maica.config.settings import get_settings
 from maica.evidence.db import Base
 from maica.evidence.models import Analysis, RawEvidence, Record, Tenant
+
+DEFAULT_PASSWORD = "correct horse battery staple"  # noqa: S105 - test fixture only
 
 
 @pytest.fixture(scope="session")
@@ -34,6 +40,8 @@ async def db_session(_schema: None) -> AsyncGenerator[AsyncSession, None]:
         await session.execute(delete(Record))
         await session.execute(delete(RawEvidence))
         await session.execute(delete(Analysis))
+        await session.execute(delete(UserTenantAccess))
+        await session.execute(delete(User))
         await session.execute(delete(Tenant))
         await session.commit()
     await engine.dispose()
@@ -51,3 +59,24 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
+
+async def signup(client: AsyncClient, email: str, password: str = DEFAULT_PASSWORD) -> None:
+    """Signs up and logs in as a fresh user, leaving the session cookie set on
+    the given client for subsequent requests."""
+    response = await client.post("/signup", data={"email": email, "password": password})
+    assert response.status_code == 303, response.text
+
+
+async def create_tenant(client: AsyncClient, name: str) -> str:
+    """Creates a client-account workspace under the currently logged-in user
+    and returns its tenant_id."""
+    response = await client.post("/tenants", data={"name": name})
+    assert response.status_code == 303, response.text
+    location = response.headers["location"]  # "/tenants/{tenant_id}/analyses"
+    return location.split("/")[2]
+
+
+async def signup_with_tenant(client: AsyncClient, email: str, tenant_name: str) -> str:
+    await signup(client, email)
+    return await create_tenant(client, tenant_name)

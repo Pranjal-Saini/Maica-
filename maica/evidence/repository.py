@@ -36,6 +36,14 @@ async def get_analysis(
     return result.scalar_one_or_none()
 
 
+async def get_analyses_for_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> list[Analysis]:
+    stmt = (
+        select(Analysis).where(Analysis.tenant_id == tenant_id).order_by(Analysis.created_at.desc())
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
 async def store_raw_evidence(
     session: AsyncSession,
     tenant_id: uuid.UUID,

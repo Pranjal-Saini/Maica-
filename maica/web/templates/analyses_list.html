@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MAICA — Analyses</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 p-8">
+  <div class="max-w-xl mx-auto">
+    <p class="mb-4"><a class="text-blue-700 underline" href="/dashboard">&larr; Back to dashboard</a></p>
+    <h1 class="text-xl font-semibold mb-4">Analyses</h1>
+
+    {% if analyses %}
+    <ul class="space-y-2">
+      {% for analysis in analyses %}
+      <li>
+        <a class="text-blue-700 underline" href="/tenants/{{ tenant_id }}/analyses/{{ analysis.id }}/records">
+          Analysis from {{ analysis.created_at.strftime("%Y-%m-%d %H:%M") }} ({{ analysis.status }})
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-500">No analyses yet for this client account.</p>
+    {% endif %}
+
+    <p class="mt-6">
+      <a class="text-blue-700 underline" href="/tenants/{{ tenant_id }}/uploads/new">
+        + Upload evidence to start a new analysis
+      </a>
+    </p>
+  </div>
+</body>
+</html>

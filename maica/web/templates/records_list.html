@@ -7,13 +7,14 @@
 </head>
 <body class="bg-gray-50 text-gray-900 p-8">
   <div class="max-w-xl mx-auto">
+    <p class="mb-4"><a class="text-blue-700 underline" href="/tenants/{{ tenant_id }}/analyses">&larr; Back to analyses</a></p>
     <h1 class="text-xl font-semibold mb-4">Records in this analysis</h1>
     {% if records %}
     <ul class="space-y-2">
       {% for source_id, record_type in records %}
       <li>
         <a class="text-blue-700 underline"
-           href="/analyses/{{ analysis_id }}/records/{{ source_id }}/report">
+           href="/tenants/{{ tenant_id }}/analyses/{{ analysis_id }}/records/{{ source_id }}/report">
           {{ source_id }} ({{ record_type or "unknown type" }})
         </a>
       </li>
@@ -23,7 +24,8 @@
     <p class="text-gray-500">No records found for this analysis.</p>
     {% endif %}
     <p class="mt-6">
-      <a class="text-blue-700 underline" href="/uploads/new?analysis_id={{ analysis_id }}">
+      <a class="text-blue-700 underline"
+         href="/tenants/{{ tenant_id }}/uploads/new?analysis_id={{ analysis_id }}">
         Upload more evidence for this analysis &rarr;
       </a>
     </p>

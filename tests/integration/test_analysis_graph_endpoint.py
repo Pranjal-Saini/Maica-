@@ -3,23 +3,22 @@ from pathlib import Path
 
 from httpx import AsyncClient
 
+from tests.conftest import signup_with_tenant
+
 FIXTURES = Path(__file__).parent.parent / "fixtures"
-TENANT_ID = "44444444-4444-4444-4444-444444444444"
 
 
 async def test_graph_endpoint_renders_shared_field_relationships(client: AsyncClient) -> None:
+    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
     upload_response = await client.post(
-        "/uploads",
+        f"/tenants/{tenant_id}/uploads",
         files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
-        headers={"X-Tenant-Id": TENANT_ID},
     )
     analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
 
-    graph_response = await client.get(
-        f"/analyses/{analysis_id}/graph", headers={"X-Tenant-Id": TENANT_ID}
-    )
+    graph_response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/graph")
 
     assert graph_response.status_code == 200
     text = graph_response.text
@@ -29,27 +28,27 @@ async def test_graph_endpoint_renders_shared_field_relationships(client: AsyncCl
 
 
 async def test_graph_endpoint_for_analysis_with_no_records(client: AsyncClient) -> None:
-    response = await client.get(
-        f"/analyses/{uuid.uuid4()}/graph", headers={"X-Tenant-Id": TENANT_ID}
-    )
+    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{uuid.uuid4()}/graph")
 
     assert response.status_code == 200
     assert response.text == "No records found for this analysis."
 
 
 async def test_graph_endpoint_enforces_tenant_isolation(client: AsyncClient) -> None:
+    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
     upload_response = await client.post(
-        "/uploads",
+        f"/tenants/{tenant_id}/uploads",
         files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
-        headers={"X-Tenant-Id": TENANT_ID},
     )
     analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
 
+    other_tenant_id = "00000000-0000-0000-0000-000000000099"
     other_tenant_response = await client.get(
-        f"/analyses/{analysis_id}/graph",
-        headers={"X-Tenant-Id": "55555555-5555-5555-5555-555555555555"},
+        f"/tenants/{other_tenant_id}/analyses/{analysis_id}/graph"
     )
 
-    assert other_tenant_response.text == "No records found for this analysis."
+    assert other_tenant_response.status_code == 403
