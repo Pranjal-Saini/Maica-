@@ -17,7 +17,7 @@ consultant can try, not for scale that does not exist yet.
 | HTTP client | **httpx** | Async, timeouts, retries, works with FastAPI. |
 | Retry / backoff | **tenacity** | NetSuite 429 handling with `Retry-After`. |
 | Background jobs | **arq** (Redis) | Analysis runs longer than a request. Lighter than Celery. Not needed until Path B. |
-| LLM | **Claude API** (`anthropic` SDK) | Structured JSON output, long context for evidence bundles. |
+| LLM | **Local Ollama** (`httpx` against `/api/chat`), behind a provider-agnostic `LLMClient` protocol | Switched from the original Claude API plan on 2026-08-31 — no Anthropic key was available and a local model was already running. The protocol seam means swapping back to a hosted model later is a client-implementation change, not a reasoning-layer rewrite. |
 | Auth (our users) | **Session cookies + `argon2`** | No third-party identity provider until a client asks for SSO. |
 | Secrets | Environment variables → **Render/Fly secrets** | Never in the database in plaintext, never in the frontend. |
 | Tests | **pytest + pytest-asyncio + respx** | `respx` mocks NetSuite HTTP so tests never need a live account. |

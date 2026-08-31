@@ -100,8 +100,14 @@ Progress:
    definition, and script execution log deferred — their real column names are
    unverified against docs.oracle.com; do not guess them, get a real sample
    export first.
-2. Real LLM verification with a configured `ANTHROPIC_API_KEY` — still blocked,
-   narration has only been proven via its fallback path so far.
+2. **DONE, provider changed** — No Anthropic key was available; switched to a
+   local Ollama instance (qwen3:8b). `maica/reasoning/llm.py` now defines a
+   provider-agnostic `LLMClient` protocol instead of depending on the
+   Anthropic SDK directly. Verified live against real Ollama — works, with a
+   known limitation: the model reliably explains one factor per call but can
+   drop items in a multi-factor batched call (falls back cleanly, does not
+   break). Revisit if that shows up often — one call per factor would likely
+   fix it at the cost of latency.
 3. **DONE** — Real app login shipped: session cookies + argon2, one login can
    access multiple client accounts (tenants), replacing the dev-only
    `X-Tenant-Id` header entirely. Every tenant-scoped route now 403s unless the
