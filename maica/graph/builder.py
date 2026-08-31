@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Sequence
+from datetime import datetime
 from typing import Protocol
 
 import networkx as nx
@@ -9,13 +10,16 @@ _FIELD_VALUE_PREFIX = "field_value"
 
 
 class RecordLike(Protocol):
-    """Structural type so this module depends on neither the SQLAlchemy Record
-    model nor NormalizedRecordDraft specifically — both satisfy it."""
+    """Structural type so this module (and reasoning/) depends on neither the
+    SQLAlchemy Record model nor NormalizedRecordDraft specifically — both
+    satisfy it."""
 
     source_id: str
     record_type: str | None
     field_name: str
     new_value: str | None
+    actor: str | None
+    occurred_at: datetime | None
 
 
 def record_node_id(source_id: str) -> str:
