@@ -1,6 +1,5 @@
 import uuid
 
-from anthropic import AsyncAnthropic
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +11,7 @@ from maica.graph.builder import build_dependency_graph
 from maica.graph.render import render_text
 from maica.reasoning.llm import ExplainedDiagnosis, explain_factors
 from maica.reasoning.models import DiagnosisResult
+from maica.reasoning.ollama_client import OllamaClient
 from maica.reasoning.rules import diagnose, suggest_next_step
 from maica.web.templating import templates
 
@@ -66,7 +66,7 @@ async def get_record_explanation(
     source_id: str,
     tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     session: AsyncSession = Depends(get_db_session),
-    client: AsyncAnthropic | None = Depends(get_llm_client),
+    client: OllamaClient = Depends(get_llm_client),
 ) -> ExplainedDiagnosis:
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
     diagnosis = diagnose(records, source_id)
@@ -102,7 +102,7 @@ async def get_record_report(
     source_id: str,
     tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     session: AsyncSession = Depends(get_db_session),
-    client: AsyncAnthropic | None = Depends(get_llm_client),
+    client: OllamaClient = Depends(get_llm_client),
 ) -> HTMLResponse:
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
     diagnosis = diagnose(records, source_id)

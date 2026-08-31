@@ -8,7 +8,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from maica.api.deps import get_db_session
+from maica.api.deps import get_db_session, get_llm_client
 from maica.api.main import create_app
 from maica.auth.models import (  # noqa: F401 - registers tables on Base.metadata
     User,
@@ -55,6 +55,16 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield db_session
 
     app.dependency_overrides[get_db_session] = _override_get_db_session
+
+    async def _override_get_llm_client() -> None:
+        # Integration tests never depend on a real, running LLM — the LLM
+        # layer itself is covered by tests/unit/test_llm_explanation.py and
+        # tests/unit/test_ollama_client.py with fake/mocked clients. This
+        # keeps the suite fast and deterministic regardless of whether
+        # Ollama happens to be running on the machine.
+        return None
+
+    app.dependency_overrides[get_llm_client] = _override_get_llm_client
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

@@ -1,6 +1,5 @@
 import uuid
 
-from anthropic import AsyncAnthropic
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +7,7 @@ from maica.auth import repository as auth_repository
 from maica.auth.models import User
 from maica.config.settings import get_settings
 from maica.evidence.db import get_db_session  # re-exported for route imports
+from maica.reasoning.ollama_client import OllamaClient
 
 __all__ = ["get_db_session", "get_current_user", "get_authorized_tenant_id", "get_llm_client"]
 
@@ -42,10 +42,5 @@ async def get_authorized_tenant_id(
     return tenant_id
 
 
-async def get_llm_client() -> AsyncAnthropic | None:
-    """None when no API key is configured — callers must degrade gracefully,
-    not treat a missing key as an error."""
-    api_key = get_settings().anthropic_api_key
-    if not api_key:
-        return None
-    return AsyncAnthropic(api_key=api_key)
+async def get_llm_client() -> OllamaClient:
+    return OllamaClient(base_url=get_settings().ollama_base_url)

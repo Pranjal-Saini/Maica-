@@ -8,8 +8,8 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://maica:maica@localhost:5432/maica"
     environment: str = "development"
-    anthropic_api_key: str | None = None
-    llm_model: str = "claude-haiku-4-5-20251001"
+    ollama_base_url: str = "http://localhost:11434"
+    llm_model: str = "qwen3:8b"
     # Signs the session cookie. Must be overridden via env var outside development —
     # anyone with this value can forge a session.
     session_secret_key: str = "dev-insecure-secret-change-in-production"

@@ -1,7 +1,6 @@
 import json
-from typing import Literal
+from typing import Literal, Protocol
 
-from anthropic import AnthropicError, AsyncAnthropic
 from pydantic import BaseModel, ValidationError
 
 from maica.reasoning.models import DiagnosisResult, Factor, Gap
@@ -20,10 +19,25 @@ Rules you must follow exactly:
 - Never invent evidence. Only reference record IDs given to you in the input.
 - Never state or imply a stronger or weaker confidence than the label already \
 given to you — you are explaining it, not re-judging it.
-- Respond with strict JSON only, no prose before or after it, matching this shape:
+- Respond with strict JSON only, no prose before or after it, matching this shape.
+  ALWAYS return a JSON array, even when there is only one factor — never a bare
+  object:
   [{{"factor_rank": <int>, "explanation": "<string>", "cited_source_ids": ["<string>", ...]}}]
 
 Prompt version: {PROMPT_VERSION}"""
+
+
+class LLMRequestError(Exception):
+    """Raised by an LLMClient implementation when the completion request
+    itself fails (network error, non-2xx response, unreachable host, etc.) —
+    distinct from a successful response that fails schema validation."""
+
+
+class LLMClient(Protocol):
+    """One interface any local or hosted model can implement, so this module
+    never depends on a specific provider's SDK."""
+
+    async def complete(self, *, model: str, system: str, user: str) -> str: ...
 
 
 class FactorExplanation(BaseModel):
@@ -58,16 +72,16 @@ def _fallback(diagnosis: DiagnosisResult, extra_gap: Gap) -> ExplainedDiagnosis:
 async def explain_factors(
     diagnosis: DiagnosisResult,
     *,
-    client: AsyncAnthropic | None,
+    client: LLMClient | None,
     model: str,
 ) -> ExplainedDiagnosis:
     """Turns already-ranked, evidence-backed factors into consultant-facing
     prose. The LLM explains; it never re-ranks, invents a factor, or cites a
     record ID outside what that factor already cited (llm-rules.md,
     reasoning-rules.md: "the LLM explains evidence; it is not the source of
-    truth"). A missing client, an API failure, or a schema/citation violation
-    all fall back to the deterministic summary — the diagnosis is always
-    usable even when the LLM step fails outright."""
+    truth"). A missing client, a request failure, or a schema/citation
+    violation all fall back to the deterministic summary — the diagnosis is
+    always usable even when the LLM step fails outright."""
     if not diagnosis.factors:
         return ExplainedDiagnosis(
             target_source_id=diagnosis.target_source_id, explained_factors=[], gaps=diagnosis.gaps
@@ -95,18 +109,15 @@ async def explain_factors(
     )
 
     try:
-        response = await client.messages.create(
-            model=model,
-            max_tokens=1024,
-            system=_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_content}],
-        )
-        text = getattr(response.content[0], "text", None)
-        if text is None:
-            raise TypeError("expected a text response block")
-        parsed = json.loads(text)
+        raw_text = await client.complete(model=model, system=_SYSTEM_PROMPT, user=user_content)
+        parsed = json.loads(raw_text)
+        if isinstance(parsed, dict):
+            # Small models sometimes return a bare object instead of a
+            # single-element array when there's only one factor — a
+            # recoverable shape, not a reason to fall back wholesale.
+            parsed = [parsed]
         explanations = [FactorExplanation.model_validate(item) for item in parsed]
-    except (json.JSONDecodeError, ValidationError, IndexError, KeyError, AnthropicError, TypeError):
+    except (json.JSONDecodeError, ValidationError, TypeError, LLMRequestError):
         return _fallback(
             diagnosis,
             Gap(
