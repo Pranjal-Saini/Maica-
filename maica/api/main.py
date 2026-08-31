@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from maica.api.errors import ingest_validation_error_handler
-from maica.api.routes import health, uploads
+from maica.api.routes import analyses, health, uploads
 from maica.config.logging import configure_logging
 from maica.evidence.db import get_engine
 from maica.ingest.errors import IngestValidationError
@@ -22,6 +22,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(uploads.router)
+    app.include_router(analyses.router)
     app.add_exception_handler(IngestValidationError, ingest_validation_error_handler)
 
     return app
