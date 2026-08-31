@@ -1,4 +1,5 @@
 import json
+from collections.abc import Sequence
 from typing import Literal, Protocol
 
 from pydantic import BaseModel, ValidationError
@@ -58,6 +59,36 @@ class ExplainedDiagnosis(BaseModel):
     gaps: list[Gap]
 
 
+def factors_to_user_content(factors: Sequence[Factor]) -> str:
+    """The exact JSON shape sent to the model for one batch of factors — a
+    single source of truth so training-data generation and the eval harness
+    build requests identically to production, never a hand-copied variant."""
+    return json.dumps(
+        [
+            {
+                "factor_rank": f.rank,
+                "label": f.label.value,
+                "summary": f.summary,
+                "supporting_source_ids": f.supporting_source_ids,
+            }
+            for f in factors
+        ]
+    )
+
+
+def parse_explanations(raw_text: str) -> list[FactorExplanation]:
+    """Parses and schema-validates one model response. Repairs a bare object
+    into a single-element array (small models sometimes drop the array
+    wrapper when there's only one factor) but otherwise raises
+    json.JSONDecodeError / ValidationError / TypeError on malformed input —
+    callers decide how to react. Split out from explain_factors so an eval
+    harness can measure raw model output before fallback logic hides it."""
+    parsed = json.loads(raw_text)
+    if isinstance(parsed, dict):
+        parsed = [parsed]
+    return [FactorExplanation.model_validate(item) for item in parsed]
+
+
 def _fallback(diagnosis: DiagnosisResult, extra_gap: Gap) -> ExplainedDiagnosis:
     return ExplainedDiagnosis(
         target_source_id=diagnosis.target_source_id,
@@ -96,27 +127,11 @@ async def explain_factors(
             ),
         )
 
-    user_content = json.dumps(
-        [
-            {
-                "factor_rank": f.rank,
-                "label": f.label.value,
-                "summary": f.summary,
-                "supporting_source_ids": f.supporting_source_ids,
-            }
-            for f in diagnosis.factors
-        ]
-    )
+    user_content = factors_to_user_content(diagnosis.factors)
 
     try:
         raw_text = await client.complete(model=model, system=_SYSTEM_PROMPT, user=user_content)
-        parsed = json.loads(raw_text)
-        if isinstance(parsed, dict):
-            # Small models sometimes return a bare object instead of a
-            # single-element array when there's only one factor — a
-            # recoverable shape, not a reason to fall back wholesale.
-            parsed = [parsed]
-        explanations = [FactorExplanation.model_validate(item) for item in parsed]
+        explanations = parse_explanations(raw_text)
     except (json.JSONDecodeError, ValidationError, TypeError, LLMRequestError):
         return _fallback(
             diagnosis,
