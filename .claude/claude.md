@@ -86,6 +86,26 @@ transaction, try to trace it.
 
 _Last updated 28 August 2026._
 
+## Phase A — Beta polish (current focus)
+
+Steps 1-6 of the build order are built and working end to end (upload → normalize
+→ graph → reasoning v0 → LLM explanation → report UI), but this is being treated
+as a **Beta**, not a finished Phase A. Phase B (the OAuth 2.0 connector) is
+deliberately on hold until Phase A is fully built out — do not start Path B work
+without an explicit decision to do so.
+
+Remaining Phase A work, in rough priority order:
+1. More upload parsers (script deployment list, workflow definition, execution
+   log) — the current reasoning output is thin because it only has transaction
+   snapshots to work with.
+2. Real LLM verification with a configured `ANTHROPIC_API_KEY` — narration has
+   only been proven via its fallback path so far.
+3. Real app login (session cookies + argon2, per the decided stack) replacing the
+   dev-only `X-Tenant-Id` header.
+4. A dashboard/home page listing analyses for a tenant.
+5. UI polish and broader test coverage with messier real-world-shaped exports.
+6. Git remote + CI verification; Docker build verification once available.
+
 ## Rules
 
 @rules/product.md
