@@ -1,0 +1,4 @@
+Internal ID,Date,Type,Name,Amount,Account,Memo
+1001,1/15/2026,Journal Entry,Acme Corp,1500.00,4000 - Revenue,Monthly accrual
+1002,1/16/2026,Journal Entry,Acme Corp,-1500.00,2100 - AP,Reversal
+1003,1/17/2026,Invoice,Beta LLC,2200.50,4000 - Revenue,Q1 invoice

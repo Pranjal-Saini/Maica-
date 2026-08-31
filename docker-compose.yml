@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: maica
+      POSTGRES_PASSWORD: maica
+      POSTGRES_DB: maica
+    ports:
+      - "5432:5432"
+    volumes:
+      - maica_pgdata:/var/lib/postgresql/data
+
+volumes:
+  maica_pgdata:

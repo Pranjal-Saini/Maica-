@@ -1,0 +1,15 @@
+# NetSuite Transaction Impact Analysis
+
+A production-grade, read-only SaaS application that connects to NetSuite, collects available transaction and customization evidence, reconstructs transaction timelines, analyzes system impact, and helps consultants investigate issues. The system is designed for reliability, traceability, and evidence-based analysis.
+
+@rules/commands.md
+@rules/architecture.md
+@rules/data-rules.md
+@rules/reasoning-rules.md
+@rules/conventions.md
+@rules/security.md
+@rules/connector-rules.md
+@rules/llm-rules.md
+@rules/hard-rules.md
+@rules/workflow.md
+@rules/tools-notes.md

@@ -1,0 +1,7 @@
+internalid,TranDate,transaction type,entity,amount,account,Memo,Custom Field 1
+
+1001,1/15/2026,Journal Entry,Acme Corp,1500.00,4000 - Revenue,Monthly accrual,foo
+,1/16/2026,Journal Entry,Acme Corp,-1500.00,2100 - AP,No internal id - drop me,bar
+
+1002,3/2026,Journal Entry,Acme Corp,900.00,4000 - Revenue,Unparseable date,baz
+1003,1/17/2026,Invoice,Beta LLC,2200.50,4000 - Revenue,Q1 invoice,qux
