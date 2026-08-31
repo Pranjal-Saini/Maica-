@@ -3,7 +3,8 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from maica.evidence.models import Analysis, RawEvidence, Tenant
+from maica.evidence.models import Analysis, RawEvidence, Record, Tenant
+from maica.evidence.normalizer import NormalizedRecordDraft
 from maica.ingest.interface import IngestResult
 
 # Every function here takes tenant_id explicitly and filters on it. There is no
@@ -69,3 +70,38 @@ async def get_raw_evidence(
     )
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
+
+
+async def store_records(
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    analysis_id: uuid.UUID,
+    raw_evidence_id: uuid.UUID,
+    drafts: list[NormalizedRecordDraft],
+) -> list[Record]:
+    records = [
+        Record(
+            tenant_id=tenant_id,
+            analysis_id=analysis_id,
+            raw_evidence_id=raw_evidence_id,
+            source_id=draft.source_id,
+            record_type=draft.record_type,
+            field_name=draft.field_name,
+            old_value=draft.old_value,
+            new_value=draft.new_value,
+            actor=draft.actor,
+            occurred_at=draft.occurred_at,
+        )
+        for draft in drafts
+    ]
+    session.add_all(records)
+    await session.flush()
+    return records
+
+
+async def get_records_for_analysis(
+    session: AsyncSession, tenant_id: uuid.UUID, analysis_id: uuid.UUID
+) -> list[Record]:
+    stmt = select(Record).where(Record.tenant_id == tenant_id, Record.analysis_id == analysis_id)
+    result = await session.execute(stmt)
+    return list(result.scalars().all())

@@ -12,7 +12,7 @@ from maica.api.deps import get_db_session
 from maica.api.main import create_app
 from maica.config.settings import get_settings
 from maica.evidence.db import Base
-from maica.evidence.models import Analysis, RawEvidence, Tenant
+from maica.evidence.models import Analysis, RawEvidence, Record, Tenant
 
 
 @pytest.fixture(scope="session")
@@ -31,6 +31,7 @@ async def db_session(_schema: None) -> AsyncGenerator[AsyncSession, None]:
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     async with session_factory() as session:
         yield session
+        await session.execute(delete(Record))
         await session.execute(delete(RawEvidence))
         await session.execute(delete(Analysis))
         await session.execute(delete(Tenant))

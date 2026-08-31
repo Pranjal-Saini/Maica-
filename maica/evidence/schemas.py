@@ -45,3 +45,22 @@ class RawEvidenceRead(BaseModel):
     request_made: dict
     understood_summary: UnderstoodSummary
     unavailable_reason: str | None
+
+
+class RecordRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    source_id: str
+    record_type: str | None
+    field_name: str
+    old_value: str | None
+    new_value: str | None
+    actor: str | None
+    occurred_at: datetime | None
+
+
+class UploadResponse(BaseModel):
+    raw_evidence: RawEvidenceRead
+    records_created: int
+    normalization_notes: list[str] = []
