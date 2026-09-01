@@ -26,7 +26,7 @@ class _ScriptedClient:
         self._responses = responses
         self.calls = 0
 
-    async def complete(self, *, model: str, system: str, user: str) -> str:
+    async def complete(self, *, model: str, system: str, user: str, json_mode: bool = True) -> str:
         response = self._responses[self.calls]
         self.calls += 1
         return response

@@ -33,12 +33,12 @@ class _FakeClient:
     def __init__(self, response_text: str) -> None:
         self._response_text = response_text
 
-    async def complete(self, *, model: str, system: str, user: str) -> str:
+    async def complete(self, *, model: str, system: str, user: str, json_mode: bool = True) -> str:
         return self._response_text
 
 
 class _RaisingClient:
-    async def complete(self, *, model: str, system: str, user: str) -> str:
+    async def complete(self, *, model: str, system: str, user: str, json_mode: bool = True) -> str:
         raise LLMRequestError("network exploded")
 
 
@@ -50,7 +50,7 @@ class _ScriptedClient:
         self._responses = responses
         self.calls: list[str] = []
 
-    async def complete(self, *, model: str, system: str, user: str) -> str:
+    async def complete(self, *, model: str, system: str, user: str, json_mode: bool = True) -> str:
         self.calls.append(user)
         response = self._responses[len(self.calls) - 1]
         return response

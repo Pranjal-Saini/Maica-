@@ -36,9 +36,14 @@ class LLMRequestError(Exception):
 
 class LLMClient(Protocol):
     """One interface any local or hosted model can implement, so this module
-    never depends on a specific provider's SDK."""
+    never depends on a specific provider's SDK.
 
-    async def complete(self, *, model: str, system: str, user: str) -> str: ...
+    json_mode constrains the reply to valid JSON — needed by the narrator,
+    but callers wanting prose (the grounded chat) must turn it off."""
+
+    async def complete(
+        self, *, model: str, system: str, user: str, json_mode: bool = True
+    ) -> str: ...
 
 
 class FactorExplanation(BaseModel):

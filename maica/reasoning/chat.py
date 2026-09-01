@@ -133,6 +133,7 @@ async def answer_question(
             model=model,
             system=_SYSTEM_PROMPT,
             user=_build_user_content(evidence_context, history, question),
+            json_mode=False,  # this answer is prose for a human, not a parsed schema
         )
     except LLMRequestError:
         return ChatAnswer(

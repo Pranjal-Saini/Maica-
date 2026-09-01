@@ -11,22 +11,25 @@ class OllamaClient:
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
 
-    async def complete(self, *, model: str, system: str, user: str) -> str:
+    async def complete(self, *, model: str, system: str, user: str, json_mode: bool = True) -> str:
+        payload: dict[str, object] = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "stream": False,
+            "think": False,
+        }
+        if json_mode:
+            # Constrains the model to emit valid JSON. Right for the narrator,
+            # wrong for prose answers — without the switch, chat replies come
+            # back as raw JSON objects instead of sentences.
+            payload["format"] = "json"
+
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as http_client:
-                response = await http_client.post(
-                    f"{self._base_url}/api/chat",
-                    json={
-                        "model": model,
-                        "messages": [
-                            {"role": "system", "content": system},
-                            {"role": "user", "content": user},
-                        ],
-                        "stream": False,
-                        "format": "json",
-                        "think": False,
-                    },
-                )
+                response = await http_client.post(f"{self._base_url}/api/chat", json=payload)
                 response.raise_for_status()
                 data = response.json()
                 return str(data["message"]["content"])
