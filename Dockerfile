@@ -7,6 +7,11 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
+# The venv is already synced (production deps only) at build time; without
+# this, `uv run` re-syncs at container start and pulls in the dev group
+# (mypy, ruff, ...) that --no-dev deliberately excluded.
+ENV UV_NO_SYNC=1
+
 COPY maica ./maica
 COPY migrations ./migrations
 COPY alembic.ini ./
