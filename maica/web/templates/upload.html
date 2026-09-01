@@ -3,46 +3,170 @@
 <head>
   <meta charset="utf-8" />
   <title>MAICA — Upload evidence</title>
-  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-900 p-8">
-  <div class="max-w-xl mx-auto">
-    <h1 class="text-xl font-semibold mb-4">Upload evidence</h1>
-    {% if analysis_id %}
-    <p class="text-sm text-gray-500 mb-4">Adding to analysis {{ analysis_id }}</p>
-    {% endif %}
-    <form hx-encoding="multipart/form-data" hx-post="/tenants/{{ tenant_id }}/uploads"
-          hx-target="#result" class="space-y-4">
+  <div class="max-w-3xl mx-auto grid gap-8 md:grid-cols-2">
+
+    <!-- Upload -->
+    <div>
+      <p class="mb-4">
+        <a class="text-blue-700 underline" href="/tenants/{{ tenant_id }}/analyses">&larr; Back to analyses</a>
+      </p>
+      <h1 class="text-xl font-semibold mb-4">Upload evidence</h1>
       {% if analysis_id %}
-      <input type="hidden" name="analysis_id" value="{{ analysis_id }}" />
+      <p class="text-sm text-gray-500 mb-4">Adding to analysis {{ analysis_id }}</p>
       {% endif %}
-      <div>
-        <label class="block text-sm font-medium mb-1" for="evidence_type">Evidence type</label>
-        <select id="evidence_type" name="evidence_type" class="border rounded px-2 py-1">
-          <option value="saved_search_csv">Saved-search CSV export</option>
-          <option value="system_notes_csv">System Notes export</option>
-        </select>
+
+      <form id="upload-form" class="space-y-4">
+        {% if analysis_id %}
+        <input type="hidden" name="analysis_id" value="{{ analysis_id }}" />
+        {% endif %}
+        <div>
+          <label class="block text-sm font-medium mb-1" for="evidence_type">Evidence type</label>
+          <select id="evidence_type" name="evidence_type" class="border rounded px-2 py-1 w-full">
+            <option value="auto">Detect automatically (recommended)</option>
+            <option value="saved_search_csv">Saved-search CSV export</option>
+            <option value="system_notes_csv">System Notes export</option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">
+            Auto-detect reads each file's column headers, so you can select several
+            different export types at once.
+          </p>
+        </div>
+        <input type="file" name="files" accept=".csv" class="block" multiple required />
+        <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded">Upload</button>
+      </form>
+
+      <div id="upload-status" class="mt-4 text-sm"></div>
+      <div id="upload-result" class="mt-4 space-y-2 text-sm"></div>
+      <p id="view-records" class="mt-4"></p>
+    </div>
+
+    <!-- Grounded chat -->
+    <div class="border rounded p-4 bg-white flex flex-col" style="min-height: 26rem;">
+      <h2 class="text-lg font-medium">Ask about this evidence</h2>
+      <p class="text-xs text-gray-500 mb-3">
+        Answers come only from the evidence in this analysis — it will say so when
+        the evidence doesn't cover something, rather than guessing about NetSuite.
+      </p>
+
+      <div id="chat-log" class="flex-1 overflow-y-auto space-y-3 text-sm mb-3"></div>
+
+      <div id="chat-disabled" class="text-sm text-gray-500">
+        Upload evidence first, then you can ask questions about it here.
       </div>
-      <input type="file" name="file" accept=".csv" class="block" required />
-      <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded">Upload</button>
-    </form>
-    <p id="view-records" class="mt-4"></p>
-    <pre id="result" class="mt-6 text-sm whitespace-pre-wrap"></pre>
+
+      <form id="chat-form" class="hidden gap-2">
+        <input id="chat-input" type="text" placeholder="e.g. what changed on record 1001?"
+               class="border rounded px-2 py-1 flex-1" required />
+        <button type="submit" class="bg-gray-900 text-white px-3 py-1 rounded">Ask</button>
+      </form>
+    </div>
   </div>
+
   <script>
-    document.body.addEventListener("htmx:afterRequest", function (event) {
-      if (event.detail.elt.tagName !== "FORM") return;
+    const tenantId = "{{ tenant_id }}";
+    let analysisId = {% if analysis_id %}"{{ analysis_id }}"{% else %}null{% endif %};
+    const history = [];
+
+    function enableChat() {
+      document.getElementById("chat-disabled").classList.add("hidden");
+      const form = document.getElementById("chat-form");
+      form.classList.remove("hidden");
+      form.classList.add("flex");
+    }
+
+    if (analysisId) enableChat();
+
+    // --- Upload ---
+    document.getElementById("upload-form").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const form = event.target;
+      const data = new FormData(form);
+
+      document.getElementById("upload-status").textContent = "Uploading…";
+      document.getElementById("upload-result").innerHTML = "";
+
       try {
-        var body = JSON.parse(event.detail.xhr.responseText);
-        var tenantId = body.raw_evidence.tenant_id;
-        var analysisId = body.raw_evidence.analysis_id;
-        document.getElementById("view-records").innerHTML =
-          '<a class="text-blue-700 underline" href="/tenants/' + tenantId + '/analyses/' +
-          analysisId + '/records">' +
-          "View records for this analysis &rarr;</a>";
-      } catch (e) {
-        document.getElementById("view-records").innerHTML = "";
+        const response = await fetch("/tenants/" + tenantId + "/uploads", {
+          method: "POST",
+          body: data,
+        });
+        const body = await response.json();
+        document.getElementById("upload-status").textContent = "";
+
+        const results = document.getElementById("upload-result");
+        (body.files || []).forEach(function (file) {
+          const div = document.createElement("div");
+          if (file.unrecognised_reason) {
+            div.className = "border rounded p-2 bg-amber-50";
+            div.innerHTML = "<strong>" + file.filename + "</strong> — not recognised<br>" +
+              '<span class="text-gray-600">' + file.unrecognised_reason + "</span>";
+          } else {
+            const s = file.raw_evidence.understood_summary;
+            div.className = "border rounded p-2 bg-white";
+            div.innerHTML = "<strong>" + file.filename + "</strong> — " + file.evidence_type +
+              "<br><span class='text-gray-600'>" + s.rows_understood + " rows understood, " +
+              s.rows_skipped + " skipped, " + file.records_created + " records created</span>";
+          }
+          results.appendChild(div);
+        });
+
+        if (body.analysis_id) {
+          analysisId = body.analysis_id;
+          enableChat();
+          document.getElementById("view-records").innerHTML =
+            '<a class="text-blue-700 underline" href="/tenants/' + tenantId + '/analyses/' +
+            analysisId + '/records">View records for this analysis &rarr;</a>';
+        }
+      } catch (err) {
+        document.getElementById("upload-status").textContent = "Upload failed: " + err;
+      }
+    });
+
+    // --- Chat ---
+    function appendMessage(role, text) {
+      const log = document.getElementById("chat-log");
+      const div = document.createElement("div");
+      div.className = role === "user"
+        ? "text-right"
+        : "text-left";
+      div.innerHTML = '<span class="inline-block rounded px-2 py-1 ' +
+        (role === "user" ? "bg-gray-900 text-white" : "bg-gray-100") + '">' +
+        text.replace(/</g, "&lt;") + "</span>";
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+      return div;
+    }
+
+    document.getElementById("chat-form").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const input = document.getElementById("chat-input");
+      const question = input.value.trim();
+      if (!question || !analysisId) return;
+
+      appendMessage("user", question);
+      input.value = "";
+      const pending = appendMessage("assistant", "Thinking… (this model takes a few seconds)");
+
+      try {
+        const response = await fetch(
+          "/tenants/" + tenantId + "/analyses/" + analysisId + "/chat",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: question, history: history }),
+          }
+        );
+        const body = await response.json();
+        pending.remove();
+        appendMessage("assistant", body.answer);
+        history.push({ role: "user", content: question });
+        history.push({ role: "assistant", content: body.answer });
+      } catch (err) {
+        pending.remove();
+        appendMessage("assistant", "Could not reach the assistant: " + err);
       }
     });
   </script>

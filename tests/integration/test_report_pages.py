@@ -17,9 +17,9 @@ async def test_records_list_page_links_to_report(
 
     upload_response = await client.post(
         f"/tenants/{tenant_id}/uploads",
-        files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
+        files={"files": ("saved_search_clean.csv", csv_bytes, "text/csv")},
     )
-    analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
+    analysis_id = upload_response.json()["analysis_id"]
 
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records")
 
@@ -48,9 +48,9 @@ async def test_report_page_renders_factors_gaps_and_next_step(
 
     upload_response = await client.post(
         f"/tenants/{tenant_id}/uploads",
-        files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
+        files={"files": ("saved_search_clean.csv", csv_bytes, "text/csv")},
     )
-    analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
+    analysis_id = upload_response.json()["analysis_id"]
 
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
 
@@ -74,9 +74,9 @@ async def test_report_page_for_record_with_no_correlations(
 
     upload_response = await client.post(
         f"/tenants/{tenant_id}/uploads",
-        files={"file": ("solo.csv", csv_bytes, "text/csv")},
+        files={"files": ("solo.csv", csv_bytes, "text/csv")},
     )
-    analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
+    analysis_id = upload_response.json()["analysis_id"]
 
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/5001/report")
 

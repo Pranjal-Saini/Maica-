@@ -1,6 +1,12 @@
 from datetime import UTC, datetime
 
-from maica.ingest.csv_utils import build_dict_reader, decode_text, normalize_header, try_parse_date
+from maica.ingest.csv_utils import (
+    build_dict_reader,
+    decode_text,
+    normalize_header,
+    score_header_row,
+    try_parse_date,
+)
 from maica.ingest.interface import IngestRequestMeta, IngestResult, IngestSource
 
 # NetSuite System Notes subtab / saved-search export columns, per Oracle docs
@@ -35,6 +41,9 @@ class SystemNotesCsvSource(IngestSource):
     execution context). Tolerant of extra columns, renamed headers, blank
     rows, and partial/unparsed dates, matching the saved-search CSV parser's
     approach — nothing is silently dropped or guessed."""
+
+    def header_match_score(self, raw_input: bytes) -> int:
+        return score_header_row(raw_input, _HEADER_ALIASES)
 
     def ingest(self, raw_input: bytes) -> IngestResult:
         request = IngestRequestMeta(

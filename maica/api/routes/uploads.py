@@ -6,10 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from maica.api.deps import get_authorized_tenant_id, get_db_session
 from maica.evidence import repository
+from maica.evidence.models import Analysis
 from maica.evidence.normalizer import get_normalizer
-from maica.evidence.schemas import RawEvidenceRead, UploadResponse
+from maica.evidence.schemas import FileUploadResult, RawEvidenceRead, UploadResponse
 from maica.ingest.errors import IngestValidationError
-from maica.ingest.registry import get_ingest_source
+from maica.ingest.registry import AUTO_DETECT, detect_evidence_type, get_ingest_source
 from maica.web.templating import templates
 
 router = APIRouter()
@@ -26,25 +27,38 @@ async def upload_form(
     )
 
 
-@router.post("/tenants/{tenant_id}/uploads", response_model=UploadResponse)
-async def upload_saved_search(
-    file: UploadFile,
-    evidence_type: str = Form("saved_search_csv"),
-    analysis_id: uuid.UUID | None = Form(None),
-    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
-    session: AsyncSession = Depends(get_db_session),
-) -> UploadResponse:
-    ingest_source = get_ingest_source(evidence_type)
-    if ingest_source is None:
-        raise IngestValidationError(f"unknown evidence_type '{evidence_type}'")
+async def _ingest_one_file(
+    session: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    analysis: Analysis,
+    filename: str,
+    raw_input: bytes,
+    evidence_type: str,
+) -> FileUploadResult:
+    if not raw_input.strip():
+        return FileUploadResult(
+            filename=filename,
+            evidence_type=None,
+            unrecognised_reason="This file is empty — nothing to read.",
+        )
 
-    raw_input = await file.read()
+    resolved_type = (
+        detect_evidence_type(raw_input) if evidence_type == AUTO_DETECT else evidence_type
+    )
+    if resolved_type is None:
+        return FileUploadResult(
+            filename=filename,
+            evidence_type=None,
+            unrecognised_reason=(
+                "Could not tell which kind of NetSuite export this is from its column "
+                "headers. Pick the evidence type explicitly, or check the file is a "
+                "saved-search or System Notes export."
+            ),
+        )
 
-    analysis = None
-    if analysis_id is not None:
-        analysis = await repository.get_analysis(session, tenant_id, analysis_id)
-    if analysis is None:
-        analysis = await repository.create_analysis(session, tenant_id, created_by="upload")
+    ingest_source = get_ingest_source(resolved_type)
+    assert ingest_source is not None  # evidence_type is validated by the route
 
     ingest_result = ingest_source.ingest(raw_input)
     raw_evidence = await repository.store_raw_evidence(
@@ -60,10 +74,55 @@ async def upload_saved_search(
         records_created = norm_result.records_created
         normalization_notes = norm_result.notes
 
-    await session.commit()
-
-    return UploadResponse(
+    return FileUploadResult(
+        filename=filename,
+        evidence_type=resolved_type,
         raw_evidence=RawEvidenceRead.model_validate(raw_evidence),
         records_created=records_created,
         normalization_notes=normalization_notes,
+    )
+
+
+@router.post("/tenants/{tenant_id}/uploads", response_model=UploadResponse)
+async def upload_evidence(
+    files: list[UploadFile],
+    evidence_type: str = Form(AUTO_DETECT),
+    analysis_id: uuid.UUID | None = Form(None),
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
+    session: AsyncSession = Depends(get_db_session),
+) -> UploadResponse:
+    """Accepts one or more exports in a single upload. Each file's evidence
+    type is detected from its own headers by default, so a saved-search export
+    and a System Notes export can be dropped together and land in the same
+    analysis."""
+    if evidence_type != AUTO_DETECT and get_ingest_source(evidence_type) is None:
+        raise IngestValidationError(f"unknown evidence_type '{evidence_type}'")
+
+    analysis = None
+    if analysis_id is not None:
+        analysis = await repository.get_analysis(session, tenant_id, analysis_id)
+    if analysis is None:
+        analysis = await repository.create_analysis(session, tenant_id, created_by="upload")
+
+    results: list[FileUploadResult] = []
+    for upload in files:
+        raw_input = await upload.read()
+        results.append(
+            await _ingest_one_file(
+                session,
+                tenant_id=tenant_id,
+                analysis=analysis,
+                filename=upload.filename or "(unnamed)",
+                raw_input=raw_input,
+                evidence_type=evidence_type,
+            )
+        )
+
+    await session.commit()
+
+    return UploadResponse(
+        analysis_id=analysis.id,
+        tenant_id=tenant_id,
+        files=results,
+        records_created=sum(r.records_created for r in results),
     )

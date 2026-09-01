@@ -1,6 +1,12 @@
 from datetime import UTC, datetime
 
-from maica.ingest.csv_utils import build_dict_reader, decode_text, normalize_header, try_parse_date
+from maica.ingest.csv_utils import (
+    build_dict_reader,
+    decode_text,
+    normalize_header,
+    score_header_row,
+    try_parse_date,
+)
 from maica.ingest.interface import IngestRequestMeta, IngestResult, IngestSource
 
 # Known NetSuite saved-search export header variants -> normalized field name.
@@ -35,6 +41,9 @@ class CsvSavedSearchSource(IngestSource):
     """Parses a NetSuite saved-search CSV export. Tolerant of extra columns,
     renamed headers, blank rows, and partial/unparsed dates — nothing is
     silently dropped or guessed; unusable rows are named in skip_reasons."""
+
+    def header_match_score(self, raw_input: bytes) -> int:
+        return score_header_row(raw_input, _HEADER_ALIASES)
 
     def ingest(self, raw_input: bytes) -> IngestResult:
         request = IngestRequestMeta(

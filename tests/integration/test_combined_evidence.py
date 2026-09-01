@@ -17,20 +17,20 @@ async def test_uploading_system_notes_into_existing_analysis_combines_evidence(
     first_response = await client.post(
         f"/tenants/{tenant_id}/uploads",
         data={"evidence_type": "saved_search_csv"},
-        files={"file": ("saved_search_clean.csv", saved_search_bytes, "text/csv")},
+        files={"files": ("saved_search_clean.csv", saved_search_bytes, "text/csv")},
     )
-    analysis_id = first_response.json()["raw_evidence"]["analysis_id"]
+    analysis_id = first_response.json()["analysis_id"]
 
     system_notes_bytes = (FIXTURES / "system_notes_clean.csv").read_bytes()
     second_response = await client.post(
         f"/tenants/{tenant_id}/uploads",
         data={"evidence_type": "system_notes_csv", "analysis_id": analysis_id},
-        files={"file": ("system_notes_clean.csv", system_notes_bytes, "text/csv")},
+        files={"files": ("system_notes_clean.csv", system_notes_bytes, "text/csv")},
     )
 
     assert second_response.status_code == 200
     second_body = second_response.json()
-    assert second_body["raw_evidence"]["analysis_id"] == analysis_id
+    assert second_body["analysis_id"] == analysis_id
     assert second_body["records_created"] == 3
 
     factors_response = await client.get(
@@ -57,7 +57,7 @@ async def test_upload_with_unknown_evidence_type_is_rejected(
     response = await client.post(
         f"/tenants/{tenant_id}/uploads",
         data={"evidence_type": "not_a_real_type"},
-        files={"file": ("whatever.csv", b"a,b\n1,2\n", "text/csv")},
+        files={"files": ("whatever.csv", b"a,b\n1,2\n", "text/csv")},
     )
 
     assert response.status_code == 422

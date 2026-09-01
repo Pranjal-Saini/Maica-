@@ -17,9 +17,9 @@ async def test_graph_endpoint_renders_shared_field_relationships(
 
     upload_response = await client.post(
         f"/tenants/{tenant_id}/uploads",
-        files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
+        files={"files": ("saved_search_clean.csv", csv_bytes, "text/csv")},
     )
-    analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
+    analysis_id = upload_response.json()["analysis_id"]
 
     graph_response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/graph")
 
@@ -49,9 +49,9 @@ async def test_graph_endpoint_enforces_tenant_isolation(
 
     upload_response = await client.post(
         f"/tenants/{tenant_id}/uploads",
-        files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
+        files={"files": ("saved_search_clean.csv", csv_bytes, "text/csv")},
     )
-    analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
+    analysis_id = upload_response.json()["analysis_id"]
 
     other_tenant_id = "00000000-0000-0000-0000-000000000099"
     other_tenant_response = await client.get(

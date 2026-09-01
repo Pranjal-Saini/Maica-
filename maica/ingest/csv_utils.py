@@ -41,3 +41,23 @@ def try_parse_date(value: str) -> str | None:
 def build_dict_reader(text: str) -> csv.DictReader:
     dialect = sniff_dialect(text)
     return csv.DictReader(io.StringIO(text), dialect=dialect)
+
+
+def score_header_row(raw_input: bytes, alias_map: dict[str, str]) -> int:
+    """Counts how many of the file's header columns are names this alias map
+    knows. Never raises — an undecodable or headerless file scores 0 — so it
+    is safe to call speculatively on an unknown upload."""
+    try:
+        text = decode_text(raw_input)
+    except IngestValidationError:
+        return 0
+    if not text.strip():
+        return 0
+
+    reader = build_dict_reader(text)
+    if not reader.fieldnames:
+        return 0
+
+    return sum(
+        1 for raw in reader.fieldnames if re.sub(r"\s+", " ", raw.strip().lower()) in alias_map
+    )

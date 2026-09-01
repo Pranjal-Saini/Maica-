@@ -15,10 +15,21 @@ from tests.conftest import create_tenant, login_as, logout, signup_with_tenant
 @pytest.fixture
 def google_configured(monkeypatch: pytest.MonkeyPatch):  # noqa: ANN201
     """Scopes a fake Google client id/secret to one test, then releases the
-    cached Settings singleton so later tests see the real (unconfigured)
-    environment again."""
+    cached Settings singleton so later tests re-read the environment."""
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "test-client-secret")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+@pytest.fixture
+def google_not_configured(monkeypatch: pytest.MonkeyPatch):  # noqa: ANN201
+    """Forces the unconfigured state explicitly. Without this these tests would
+    silently depend on the developer's own .env having no Google credentials —
+    which broke the moment real ones were added locally."""
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -45,7 +56,9 @@ async def test_dashboard_requires_login(client: AsyncClient) -> None:
     assert response.status_code == 401
 
 
-async def test_login_page_hides_google_button_when_not_configured(client: AsyncClient) -> None:
+async def test_login_page_hides_google_button_when_not_configured(
+    client: AsyncClient, google_not_configured: None
+) -> None:
     response = await client.get("/login")
 
     assert response.status_code == 200
@@ -73,7 +86,9 @@ async def test_google_login_redirects_to_google_with_state(
     assert "state=" in location
 
 
-async def test_google_login_shows_error_when_not_configured(client: AsyncClient) -> None:
+async def test_google_login_shows_error_when_not_configured(
+    client: AsyncClient, google_not_configured: None
+) -> None:
     response = await client.get("/auth/google/login")
 
     assert response.status_code == 503

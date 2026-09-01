@@ -60,7 +60,21 @@ class RecordRead(BaseModel):
     occurred_at: datetime | None
 
 
-class UploadResponse(BaseModel):
-    raw_evidence: RawEvidenceRead
-    records_created: int
+class FileUploadResult(BaseModel):
+    """One uploaded file's outcome. A file whose type could not be recognised
+    reports that in `unrecognised_reason` and is skipped, rather than being
+    guessed at and normalized into the wrong shape."""
+
+    filename: str
+    evidence_type: str | None
+    unrecognised_reason: str | None = None
+    raw_evidence: RawEvidenceRead | None = None
+    records_created: int = 0
     normalization_notes: list[str] = []
+
+
+class UploadResponse(BaseModel):
+    analysis_id: UUID
+    tenant_id: UUID
+    files: list[FileUploadResult]
+    records_created: int

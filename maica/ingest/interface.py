@@ -42,3 +42,14 @@ class IngestSource(ABC):
         the input is so broken nothing can be extracted at all.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def header_match_score(self, raw_input: bytes) -> int:
+        """How many of this source's known column names the file's header row
+        contains. Used to auto-detect which parser a given upload belongs to
+        when the caller doesn't say — a new source participates in detection
+        just by implementing this, with no change to the registry.
+
+        Must never raise: an unreadable or headerless file scores 0.
+        """
+        raise NotImplementedError

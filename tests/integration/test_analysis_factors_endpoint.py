@@ -16,9 +16,9 @@ async def test_factors_endpoint_returns_ranked_uncertain_factors_and_gaps(
 
     upload_response = await client.post(
         f"/tenants/{tenant_id}/uploads",
-        files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
+        files={"files": ("saved_search_clean.csv", csv_bytes, "text/csv")},
     )
-    analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
+    analysis_id = upload_response.json()["analysis_id"]
 
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/factors")
 
@@ -38,9 +38,9 @@ async def test_factors_endpoint_for_unknown_source_id(
 
     upload_response = await client.post(
         f"/tenants/{tenant_id}/uploads",
-        files={"file": ("saved_search_clean.csv", csv_bytes, "text/csv")},
+        files={"files": ("saved_search_clean.csv", csv_bytes, "text/csv")},
     )
-    analysis_id = upload_response.json()["raw_evidence"]["analysis_id"]
+    analysis_id = upload_response.json()["analysis_id"]
 
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/9999/factors")
 
