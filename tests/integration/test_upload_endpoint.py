@@ -1,14 +1,17 @@
 from pathlib import Path
 
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest import signup_with_tenant
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
 
-async def test_upload_stores_raw_evidence_with_provenance(client: AsyncClient) -> None:
-    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+async def test_upload_stores_raw_evidence_with_provenance(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_messy.csv").read_bytes()
 
     response = await client.post(
@@ -30,8 +33,10 @@ async def test_upload_stores_raw_evidence_with_provenance(client: AsyncClient) -
     assert any("unparseable" in note for note in body["normalization_notes"])
 
 
-async def test_upload_of_empty_file_reports_unavailable(client: AsyncClient) -> None:
-    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+async def test_upload_of_empty_file_reports_unavailable(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
 
     response = await client.post(
         f"/tenants/{tenant_id}/uploads",
@@ -44,8 +49,10 @@ async def test_upload_of_empty_file_reports_unavailable(client: AsyncClient) -> 
     assert body["records_created"] == 0
 
 
-async def test_upload_rejected_for_tenant_without_access(client: AsyncClient) -> None:
-    await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+async def test_upload_rejected_for_tenant_without_access(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
 
     other_client_tenant_id = "00000000-0000-0000-0000-000000000099"
     response = await client.post(

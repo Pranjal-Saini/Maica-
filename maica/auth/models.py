@@ -10,15 +10,21 @@ from maica.evidence.db import Base
 
 
 class User(Base):
-    """A consultant's login. One User can access multiple client accounts
-    (Tenants) via UserTenantAccess — a consulting firm works across clients,
-    not one login per client."""
+    """A consultant's login, authenticated via Google Sign-In only — there is
+    no password. One User can access multiple client accounts (Tenants) via
+    UserTenantAccess — a consulting firm works across clients, not one login
+    per client.
+
+    google_sub (Google's stable, unique subject identifier) is the true
+    identity, not email — Google's own guidance is that email can change
+    while sub does not."""
 
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    google_sub: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     email: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 

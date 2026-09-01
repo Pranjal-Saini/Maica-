@@ -2,14 +2,17 @@ import uuid
 from pathlib import Path
 
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest import signup_with_tenant
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
 
-async def test_graph_endpoint_renders_shared_field_relationships(client: AsyncClient) -> None:
-    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+async def test_graph_endpoint_renders_shared_field_relationships(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
     upload_response = await client.post(
@@ -27,8 +30,10 @@ async def test_graph_endpoint_renders_shared_field_relationships(client: AsyncCl
     assert "account = '4000 - Revenue' (shared with 1003)" in text
 
 
-async def test_graph_endpoint_for_analysis_with_no_records(client: AsyncClient) -> None:
-    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+async def test_graph_endpoint_for_analysis_with_no_records(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
 
     response = await client.get(f"/tenants/{tenant_id}/analyses/{uuid.uuid4()}/graph")
 
@@ -36,8 +41,10 @@ async def test_graph_endpoint_for_analysis_with_no_records(client: AsyncClient) 
     assert response.text == "No records found for this analysis."
 
 
-async def test_graph_endpoint_enforces_tenant_isolation(client: AsyncClient) -> None:
-    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+async def test_graph_endpoint_enforces_tenant_isolation(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
     upload_response = await client.post(

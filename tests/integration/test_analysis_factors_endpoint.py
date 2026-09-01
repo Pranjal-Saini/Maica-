@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest import signup_with_tenant
 
@@ -8,9 +9,9 @@ FIXTURES = Path(__file__).parent.parent / "fixtures"
 
 
 async def test_factors_endpoint_returns_ranked_uncertain_factors_and_gaps(
-    client: AsyncClient,
+    client: AsyncClient, db_session: AsyncSession
 ) -> None:
-    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
     upload_response = await client.post(
@@ -29,8 +30,10 @@ async def test_factors_endpoint_returns_ranked_uncertain_factors_and_gaps(
     assert any("configuration-change evidence" in g["description"] for g in body["gaps"])
 
 
-async def test_factors_endpoint_for_unknown_source_id(client: AsyncClient) -> None:
-    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+async def test_factors_endpoint_for_unknown_source_id(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
     upload_response = await client.post(

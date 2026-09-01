@@ -13,7 +13,7 @@
         <button type="submit" class="text-sm text-gray-500 underline">Log out</button>
       </form>
     </div>
-    <p class="text-sm text-gray-500 mb-4">Signed in as {{ user.email }}</p>
+    <p class="text-sm text-gray-500 mb-4">Signed in as {{ user.name or user.email }}</p>
 
     {% if tenants %}
     <ul class="space-y-2">

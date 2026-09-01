@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from maica.auth.google_oauth import GoogleUserInfo
 from maica.auth.models import User, UserTenantAccess
 from maica.evidence.models import Tenant
 
@@ -17,11 +18,32 @@ async def get_user_by_id(session: AsyncSession, user_id: uuid.UUID) -> User | No
     return await session.get(User, user_id)
 
 
-async def create_user(session: AsyncSession, email: str, password_hash: str) -> User:
-    user = User(email=email, password_hash=password_hash)
+async def get_user_by_google_sub(session: AsyncSession, google_sub: str) -> User | None:
+    stmt = select(User).where(User.google_sub == google_sub)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def create_user(
+    session: AsyncSession, *, google_sub: str, email: str, name: str | None
+) -> User:
+    user = User(google_sub=google_sub, email=email, name=name)
     session.add(user)
     await session.flush()
     return user
+
+
+async def get_or_create_user_from_google(
+    session: AsyncSession, google_user: GoogleUserInfo
+) -> User:
+    """The find-or-create step for Google Sign-In: google_sub is the durable
+    identity, so an existing user is matched on that, not on email."""
+    existing = await get_user_by_google_sub(session, google_user.sub)
+    if existing is not None:
+        return existing
+    return await create_user(
+        session, google_sub=google_user.sub, email=google_user.email, name=google_user.name
+    )
 
 
 async def create_tenant_for_user(session: AsyncSession, user_id: uuid.UUID, name: str) -> Tenant:

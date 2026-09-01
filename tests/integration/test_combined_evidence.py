@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest import signup_with_tenant
 
@@ -8,9 +9,9 @@ FIXTURES = Path(__file__).parent.parent / "fixtures"
 
 
 async def test_uploading_system_notes_into_existing_analysis_combines_evidence(
-    client: AsyncClient,
+    client: AsyncClient, db_session: AsyncSession
 ) -> None:
-    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
 
     saved_search_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
     first_response = await client.post(
@@ -48,8 +49,10 @@ async def test_uploading_system_notes_into_existing_analysis_combines_evidence(
     )
 
 
-async def test_upload_with_unknown_evidence_type_is_rejected(client: AsyncClient) -> None:
-    tenant_id = await signup_with_tenant(client, "consultant@example.com", "Acme Corp")
+async def test_upload_with_unknown_evidence_type_is_rejected(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
 
     response = await client.post(
         f"/tenants/{tenant_id}/uploads",

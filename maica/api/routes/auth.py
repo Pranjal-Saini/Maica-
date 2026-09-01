@@ -4,58 +4,91 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from maica.api.deps import get_current_user, get_db_session
 from maica.auth import repository as auth_repository
+from maica.auth.google_oauth import (
+    GoogleOAuthError,
+    build_authorization_url,
+    exchange_code_for_user_info,
+    generate_state,
+)
 from maica.auth.models import User
-from maica.auth.security import hash_password, verify_password
+from maica.config.settings import get_settings
 from maica.web.templating import templates
 
 router = APIRouter()
 
 
-@router.get("/signup", response_class=HTMLResponse)
-async def signup_form(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "signup.html", {"error": None})
+@router.get("/login", response_class=HTMLResponse)
+async def login_form(request: Request) -> HTMLResponse:
+    settings = get_settings()
+    google_configured = bool(settings.google_client_id and settings.google_client_secret)
+    return templates.TemplateResponse(
+        request, "login.html", {"error": None, "google_configured": google_configured}
+    )
 
 
-@router.post("/signup", response_model=None)
-async def signup(
-    request: Request,
-    email: str = Form(...),
-    password: str = Form(...),
-    session: AsyncSession = Depends(get_db_session),
-) -> HTMLResponse | RedirectResponse:
-    existing = await auth_repository.get_user_by_email(session, email)
-    if existing is not None:
+@router.get("/auth/google/login", response_model=None)
+async def google_login(request: Request) -> HTMLResponse | RedirectResponse:
+    settings = get_settings()
+    if not (settings.google_client_id and settings.google_client_secret):
         return templates.TemplateResponse(
             request,
-            "signup.html",
-            {"error": "An account with that email already exists."},
+            "login.html",
+            {
+                "error": "Google Sign-In is not configured yet on this server.",
+                "google_configured": False,
+            },
+            status_code=503,
+        )
+
+    state = generate_state()
+    request.session["oauth_state"] = state
+    url = build_authorization_url(
+        client_id=settings.google_client_id,
+        redirect_uri=settings.google_redirect_uri,
+        state=state,
+    )
+    return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/auth/google/callback", response_model=None)
+async def google_callback(
+    request: Request,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse | RedirectResponse:
+    settings = get_settings()
+    expected_state = request.session.pop("oauth_state", None)
+    google_configured = bool(settings.google_client_id and settings.google_client_secret)
+
+    def _login_error(message: str) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {"error": message, "google_configured": google_configured},
             status_code=400,
         )
 
-    user = await auth_repository.create_user(session, email, hash_password(password))
-    await session.commit()
-    request.session["user_id"] = str(user.id)
-    return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    if error:
+        return _login_error("Google sign-in was cancelled or denied.")
+    if not code or not state or not expected_state or state != expected_state:
+        return _login_error("Sign-in request could not be verified. Please try again.")
+    if not (settings.google_client_id and settings.google_client_secret):
+        return _login_error("Google Sign-In is not configured yet on this server.")
 
-
-@router.get("/login", response_class=HTMLResponse)
-async def login_form(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "login.html", {"error": None})
-
-
-@router.post("/login", response_model=None)
-async def login(
-    request: Request,
-    email: str = Form(...),
-    password: str = Form(...),
-    session: AsyncSession = Depends(get_db_session),
-) -> HTMLResponse | RedirectResponse:
-    user = await auth_repository.get_user_by_email(session, email)
-    if user is None or not verify_password(password, user.password_hash):
-        return templates.TemplateResponse(
-            request, "login.html", {"error": "Incorrect email or password."}, status_code=400
+    try:
+        google_user = await exchange_code_for_user_info(
+            code=code,
+            client_id=settings.google_client_id,
+            client_secret=settings.google_client_secret,
+            redirect_uri=settings.google_redirect_uri,
         )
+    except GoogleOAuthError:
+        return _login_error("Google sign-in failed. Please try again.")
 
+    user = await auth_repository.get_or_create_user_from_google(session, google_user)
+    await session.commit()
     request.session["user_id"] = str(user.id)
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 

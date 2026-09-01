@@ -8,17 +8,13 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from maica.api.deps import get_db_session, get_llm_client
+from maica.api.deps import get_current_user, get_db_session, get_llm_client
 from maica.api.main import create_app
-from maica.auth.models import (  # noqa: F401 - registers tables on Base.metadata
-    User,
-    UserTenantAccess,
-)
+from maica.auth import repository as auth_repository
+from maica.auth.models import User, UserTenantAccess
 from maica.config.settings import get_settings
 from maica.evidence.db import Base
 from maica.evidence.models import Analysis, RawEvidence, Record, Tenant
-
-DEFAULT_PASSWORD = "correct horse battery staple"  # noqa: S105 - test fixture only
 
 
 @pytest.fixture(scope="session")
@@ -68,14 +64,34 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        ac.app_for_tests = app  # type: ignore[attr-defined]  # see login_as() below
         yield ac
 
 
-async def signup(client: AsyncClient, email: str, password: str = DEFAULT_PASSWORD) -> None:
-    """Signs up and logs in as a fresh user, leaving the session cookie set on
-    the given client for subsequent requests."""
-    response = await client.post("/signup", data={"email": email, "password": password})
-    assert response.status_code == 303, response.text
+async def login_as(client: AsyncClient, db_session: AsyncSession, email: str) -> User:
+    """Test-only shortcut that bypasses the real Google OAuth redirect flow:
+    creates (or reuses) a user directly and overrides get_current_user so
+    every subsequent request on this client is authenticated as them. Real
+    Google Sign-In itself (state CSRF check, code exchange, user
+    creation/matching) is covered separately in test_auth.py against mocked
+    Google endpoints — most tests don't care how the user got authenticated,
+    only what they can/can't then do."""
+    user = await auth_repository.get_user_by_email(db_session, email)
+    if user is None:
+        user = await auth_repository.create_user(
+            db_session, google_sub=f"test-sub:{email}", email=email, name=None
+        )
+        await db_session.commit()
+
+    async def _override_get_current_user() -> User:
+        return user
+
+    client.app_for_tests.dependency_overrides[get_current_user] = _override_get_current_user  # type: ignore[attr-defined]
+    return user
+
+
+async def logout(client: AsyncClient) -> None:
+    client.app_for_tests.dependency_overrides.pop(get_current_user, None)  # type: ignore[attr-defined]
 
 
 async def create_tenant(client: AsyncClient, name: str) -> str:
@@ -87,6 +103,8 @@ async def create_tenant(client: AsyncClient, name: str) -> str:
     return location.split("/")[2]
 
 
-async def signup_with_tenant(client: AsyncClient, email: str, tenant_name: str) -> str:
-    await signup(client, email)
+async def signup_with_tenant(
+    client: AsyncClient, db_session: AsyncSession, email: str, tenant_name: str
+) -> str:
+    await login_as(client, db_session, email)
     return await create_tenant(client, tenant_name)

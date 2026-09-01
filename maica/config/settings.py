@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     # Signs the session cookie. Must be overridden via env var outside development —
     # anyone with this value can forge a session.
     session_secret_key: str = "dev-insecure-secret-change-in-production"
+    # Google OAuth (the only sign-in method). None until set — callers must
+    # degrade gracefully (hide the sign-in option) rather than treat a
+    # missing value as an error.
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_redirect_uri: str = "http://127.0.0.1:8000/auth/google/callback"
 
 
 @lru_cache
