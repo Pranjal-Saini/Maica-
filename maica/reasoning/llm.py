@@ -100,6 +100,21 @@ def _fallback(diagnosis: DiagnosisResult, extra_gap: Gap) -> ExplainedDiagnosis:
     )
 
 
+async def _explain_one_factor(
+    factor: Factor, *, client: LLMClient, model: str
+) -> FactorExplanation | None:
+    """One model call for exactly one factor. Returns None on any request or
+    schema failure — the caller falls back to that single factor's
+    deterministic summary rather than losing the whole batch to one bad call."""
+    user_content = factors_to_user_content([factor])
+    try:
+        raw_text = await client.complete(model=model, system=_SYSTEM_PROMPT, user=user_content)
+        explanations = parse_explanations(raw_text)
+    except (json.JSONDecodeError, ValidationError, TypeError, LLMRequestError):
+        return None
+    return next((e for e in explanations if e.factor_rank == factor.rank), None)
+
+
 async def explain_factors(
     diagnosis: DiagnosisResult,
     *,
@@ -112,7 +127,13 @@ async def explain_factors(
     reasoning-rules.md: "the LLM explains evidence; it is not the source of
     truth"). A missing client, a request failure, or a schema/citation
     violation all fall back to the deterministic summary — the diagnosis is
-    always usable even when the LLM step fails outright."""
+    always usable even when the LLM step fails outright.
+
+    Calls the model once per factor rather than once for the whole batch.
+    Live testing showed a single-factor call is reliable but the model can
+    drop items when asked to return several array entries at once — one call
+    per factor sidesteps that failure mode entirely instead of working around
+    it, at the cost of N sequential calls instead of one."""
     if not diagnosis.factors:
         return ExplainedDiagnosis(
             target_source_id=diagnosis.target_source_id, explained_factors=[], gaps=diagnosis.gaps
@@ -127,28 +148,10 @@ async def explain_factors(
             ),
         )
 
-    user_content = factors_to_user_content(diagnosis.factors)
-
-    try:
-        raw_text = await client.complete(model=model, system=_SYSTEM_PROMPT, user=user_content)
-        explanations = parse_explanations(raw_text)
-    except (json.JSONDecodeError, ValidationError, TypeError, LLMRequestError):
-        return _fallback(
-            diagnosis,
-            Gap(
-                description="LLM explanations could not be generated for these factors.",
-                reason=(
-                    "The model call failed or returned output that did not match the "
-                    "required schema."
-                ),
-            ),
-        )
-
-    explanation_by_rank = {e.factor_rank: e for e in explanations}
     explained_factors: list[ExplainedFactor] = []
     any_fallback = False
     for factor in diagnosis.factors:
-        candidate = explanation_by_rank.get(factor.rank)
+        candidate = await _explain_one_factor(factor, client=client, model=model)
         cites_only_known_ids = candidate is not None and set(candidate.cited_source_ids).issubset(
             set(factor.supporting_source_ids)
         )

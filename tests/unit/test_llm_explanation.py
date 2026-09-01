@@ -16,6 +16,19 @@ def _diagnosis_with_one_factor() -> DiagnosisResult:
     return DiagnosisResult(target_source_id="1001", factors=[factor], gaps=[])
 
 
+def _diagnosis_with_n_factors(n: int) -> DiagnosisResult:
+    factors = [
+        Factor(
+            label=FactorLabel.UNCERTAIN,
+            rank=i,
+            summary=f"summary {i}",
+            supporting_source_ids=["1001", f"200{i}"],
+        )
+        for i in range(1, n + 1)
+    ]
+    return DiagnosisResult(target_source_id="1001", factors=factors, gaps=[])
+
+
 class _FakeClient:
     def __init__(self, response_text: str) -> None:
         self._response_text = response_text
@@ -27,6 +40,20 @@ class _FakeClient:
 class _RaisingClient:
     async def complete(self, *, model: str, system: str, user: str) -> str:
         raise LLMRequestError("network exploded")
+
+
+class _ScriptedClient:
+    """Returns one pre-scripted response per call, in order — lets a test
+    make factor 2's call fail while factor 1's and 3's succeed."""
+
+    def __init__(self, responses: list[str]) -> None:
+        self._responses = responses
+        self.calls: list[str] = []
+
+    async def complete(self, *, model: str, system: str, user: str) -> str:
+        self.calls.append(user)
+        response = self._responses[len(self.calls) - 1]
+        return response
 
 
 async def test_no_client_falls_back_to_rule_based_summary() -> None:
@@ -105,7 +132,7 @@ async def test_malformed_json_falls_back() -> None:
     result = await explain_factors(diagnosis, client=client, model=_MODEL)
 
     assert result.explained_factors[0].explanation_source == "fallback"
-    assert any("could not be generated" in g.description for g in result.gaps)
+    assert any("fell back" in g.description for g in result.gaps)
 
 
 async def test_request_failure_falls_back() -> None:
@@ -114,6 +141,41 @@ async def test_request_failure_falls_back() -> None:
     result = await explain_factors(diagnosis, client=_RaisingClient(), model=_MODEL)
 
     assert result.explained_factors[0].explanation_source == "fallback"
+
+
+async def test_multi_factor_diagnosis_makes_one_call_per_factor() -> None:
+    diagnosis = _diagnosis_with_n_factors(3)
+    responses = [
+        json.dumps([{"factor_rank": i, "explanation": f"e{i}", "cited_source_ids": ["1001"]}])
+        for i in range(1, 4)
+    ]
+    client = _ScriptedClient(responses)
+
+    result = await explain_factors(diagnosis, client=client, model=_MODEL)
+
+    assert len(client.calls) == 3
+    assert all(ef.explanation_source == "llm" for ef in result.explained_factors)
+    assert [ef.explanation for ef in result.explained_factors] == ["e1", "e2", "e3"]
+
+
+async def test_one_bad_factor_call_does_not_affect_the_others() -> None:
+    # This is the whole point of calling per-factor instead of batching: a
+    # single bad response only costs that one factor, not the entire batch.
+    diagnosis = _diagnosis_with_n_factors(3)
+    responses = [
+        json.dumps([{"factor_rank": 1, "explanation": "e1", "cited_source_ids": ["1001"]}]),
+        "not json at all — this call fails",
+        json.dumps([{"factor_rank": 3, "explanation": "e3", "cited_source_ids": ["1001"]}]),
+    ]
+    client = _ScriptedClient(responses)
+
+    result = await explain_factors(diagnosis, client=client, model=_MODEL)
+
+    assert len(client.calls) == 3
+    sources = [ef.explanation_source for ef in result.explained_factors]
+    assert sources == ["llm", "fallback", "llm"]
+    assert result.explained_factors[1].explanation == diagnosis.factors[1].summary
+    assert any("fell back" in g.description for g in result.gaps)
 
 
 async def test_no_factors_short_circuits_without_touching_client() -> None:
