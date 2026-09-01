@@ -17,6 +17,15 @@ from maica.web.templating import templates
 router = APIRouter()
 
 
+@router.get("/")
+async def root(request: Request) -> RedirectResponse:
+    """Sends visitors somewhere useful instead of a bare 404. Reads the
+    session directly rather than depending on get_current_user, which raises
+    401 for anonymous visitors — here we just want to point them at login."""
+    destination = "/dashboard" if request.session.get("user_id") else "/login"
+    return RedirectResponse(url=destination, status_code=status.HTTP_302_FOUND)
+
+
 @router.get("/login", response_class=HTMLResponse)
 async def login_form(request: Request) -> HTMLResponse:
     settings = get_settings()

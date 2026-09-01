@@ -56,6 +56,30 @@ async def test_dashboard_requires_login(client: AsyncClient) -> None:
     assert response.status_code == 401
 
 
+async def test_root_redirects_anonymous_visitor_to_login(client: AsyncClient) -> None:
+    # Regression: "/" used to 404, which is what a first-time visitor typing
+    # the bare host would hit.
+    response = await client.get("/")
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "/login"
+
+
+@respx.mock
+async def test_root_redirects_signed_in_user_to_dashboard(
+    client: AsyncClient, google_configured: None
+) -> None:
+    _mock_google_endpoints(sub="google-sub-root", email="consultant@example.com")
+    login_response = await client.get("/auth/google/login")
+    state = _extract_state(login_response.headers["location"])
+    await client.get("/auth/google/callback", params={"code": "fake-code", "state": state})
+
+    response = await client.get("/")
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "/dashboard"
+
+
 async def test_login_page_hides_google_button_when_not_configured(
     client: AsyncClient, google_not_configured: None
 ) -> None:
