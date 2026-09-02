@@ -7,9 +7,10 @@ class OllamaClient:
     """Talks to a local Ollama server's /api/chat endpoint. Implements the
     LLMClient protocol structurally — no shared base class needed."""
 
-    def __init__(self, base_url: str, timeout: float = 180.0) -> None:
+    def __init__(self, base_url: str, timeout: float = 180.0, context_tokens: int = 16384) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
+        self._context_tokens = context_tokens
 
     async def complete(self, *, model: str, system: str, user: str, json_mode: bool = True) -> str:
         payload: dict[str, object] = {
@@ -20,6 +21,10 @@ class OllamaClient:
             ],
             "stream": False,
             "think": False,
+            # Ollama's default context window is a few thousand tokens whatever
+            # the model supports, and it truncates silently past that. Set it
+            # explicitly or a long evidence bundle is quietly cut in half.
+            "options": {"num_ctx": self._context_tokens},
         }
         if json_mode:
             # Constrains the model to emit valid JSON. Right for the narrator,

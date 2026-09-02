@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     # report is still narrating its factors queues behind them. 60s was too tight
     # for that and surfaced as a spurious 'could not be reached'.
     llm_timeout_seconds: float = 180.0
+    # Ollama defaults num_ctx to a few thousand tokens regardless of what the model
+    # supports, and silently truncates anything longer. A truncated evidence bundle
+    # made the model state that a record was absent when it was in the prompt — the
+    # worst failure this tool can have, so the window is always set explicitly.
+    llm_context_tokens: int = 16384
     # Signs the session cookie. Must be overridden via env var outside development —
     # anyone with this value can forge a session.
     session_secret_key: str = "dev-insecure-secret-change-in-production"

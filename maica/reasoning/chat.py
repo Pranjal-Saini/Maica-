@@ -28,12 +28,13 @@ _MAX_HISTORY_TURNS = 6
 #: bundle so the model can say the view is partial rather than imply it is all.
 MAX_RECORDS_IN_CHAT_CONTEXT = 40
 
-#: Hard ceiling on the bundle, in characters. Roughly 15k tokens, which leaves
-#: room for the system prompt and an answer inside a small local model's
-#: context. Without it a 5,000-record account produced a 900,000-character
-#: bundle that silently overflowed the window — the model would have answered
-#: from whatever fragment survived, with no way to tell.
-_MAX_CONTEXT_CHARS = 60_000
+#: Hard ceiling on the bundle, in characters — roughly 11k tokens, which sits
+#: comfortably inside the 16k window `llm_context_tokens` asks Ollama for, with
+#: room left for the system prompt and the answer. Without it a 5,000-record
+#: account produced a 900,000-character bundle that silently overflowed the
+#: window: the model answered from whatever fragment survived, with no way for
+#: anyone to tell it had only seen a fragment.
+_MAX_CONTEXT_CHARS = 45_000
 
 #: Only the top-ranked factors per record travel to the model. Lower-ranked
 #: ones are, by construction, the ones the ranking already judged weakest.

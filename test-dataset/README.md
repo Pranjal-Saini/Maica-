@@ -98,12 +98,19 @@ worry:
 | One factor cited **1,696 supporting records** | No cap | Capped at 25 |
 | **167 of 208 factors** were `INSUFFICIENT_EVIDENCE` | The "routine value" threshold was a fixed count of 5, tuned on the 8-row sample | Threshold is now the value's rarity *in this analysis*, not a fixed count |
 | One record produced **32 factors** | Every shared value became a factor, including currency and subsidiary | Structural values (>25% of records) are reported as a gap; correlations capped at the 5 most specific, the rest declared |
-| Evidence bundle was **225,000 tokens** against a 41k window | Nothing bounded it; it overflowed in silence | Hard 60,000-character budget, with what was left out stated in the bundle |
+| Evidence bundle was **225,000 tokens** against a 41k window | Nothing bounded it; it overflowed in silence | Hard 45,000-character budget, with what was left out stated in the bundle |
+| The model said the focus record **was not in the evidence** when it was | Ollama defaults `num_ctx` to a few thousand tokens whatever the model supports, and truncates past it silently | `num_ctx` is now always set explicitly (`llm_context_tokens`) |
 | The bundle held 40 alphabetically-first strangers | No notion of which record was being looked at | The record on screen is analysed first, then the ones it is actually correlated with |
 
 After the fixes, on the same data: longest summary **526 characters**, most
 supporting IDs **26**, worst record **19 factors**, chat context built in
-**3.3 seconds** and 58,519 characters.
+**3.3 seconds**.
+
+The last row is the one worth dwelling on. Every other failure was visible —
+a slow page, a wall of text, a useless label. That one was silent and
+confident: asked what changed on the record the consultant had open, the
+model replied that the record was not in the data at all. It was, first in
+the bundle. Only the prompt had been cut.
 
 ### What this does not settle
 

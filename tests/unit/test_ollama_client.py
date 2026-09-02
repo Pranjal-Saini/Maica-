@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 import respx
@@ -98,3 +100,20 @@ async def test_connection_failure_is_not_reported_as_a_timeout() -> None:
     with pytest.raises(LLMRequestError) as exc_info:
         await client.complete(model="qwen3:8b", system="sys", user="usr")
     assert not isinstance(exc_info.value, LLMTimeoutError)
+
+
+@respx.mock
+async def test_context_window_is_always_set_explicitly() -> None:
+    # Ollama defaults num_ctx to a few thousand tokens whatever the model
+    # supports and truncates silently past it. Left unset, a long evidence
+    # bundle was cut short and the model reported a record as absent when it
+    # was in the prompt.
+    route = respx.post("http://localhost:11434/api/chat").mock(
+        return_value=httpx.Response(200, json={"message": {"content": "ok"}})
+    )
+    client = OllamaClient(base_url="http://localhost:11434", context_tokens=16384)
+
+    await client.complete(model="qwen3:8b", system="sys", user="usr")
+
+    payload = json.loads(route.calls[0].request.content)
+    assert payload["options"]["num_ctx"] == 16384

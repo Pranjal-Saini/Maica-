@@ -167,7 +167,7 @@ def test_evidence_bundle_stays_inside_a_model_context_window() -> None:
 
     context = build_evidence_context([], diagnoses, records_in_analysis=5000)
 
-    assert len(context) <= 60_000
+    assert len(context) <= 45_000
     assert len(json.loads(context)["analysed_records"]) < len(diagnoses)
 
 
