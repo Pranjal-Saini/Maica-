@@ -10,14 +10,24 @@
   "CONFIRMED": "bg-lime text-ink",
   "LIKELY": "bg-lav text-ink",
   "UNCERTAIN": "bg-amber-100 text-amber-800",
-  "INSUFFICIENT_EVIDENCE": "bg-gray-100 text-gray-600"
+  "INSUFFICIENT_EVIDENCE": "bg-gray-100 text-gray-500"
 } %}
+{% set label_meanings = {
+  "CONFIRMED": "the change is documented in the audit trail — you can open this record in NetSuite and see it",
+  "LIKELY": "the change is recorded, but the entry is incomplete",
+  "UNCERTAIN": "a real correlation, but nothing shows the records influenced each other",
+  "INSUFFICIENT_EVIDENCE": "too widely shared to isolate this transaction — supports no conclusion"
+} %}
+{% set counts = {} %}
+{% for factor in factors %}
+  {%- if counts.update({factor.label: counts.get(factor.label, 0) + 1}) %}{% endif -%}
+{% endfor %}
 
 <div class="grid gap-4 lg:grid-cols-3">
 
   <!-- Ranked factors -->
   <section class="lg:col-span-2">
-    <div class="mb-3 flex items-center gap-3">
+    <div class="mb-3 flex flex-wrap items-center gap-3">
       <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400">Contributing factors</h2>
       {% if factors %}
       <span id="narration-status" class="text-[11px] text-gray-400">writing plain-language summaries…</span>
@@ -25,6 +35,14 @@
     </div>
 
     {% if factors %}
+    <div class="mb-4 flex flex-wrap gap-2">
+      {% for label, count in counts.items() %}
+      <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold {{ label_styles.get(label, 'bg-gray-100') }}">
+        {{ count }} {{ label }}
+      </span>
+      {% endfor %}
+    </div>
+
     <ol class="space-y-3">
       {% for factor in factors %}
       <li class="rounded-3xl border border-gray-200 p-5" data-rank="{{ factor.rank }}">
@@ -36,16 +54,61 @@
                        {{ label_styles.get(factor.label, 'bg-gray-100 text-gray-600') }}">
             {{ factor.label }}
           </span>
+          <span class="text-[11px] text-gray-400">{{ label_meanings.get(factor.label, "") }}</span>
         </div>
 
         <p class="factor-explanation mt-3 leading-relaxed">{{ factor.summary }}</p>
 
-        <p class="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-gray-400">
-          <span>Supporting records:</span>
-          {% for supporting_id in factor.supporting_source_ids %}
-          <span class="rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-gray-600">{{ supporting_id }}</span>
-          {% endfor %}
-        </p>
+        {% if factor.evidence %}
+        <div class="mt-4 rounded-2xl bg-gray-50 p-3">
+          <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+            Evidence — check these rows in NetSuite
+          </p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-gray-400">
+                <tr>
+                  <th class="pb-1 pr-3 font-medium">Record</th>
+                  <th class="pb-1 pr-3 font-medium">Field</th>
+                  <th class="pb-1 pr-3 font-medium">From</th>
+                  <th class="pb-1 pr-3 font-medium">To</th>
+                  <th class="pb-1 pr-3 font-medium">Actor</th>
+                  <th class="pb-1 pr-3 font-medium">Context</th>
+                  <th class="pb-1 font-medium">When</th>
+                </tr>
+              </thead>
+              <tbody class="align-top">
+                {% for item in factor.evidence %}
+                <tr class="border-t border-gray-200">
+                  <td class="py-1.5 pr-3 font-mono">{{ item.source_id }}</td>
+                  <td class="py-1.5 pr-3">{{ item.field_name }}</td>
+                  <td class="py-1.5 pr-3">
+                    {% if item.old_value %}{{ item.old_value }}
+                    {% else %}<span class="text-gray-400">not recorded</span>{% endif %}
+                  </td>
+                  <td class="py-1.5 pr-3">
+                    {% if item.new_value %}{{ item.new_value }}
+                    {% else %}<span class="text-gray-400">not recorded</span>{% endif %}
+                  </td>
+                  <td class="py-1.5 pr-3">
+                    {% if item.actor %}{{ item.actor }}
+                    {% else %}<span class="text-gray-400">not captured</span>{% endif %}
+                  </td>
+                  <td class="py-1.5 pr-3">
+                    {% if item.context %}{{ item.context }}
+                    {% else %}<span class="text-gray-400">—</span>{% endif %}
+                  </td>
+                  <td class="whitespace-nowrap py-1.5">
+                    {% if item.occurred_at %}{{ item.occurred_at.strftime("%d %b %Y %H:%M") }}
+                    {% else %}<span class="text-gray-400">no timestamp</span>{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
       </li>
       {% endfor %}
     </ol>
@@ -81,6 +144,28 @@
       {% else %}
       <p class="text-sm text-gray-500">Nothing was flagged as unavailable for this record.</p>
       {% endif %}
+    </section>
+
+    <section class="rounded-3xl border border-gray-200 p-5">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
+        What the labels mean
+      </h2>
+      <dl class="space-y-2.5 text-xs">
+        {% for label, meaning in label_meanings.items() %}
+        <div>
+          <dt class="mb-0.5">
+            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ label_styles[label] }}">
+              {{ label }}
+            </span>
+          </dt>
+          <dd class="leading-relaxed text-gray-500">{{ meaning }}.</dd>
+        </div>
+        {% endfor %}
+      </dl>
+      <p class="mt-3 border-t border-gray-100 pt-3 text-xs leading-relaxed text-gray-500">
+        A CONFIRMED label means the <strong>change</strong> is proven, never that it
+        caused the outcome. MAICA ranks where to look; the conclusion is yours.
+      </p>
     </section>
   </div>
 </div>

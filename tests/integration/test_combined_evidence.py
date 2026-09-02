@@ -40,7 +40,7 @@ async def test_uploading_system_notes_into_existing_analysis_combines_evidence(
 
     # 1001 has 2 field-change factors (Amount, Status) from system notes, plus
     # the pre-existing shared-value factors from the saved-search upload.
-    change_factors = [f for f in body["factors"] if "changed from" in f["summary"]]
+    change_factors = [f for f in body["factors"] if "went from" in f["summary"]]
     assert len(change_factors) == 2
     assert body["factors"][0] in change_factors  # change factors rank first
     assert not any(

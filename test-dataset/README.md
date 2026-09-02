@@ -26,19 +26,30 @@ The same `System` account reclassification also hit **4472** and **4473**.
 Journal **4475** reverses 4471's exact amount into deferred revenue, and credit
 memo **4477** credits it back in part.
 
-Uploading files 1-3 together gives record 4471 **eight ranked factors**, all
-`UNCERTAIN`: four field changes (memo, account, status, amount) and four
-shared-value correlations (account, status, entity). The `System` actor is
-described as "an automated process, not a specific person", and nothing is
-called a cause. That restraint is the product.
+Uploading files 1-3 together gives record 4471 **eight ranked factors**:
 
-### A known weakness this data exposes
+| Rank | Label | Factor |
+|---|---|---|
+| 1 | `CONFIRMED` | Account changed 4000 → 4010 by `System`, context `SCHEDULED` |
+| 2 | `CONFIRMED` | Status changed Pending Approval → Approved by `System` |
+| 3 | `CONFIRMED` | Amount changed 15,000 → 18,400 by `jsmith` |
+| 4 | `CONFIRMED` | Memo first set (populated, not altered — so ranked below the three above) |
+| 5-7 | `UNCERTAIN` | Account, Status and entity values shared with 2-4 other records |
+| 8 | `INSUFFICIENT_EVIDENCE` | Account shared with 6 records — routine, isolates nothing |
 
-The **memo** change ranks #1, above the account reclassification — so "next
-thing worth looking at" points at a memo being filled in, which is the least
-interesting event on the record. Ranking currently weighs recency and evidence
-type but not *which field* changed. A mis-posting is about the account, and the
-ranking does not know that yet.
+`CONFIRMED` means the **change** is proven by the audit trail, never that it
+caused the outcome — each summary says so explicitly, and every factor carries
+the underlying rows (field, from, to, actor, context, timestamp) so the
+consultant can check it in NetSuite. The `System` actor is described as "an
+automated process, not a specific person". That restraint is the product.
+
+### A known limitation this data exposes
+
+Ordering uses whether an existing value was altered, then recency. It does
+**not** weight fields by importance — nothing tells it an account matters more
+than a status for a mis-posting. That is a NetSuite domain judgement with no
+verified basis in the code yet, so the consultant makes it from the ranked
+list. Here it happens to come out right; on another account it may not.
 
 ## What each awkward row in file 3 is for
 

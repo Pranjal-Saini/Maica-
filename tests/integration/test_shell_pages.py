@@ -156,7 +156,7 @@ async def test_report_page_does_not_wait_on_the_language_model(
 
     text = response.text
     assert "UNCERTAIN" in text
-    assert "This is a correlation, not a confirmed cause" in text  # the rule-based wording
+    assert "Correlation only:" in text  # the rule-based wording, not the model's
     assert "records/1001/explain" in text  # narration is fetched, not awaited
 
 
@@ -200,3 +200,55 @@ async def test_chat_opens_as_a_full_tab_not_a_sized_popup(
 
     assert 'window.open(url, "maica-chat")' in response.text
     assert "width=460" not in response.text
+
+
+async def test_report_shows_the_rows_behind_each_factor(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # The trust problem: a bare "Supporting records: 4471" asks the consultant
+    # to take the ranking on faith. The actual field, values, actor, context
+    # and timestamp have to be on the page so they can check it in NetSuite.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    notes = (
+        b"Internal ID,Record Type,Date,Field,Old Value,New Value,Set By,Context,Type\n"
+        b"4471,Invoice,7/12/2026 09:15,Account,4000 - Product Revenue,"
+        b"4010 - Service Revenue,System,SCHEDULED,Change\n"
+    )
+    analysis_id = (
+        await client.post(
+            f"/tenants/{tenant_id}/uploads",
+            files={"files": ("notes.csv", notes, "text/csv")},
+        )
+    ).json()["analysis_id"]
+
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/4471/report")
+
+    text = response.text
+    assert "Evidence — check these rows in NetSuite" in text
+    assert "4000 - Product Revenue" in text
+    assert "4010 - Service Revenue" in text
+    assert "SCHEDULED" in text
+    assert "12 Jul 2026 09:15" in text
+
+
+async def test_report_states_that_confirmed_means_the_change_not_the_cause(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    notes = (
+        b"Internal ID,Record Type,Date,Field,Old Value,New Value,Set By,Context,Type\n"
+        b"4471,Invoice,7/12/2026 09:15,Account,4000,4010,System,SCHEDULED,Change\n"
+    )
+    analysis_id = (
+        await client.post(
+            f"/tenants/{tenant_id}/uploads",
+            files={"files": ("notes.csv", notes, "text/csv")},
+        )
+    ).json()["analysis_id"]
+
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/4471/report")
+
+    text = response.text
+    assert "CONFIRMED" in text
+    assert "never that it" in text and "caused the outcome" in text
+    assert "What the labels mean" in text

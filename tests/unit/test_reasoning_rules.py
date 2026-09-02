@@ -37,7 +37,9 @@ def test_diagnose_ranks_shared_field_factors_by_specificity() -> None:
 
     assert len(result.factors) == 2
     assert all(f.label == FactorLabel.UNCERTAIN for f in result.factors)
-    fields_mentioned = {f.summary.split(" = ")[0].split("Shares ")[1] for f in result.factors}
+    fields_mentioned = {
+        f.summary.split(" = ")[0].split("Correlation only: ")[1] for f in result.factors
+    }
     assert fields_mentioned == {"account", "entity"}
     assert [f.rank for f in result.factors] == [1, 2]
 
@@ -105,13 +107,19 @@ def _change_draft(
 
 
 def test_diagnose_surfaces_field_change_factor_from_change_evidence() -> None:
-    drafts = [_change_draft("1001", "Amount", "1500.00", "1800.00", "jsmith", "UIF")]
+    drafts = [
+        _change_draft(
+            "1001", "Amount", "1500.00", "1800.00", "jsmith", "UIF", datetime(2026, 7, 12, 9, 14)
+        )
+    ]
 
     result = diagnose(drafts, "1001")
 
     assert len(result.factors) == 1
-    assert result.factors[0].label == FactorLabel.UNCERTAIN
-    assert "Amount changed from '1500.00' to '1800.00'" in result.factors[0].summary
+    # Fully documented: actor and timestamp both present, so the change itself
+    # is proven — see test_change_label_tracks_how_documented_the_change_is.
+    assert result.factors[0].label == FactorLabel.CONFIRMED
+    assert "Amount went from '1500.00' to '1800.00'" in result.factors[0].summary
     assert "jsmith" in result.factors[0].summary
     assert not any(
         "No script, workflow, integration, or configuration-change evidence" in g.description
@@ -136,8 +144,8 @@ def test_diagnose_ranks_change_factors_most_recent_first() -> None:
 
     result = diagnose(drafts, "1001")
 
-    assert result.factors[0].summary.startswith("Amount")
-    assert result.factors[1].summary.startswith("Memo")
+    assert "Amount went from" in result.factors[0].summary
+    assert "Memo went from" in result.factors[1].summary
 
 
 def test_diagnose_ranks_change_factors_before_shared_value_factors() -> None:
@@ -148,4 +156,133 @@ def test_diagnose_ranks_change_factors_before_shared_value_factors() -> None:
 
     result = diagnose(drafts, "1001")
 
-    assert result.factors[0].summary.startswith("Amount changed")
+    assert "Amount went from" in result.factors[0].summary
+
+
+def test_change_label_tracks_how_documented_the_change_is() -> None:
+    """The strong label is earned by the completeness of the audit entry, not
+    by any judgement about cause. A row carrying old value, new value, actor
+    and timestamp is something the consultant can open in NetSuite and see for
+    themselves — that is what CONFIRMED claims, and all it claims."""
+    documented = _change_draft(
+        "1001", "Account", "4000", "4010", "System", "SCHEDULED", datetime(2026, 7, 12, 9, 15)
+    )
+    no_timestamp = _change_draft("1002", "Account", "4000", "4010", "System", "SCHEDULED")
+    no_actor = _change_draft("1003", "Account", "4000", "4010", None, None, datetime(2026, 7, 12))
+
+    assert diagnose([documented], "1001").factors[0].label == FactorLabel.CONFIRMED
+    assert diagnose([no_timestamp], "1002").factors[0].label == FactorLabel.LIKELY
+    assert diagnose([no_actor], "1003").factors[0].label == FactorLabel.LIKELY
+
+
+def test_a_confirmed_change_never_claims_it_caused_the_outcome() -> None:
+    # The whole basis for allowing CONFIRMED at all: the claim is scoped to the
+    # change, so the summary must keep saying causation is not established.
+    drafts = [
+        _change_draft(
+            "1001", "Account", "4000", "4010", "System", "SCHEDULED", datetime(2026, 7, 12, 9, 15)
+        )
+    ]
+
+    summary = diagnose(drafts, "1001").factors[0].label, diagnose(drafts, "1001").factors[0].summary
+
+    assert summary[0] == FactorLabel.CONFIRMED
+    assert "NOT established" in summary[1]
+    for causal_word in ("caused the outcome.", "led to", "resulted in", "because of"):
+        assert causal_word not in summary[1]
+
+
+def test_a_widely_shared_value_supports_no_conclusion() -> None:
+    # A GL account on half the ledger is routine. Ranking it as a lead pads the
+    # report with noise; INSUFFICIENT_EVIDENCE says so instead.
+    target = _change_draft("1001", "Account", "x", "4010 - Service Revenue", "jsmith")
+    others = [
+        _change_draft(str(2000 + i), "Account", "x", "4010 - Service Revenue", "jsmith")
+        for i in range(6)
+    ]
+
+    result = diagnose([target, *others], "1001")
+    correlations = [f for f in result.factors if "Correlation only" in f.summary]
+
+    assert correlations
+    assert correlations[0].label == FactorLabel.INSUFFICIENT_EVIDENCE
+    assert "no conclusion should be drawn" in correlations[0].summary
+
+
+def test_a_narrowly_shared_value_stays_an_uncertain_lead() -> None:
+    target = _change_draft("1001", "Account", "x", "4010 - Service Revenue", "jsmith")
+    other = _change_draft("1002", "Account", "x", "4010 - Service Revenue", "jsmith")
+
+    result = diagnose([target, other], "1001")
+    correlations = [f for f in result.factors if "Correlation only" in f.summary]
+
+    assert correlations[0].label == FactorLabel.UNCERTAIN
+    assert "not a finding" in correlations[0].summary
+
+
+def test_every_factor_carries_the_rows_it_rests_on() -> None:
+    # data-rules.md: every ranked factor must be traceable to stored evidence.
+    # A bare record ID is not traceability — the consultant needs the actual
+    # field, values, actor, context and timestamp to check it in NetSuite.
+    drafts = [
+        _change_draft(
+            "1001", "Account", "4000", "4010", "System", "SCHEDULED", datetime(2026, 7, 12, 9, 15)
+        ),
+        _change_draft(
+            "1002", "Account", "3900", "4010", "mchen", "UI", datetime(2026, 7, 12, 9, 41)
+        ),
+    ]
+
+    result = diagnose(drafts, "1001")
+
+    assert all(f.evidence for f in result.factors)
+    change = result.factors[0].evidence[0]
+    assert change.source_id == "1001"
+    assert change.field_name == "Account"
+    assert change.old_value == "4000"
+    assert change.new_value == "4010"
+    assert change.actor == "System"
+    assert change.context == "SCHEDULED"
+    assert change.occurred_at == datetime(2026, 7, 12, 9, 15)
+
+
+def test_correlation_evidence_includes_the_matching_row_on_the_other_record() -> None:
+    target = _change_draft("1001", "Account", "4000", "4010", "System", "SCH")
+    other = _change_draft("1002", "Account", "3900", "4010", "mchen", "UI")
+
+    result = diagnose([target, other], "1001")
+    correlation = next(f for f in result.factors if "Correlation only" in f.summary)
+
+    assert {e.source_id for e in correlation.evidence} == {"1001", "1002"}
+
+
+def test_altering_a_value_outranks_populating_an_empty_field() -> None:
+    """A memo filled in for the first time used to rank above an account
+    reclassification purely because it happened later, which sent "next thing
+    worth looking at" to the least interesting event on the record."""
+    memo_filled_in = _change_draft(
+        "1001", "Memo", "", "Q3 retainer", "jsmith", "UI", datetime(2026, 7, 12, 11, 2)
+    )
+    account_changed = _change_draft(
+        "1001", "Account", "4000", "4010", "System", "SCHEDULED", datetime(2026, 7, 12, 9, 15)
+    )
+
+    result = diagnose([memo_filled_in, account_changed], "1001")
+
+    assert "Account went from" in result.factors[0].summary
+    assert "Memo was first set to" in result.factors[1].summary
+    assert "not an existing value being altered" in result.factors[1].summary
+
+
+def test_recency_still_orders_changes_of_the_same_kind() -> None:
+    older = _change_draft(
+        "1001", "Status", "Pending", "Approved", "mchen", "UI", datetime(2026, 7, 12, 9, 10)
+    )
+    newer = _change_draft(
+        "1001", "Account", "4000", "4010", "System", "SCH", datetime(2026, 7, 12, 9, 15)
+    )
+
+    result = diagnose([older, newer], "1001")
+
+    assert "Account went from" in result.factors[0].summary
+    assert "Status went from" in result.factors[1].summary

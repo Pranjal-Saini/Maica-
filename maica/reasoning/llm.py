@@ -6,7 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from maica.reasoning.models import DiagnosisResult, Factor, Gap
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 
 _SYSTEM_PROMPT = f"""You are explaining pre-computed contributing factors for a \
 NetSuite transaction investigation, for a NetSuite consultant. You do not decide \
