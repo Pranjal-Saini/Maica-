@@ -1,8 +1,8 @@
 {#
   The chat launcher. The composer is docked to the bottom of the content area,
-  but the conversation itself opens in its own browser window — an inline
+  but the conversation itself opens in its own browser tab — an inline
   transcript covered the report it was meant to discuss. Anything typed here
-  is carried into that window, so nothing is retyped.
+  is carried into that tab, so nothing is retyped.
 
   Used on both the evidence page (where the analysis may not exist until the
   first upload lands) and the report page — upload code calls
@@ -33,7 +33,7 @@
       </button>
     </form>
     <p class="mt-2 text-center text-[11px] text-gray-500">
-      Opens in its own window. Answers come only from this analysis's evidence — it
+      Opens in its own tab. Answers come only from this analysis's evidence — it
       says so when the evidence doesn't cover something, rather than guessing.
     </p>
   </div>
@@ -76,7 +76,9 @@
         chatWindow.focus();
         return;
       }
-      chatWindow = window.open(url, "maica-chat", "width=460,height=780,noopener=no");
+      // No feature string: browsers open this as a normal tab rather than a
+      // sized popup. The window name keeps repeat clicks in the same tab.
+      chatWindow = window.open(url, "maica-chat");
       if (chatWindow) chatWindow.focus();
     }
 

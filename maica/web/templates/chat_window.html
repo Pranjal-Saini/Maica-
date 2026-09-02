@@ -1,7 +1,8 @@
 {#
-  The chat in its own browser window, opened from the composer on the report
-  and evidence pages. Deliberately not built on base.html — no sidebar, no
-  page header — so it can sit beside the report on a second monitor.
+  The chat in its own browser tab, opened from the composer on the report and
+  evidence pages. Deliberately not built on base.html — no sidebar, no page
+  header — so it can sit beside the report in a second window. Fills the tab,
+  with the conversation held to a readable column.
 #}
 <!doctype html>
 <html lang="en">
@@ -18,26 +19,30 @@
 </head>
 <body class="flex h-screen flex-col bg-canvas text-ink antialiased">
 
-  <header class="flex items-center gap-2.5 border-b border-black/5 bg-white px-4 py-3">
-    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">M</span>
-    <span class="min-w-0">
-      <span class="block text-sm font-semibold leading-tight">Ask about this evidence</span>
-      <span class="block truncate text-xs text-gray-400">
-        {% if tenant_name %}{{ tenant_name }} · {% endif %}Analysis {{ analysis_id }}
+  <header class="border-b border-black/5 bg-white">
+    <div class="mx-auto flex w-full max-w-3xl items-center gap-2.5 px-5 py-3.5">
+      <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">M</span>
+      <span class="min-w-0">
+        <span class="block text-sm font-semibold leading-tight">Ask about this evidence</span>
+        <span class="block truncate text-xs text-gray-400">
+          {% if tenant_name %}{{ tenant_name }} · {% endif %}Analysis {{ analysis_id }}
+        </span>
       </span>
-    </span>
+    </div>
   </header>
 
-  <div id="chat-log" class="flex-1 space-y-3 overflow-y-auto p-4 text-sm">
-    <p id="chat-empty" class="rounded-2xl bg-white p-4 text-gray-500">
-      Answers come only from this analysis's evidence — the records you uploaded, the
-      ranked factors and the gaps. When the evidence doesn't cover something it says
-      so, rather than guessing about NetSuite.
-    </p>
+  <div class="flex-1 overflow-y-auto">
+    <div id="chat-log" class="mx-auto w-full max-w-3xl space-y-3 px-5 py-6 text-sm">
+      <p id="chat-empty" class="rounded-2xl bg-white p-5 leading-relaxed text-gray-500">
+        Answers come only from this analysis's evidence — the records you uploaded, the
+        ranked factors and the gaps. When the evidence doesn't cover something it says
+        so, rather than guessing about NetSuite.
+      </p>
+    </div>
   </div>
 
-  <form id="chat-form" class="border-t border-black/5 bg-white p-3">
-    <div class="flex items-center gap-2 rounded-full bg-ink py-2 pl-5 pr-2">
+  <form id="chat-form" class="border-t border-black/5 bg-white px-5 py-4">
+    <div class="mx-auto flex w-full max-w-3xl items-center gap-2 rounded-full bg-ink py-2.5 pl-5 pr-2">
       <input id="chat-input" type="text" required autocomplete="off" autofocus
              placeholder="Ask about this evidence…"
              class="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/40 focus:outline-none" />
@@ -67,12 +72,13 @@
         const row = document.createElement("div");
         row.className = role === "user" ? "text-right" : "text-left";
         const bubble = document.createElement("span");
-        bubble.className = "inline-block max-w-[88%] rounded-2xl px-3 py-2 text-left leading-relaxed " +
+        bubble.className = "inline-block max-w-[85%] rounded-2xl px-3 py-2 text-left leading-relaxed " +
           (role === "user" ? "bg-ink text-white" : "bg-white text-ink");
         bubble.textContent = text;
         row.appendChild(bubble);
         log.appendChild(row);
-        log.scrollTop = log.scrollHeight;
+        const scroller = log.parentElement;
+        scroller.scrollTop = scroller.scrollHeight;
         return row;
       }
 

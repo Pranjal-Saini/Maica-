@@ -186,3 +186,17 @@ async def test_chat_window_is_tenant_guarded(client: AsyncClient, db_session: As
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/chat")
 
     assert response.status_code == 403
+
+
+async def test_chat_opens_as_a_full_tab_not_a_sized_popup(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # window.open with a feature string makes a small popup; without one the
+    # browser opens a normal tab, which is what a full-width chat needs.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    analysis_id = await _upload_fixture(client, str(tenant_id))
+
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
+
+    assert 'window.open(url, "maica-chat")' in response.text
+    assert "width=460" not in response.text
