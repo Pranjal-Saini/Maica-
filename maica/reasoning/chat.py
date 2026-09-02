@@ -19,22 +19,32 @@ from maica.reasoning.models import DiagnosisResult
 
 CHAT_PROMPT_VERSION = "v1"
 
-_MAX_RECORDS_IN_CONTEXT = 200
+_MAX_RECORDS_IN_CONTEXT = 60
 _MAX_HISTORY_TURNS = 6
 
 #: How many records get diagnosed to build the chat's evidence bundle. A real
 #: account has thousands; diagnosing every one produced a prompt no model could
 #: use and a wait no consultant would sit through. The cap is stated in the
 #: bundle so the model can say the view is partial rather than imply it is all.
-MAX_RECORDS_IN_CHAT_CONTEXT = 40
+MAX_RECORDS_IN_CHAT_CONTEXT = 12
 
-#: Hard ceiling on the bundle, in characters — roughly 11k tokens, which sits
-#: comfortably inside the 16k window `llm_context_tokens` asks Ollama for, with
-#: room left for the system prompt and the answer. Without it a 5,000-record
-#: account produced a 900,000-character bundle that silently overflowed the
-#: window: the model answered from whatever fragment survived, with no way for
-#: anyone to tell it had only seen a fragment.
-_MAX_CONTEXT_CHARS = 45_000
+#: Hard ceiling on the bundle, in characters — roughly 3.5k tokens.
+#:
+#: Fitting the model's context window is necessary but not sufficient: an 11k
+#: token bundle fit inside the 16k window and still took a local 8B model
+#: between 54 and 181 seconds to answer, which no one will sit through. The
+#: budget is therefore set by what the model can serve quickly, not by what it
+#: can hold.
+#:
+#: That means the bundle covers the record in focus and its nearest relations,
+#: not the whole analysis — which was never a real option anyway: a
+#: 5,000-record account would not fit any window at any speed. The coverage
+#: block states what was left out so the model can say its view is partial.
+_MAX_CONTEXT_CHARS = 14_000
+
+#: The share of that budget the raw normalized rows may take, leaving the rest
+#: for the ranked factors and gaps that make the bundle worth sending.
+_MAX_RAW_ROW_CHARS = 7_000
 
 #: Only the top-ranked factors per record travel to the model. Lower-ranked
 #: ones are, by construction, the ones the ranking already judged weakest.
@@ -152,6 +162,12 @@ def build_evidence_context(
         }
         for r in ordered_records[:_MAX_RECORDS_IN_CONTEXT]
     ]
+
+    # Raw rows are compact but numerous, and left unchecked they eat the whole
+    # budget before a single ranked factor is included. They get a share of it,
+    # not the remainder.
+    while len(raw_records) > 1 and len(json.dumps(raw_records)) > _MAX_RAW_ROW_CHARS:
+        raw_records.pop()
 
     analysed: list[dict] = []
     budget = _MAX_CONTEXT_CHARS - len(json.dumps(raw_records))

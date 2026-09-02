@@ -167,7 +167,7 @@ def test_evidence_bundle_stays_inside_a_model_context_window() -> None:
 
     context = build_evidence_context([], diagnoses, records_in_analysis=5000)
 
-    assert len(context) <= 45_000
+    assert len(context) <= 14_000
     assert len(json.loads(context)["analysed_records"]) < len(diagnoses)
 
 
@@ -224,3 +224,26 @@ def test_prioritise_ignores_a_focus_record_not_in_this_analysis() -> None:
     ordered = prioritise_source_ids(["1001", "1002"], focus_source_id="9999", related_source_ids=[])
 
     assert ordered == ["1001", "1002"]
+
+
+def test_raw_rows_cannot_crowd_out_the_ranked_factors() -> None:
+    # Raw rows are small individually and numerous. Given the whole budget they
+    # took all of it, and the bundle arrived with one analysed record in it.
+    class _Row:
+        source_id = "9000"
+        record_type = "Invoice"
+        field_name = "Account"
+        old_value = "4000 - Product Revenue"
+        new_value = "4010 - Service Revenue"
+        actor = "System"
+        context = "SCHEDULED"
+        occurred_at = None
+
+    bundle = json.loads(
+        build_evidence_context(
+            [_Row()] * 400, [_diagnosis(), _diagnosis(), _diagnosis()], records_in_analysis=3
+        )
+    )
+
+    assert len(bundle["analysed_records"]) == 3
+    assert len(json.dumps(bundle["records"])) <= 7_000

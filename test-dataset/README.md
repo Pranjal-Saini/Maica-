@@ -98,19 +98,39 @@ worry:
 | One factor cited **1,696 supporting records** | No cap | Capped at 25 |
 | **167 of 208 factors** were `INSUFFICIENT_EVIDENCE` | The "routine value" threshold was a fixed count of 5, tuned on the 8-row sample | Threshold is now the value's rarity *in this analysis*, not a fixed count |
 | One record produced **32 factors** | Every shared value became a factor, including currency and subsidiary | Structural values (>25% of records) are reported as a gap; correlations capped at the 5 most specific, the rest declared |
-| Evidence bundle was **225,000 tokens** against a 41k window | Nothing bounded it; it overflowed in silence | Hard 45,000-character budget, with what was left out stated in the bundle |
+| Evidence bundle was **225,000 tokens** against a 41k window | Nothing bounded it; it overflowed in silence | Hard character budget, with what was left out stated in the bundle |
 | The model said the focus record **was not in the evidence** when it was | Ollama defaults `num_ctx` to a few thousand tokens whatever the model supports, and truncates past it silently | `num_ctx` is now always set explicitly (`llm_context_tokens`) |
 | The bundle held 40 alphabetically-first strangers | No notion of which record was being looked at | The record on screen is analysed first, then the ones it is actually correlated with |
 
 After the fixes, on the same data: longest summary **526 characters**, most
 supporting IDs **26**, worst record **19 factors**, chat context built in
-**3.3 seconds**.
+**1.2 seconds** at 12,676 characters.
 
 The last row is the one worth dwelling on. Every other failure was visible —
 a slow page, a wall of text, a useless label. That one was silent and
 confident: asked what changed on the record the consultant had open, the
 model replied that the record was not in the data at all. It was, first in
 the bundle. Only the prompt had been cut.
+
+### The chat covers a record, not an account
+
+Fitting the model's context window turned out to be necessary but not
+sufficient. An 11,000-token bundle fit inside the 16k window and still took
+the local 8B model between 54 and 181 seconds to answer — the first question
+hit the 180-second timeout outright.
+
+So the budget is set by what the model can serve quickly, not by what it can
+hold: ~14,000 characters, covering the record on screen and its nearest
+relations. That is not a compromise forced by the model alone — 5,000 records
+would not fit any context window at any speed. The bundle states how many
+records it covers out of how many exist, and the model uses it:
+
+> **Q: what is record 999999?**
+> This evidence does not show what record 999999 is, as it is not included in
+> the analysis of 4,996 records.
+
+Answers now run 26-85 seconds against a local 8B model. Correct, and slow.
+A hosted model would close that gap without any change to the code.
 
 ### What this does not settle
 
