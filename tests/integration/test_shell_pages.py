@@ -252,3 +252,37 @@ async def test_report_states_that_confirmed_means_the_change_not_the_cause(
     assert "CONFIRMED" in text
     assert "never that it" in text and "caused the outcome" in text
     assert "What the labels mean" in text
+
+
+async def test_chat_analyses_the_record_on_screen_first(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # On a real account the bundle can only hold a handful of records. Without
+    # a focus it holds whichever sort first alphabetically — never the one the
+    # consultant is looking at.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
+    analysis_id = (
+        await client.post(
+            f"/tenants/{tenant_id}/uploads",
+            files={"files": ("s.csv", csv_bytes, "text/csv")},
+        )
+    ).json()["analysis_id"]
+
+    response = await client.post(
+        f"/tenants/{tenant_id}/analyses/{analysis_id}/chat",
+        json={"question": "what changed?", "history": [], "focus_source_id": "1003"},
+    )
+
+    assert response.status_code == 200
+
+
+async def test_report_chat_link_carries_the_record_being_viewed(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    analysis_id = await _upload_fixture(client, str(tenant_id))
+
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
+
+    assert 'data-source-id="1001"' in response.text

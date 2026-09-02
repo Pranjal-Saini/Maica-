@@ -2,6 +2,8 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import cast
 
+import networkx as nx
+
 from maica.graph.builder import (
     RecordLike,
     build_dependency_graph,
@@ -10,10 +12,20 @@ from maica.graph.builder import (
 )
 from maica.reasoning.models import DiagnosisResult, EvidenceItem, Factor, FactorLabel, Gap
 
-# A value shared this widely is routine (a common GL account, a shared entity),
-# so it isolates nothing about this transaction and is labelled as such rather
-# than padding the list with a signal no one should act on.
-_ROUTINE_SHARED_VALUE_THRESHOLD = 5
+# How informative a shared value is depends on how rare it is in THIS analysis,
+# not on a fixed count. Sharing an account with 3 of 5,000 records is a strong
+# lead; sharing a currency with 1,600 of them is structural and means nothing.
+# The absolute floor keeps small uploads working, where every ratio is large.
+_ALWAYS_SPECIFIC_SHARE_COUNT = 4
+_ROUTINE_SHARE_RATIO = 0.05
+_STRUCTURAL_SHARE_RATIO = 0.25
+
+# A ranked map a consultant can read, not a dump. Correlations beyond this are
+# reported as a gap rather than dropped in silence.
+_MAX_CORRELATION_FACTORS = 5
+# Long ID lists made single summaries run to 13,000+ characters at real scale.
+_MAX_IDS_IN_SUMMARY = 8
+_MAX_SUPPORTING_IDS = 25
 
 _NO_CHANGE_EVIDENCE_GAP = Gap(
     description=(
@@ -148,26 +160,51 @@ def _build_change_factors(target_rows: Sequence[RecordLike], target_source_id: s
     return [factor for _, _, factor in (modifications + first_values)]
 
 
+def _shared_value_label(shared_count: int, record_count: int) -> FactorLabel | None:
+    """None means the value is structural — present on so much of the account
+    that it isolates nothing. Those are reported as a gap instead of ranked, so
+    the list stays a ranking rather than a dump."""
+    if shared_count <= _ALWAYS_SPECIFIC_SHARE_COUNT:
+        return FactorLabel.UNCERTAIN
+    ratio = shared_count / record_count if record_count else 1.0
+    if ratio <= _ROUTINE_SHARE_RATIO:
+        return FactorLabel.UNCERTAIN
+    if ratio <= _STRUCTURAL_SHARE_RATIO:
+        return FactorLabel.INSUFFICIENT_EVIDENCE
+    return None
+
+
+def _format_ids(shared_ids: Sequence[str]) -> str:
+    if len(shared_ids) <= _MAX_IDS_IN_SUMMARY:
+        return ", ".join(shared_ids)
+    shown = ", ".join(shared_ids[:_MAX_IDS_IN_SUMMARY])
+    return f"{shown} and {len(shared_ids) - _MAX_IDS_IN_SUMMARY} more"
+
+
 def _build_shared_value_factors(
-    records: Sequence[RecordLike], target_rows: Sequence[RecordLike], target_source_id: str
-) -> list[Factor]:
+    records: Sequence[RecordLike],
+    target_rows: Sequence[RecordLike],
+    target_source_id: str,
+    graph: nx.Graph,
+    record_count: int,
+) -> tuple[list[Factor], list[str], int]:
     """Factors from records that share a field value with the target — a
     structural correlation, never treated as a cause.
 
     These stay below CONFIRMED by design: sharing a value is not an event and
-    nothing in the evidence proves the two records influenced each other. A
-    value shared with only a handful of records is a usable lead (UNCERTAIN);
-    one shared across many is routine and supports no conclusion at all
-    (INSUFFICIENT_EVIDENCE), which is worth saying rather than ranking it as
-    though it were a finding.
+    nothing in the evidence proves the two records influenced each other.
+
+    Returns the ranked factors, the field names whose values were too common to
+    correlate on, and how many further correlations were held back by the cap —
+    both of which the caller turns into gaps rather than discarding.
     """
-    graph = build_dependency_graph(records)
     target_node = record_node_id(target_source_id)
     rows_by_source_id: dict[str, list[RecordLike]] = {}
     for row in records:
         rows_by_source_id.setdefault(row.source_id, []).append(row)
 
     ranked_candidates: list[tuple[int, Factor]] = []
+    structural_fields: list[str] = []
     for row in target_rows:
         if not row.new_value:
             continue
@@ -180,16 +217,20 @@ def _build_shared_value_factors(
         if not shared_ids:
             continue
 
-        routine = len(shared_ids) >= _ROUTINE_SHARED_VALUE_THRESHOLD
-        label = FactorLabel.INSUFFICIENT_EVIDENCE if routine else FactorLabel.UNCERTAIN
+        label = _shared_value_label(len(shared_ids), record_count)
+        if label is None:
+            if row.field_name not in structural_fields:
+                structural_fields.append(row.field_name)
+            continue
+
         summary = (
             f"Correlation only: {row.field_name} = {row.new_value!r} is shared with "
-            f"{len(shared_ids)} other record(s) — {', '.join(shared_ids)}."
+            f"{len(shared_ids)} other record(s) — {_format_ids(shared_ids)}."
         )
-        if routine:
+        if label is FactorLabel.INSUFFICIENT_EVIDENCE:
             summary += (
-                " A value this widely shared is routine and isolates nothing about "
-                "this transaction, so no conclusion should be drawn from it."
+                " A value this widely shared is routine and isolates little about "
+                "this transaction, so treat it as background, not a lead."
             )
         else:
             summary += (
@@ -214,20 +255,29 @@ def _build_shared_value_factors(
                     label=label,
                     rank=0,
                     summary=summary,
-                    supporting_source_ids=[target_source_id, *shared_ids],
+                    supporting_source_ids=[
+                        target_source_id,
+                        *shared_ids[:_MAX_SUPPORTING_IDS],
+                    ],
                     evidence=[_evidence_from(row), *related_evidence[:5]],
                 ),
             )
         )
 
     # Tighter, more specific connections (fewer other records sharing the same
-    # value) rank first — a value shared broadly (e.g. a common GL account) is
-    # more likely routine and less likely to isolate this transaction.
+    # value) rank first — a value shared broadly is more likely routine and less
+    # likely to isolate this transaction.
     ranked_candidates.sort(key=lambda pair: pair[0])
-    return [factor for _, factor in ranked_candidates]
+    kept = [factor for _, factor in ranked_candidates[:_MAX_CORRELATION_FACTORS]]
+    return kept, structural_fields, max(0, len(ranked_candidates) - len(kept))
 
 
-def diagnose(records: Sequence[RecordLike], target_source_id: str) -> DiagnosisResult:
+def diagnose(
+    records: Sequence[RecordLike],
+    target_source_id: str,
+    *,
+    graph: nx.Graph | None = None,
+) -> DiagnosisResult:
     """Deterministic, rule-based factor ranking — no LLM.
 
     Labels describe how well supported each factor's own claim is, and the
@@ -248,7 +298,12 @@ def diagnose(records: Sequence[RecordLike], target_source_id: str) -> DiagnosisR
     whether an existing value was altered, and when. It does NOT weight fields
     by importance (amount over memo, say): that is a NetSuite domain judgement
     this module has no verified basis for, so it is left to the consultant
-    reading the ranked list."""
+    reading the ranked list.
+
+    Pass `graph` when diagnosing many records from the same evidence. Building
+    it is the expensive part and it is identical for every target — rebuilding
+    per record turned one chat question over a 5,000-record account into half
+    an hour of work."""
     target_rows = [row for row in records if row.source_id == target_source_id]
 
     if not target_rows:
@@ -263,14 +318,46 @@ def diagnose(records: Sequence[RecordLike], target_source_id: str) -> DiagnosisR
             ],
         )
 
+    if graph is None:
+        graph = build_dependency_graph(records)
+    record_count = len({row.source_id for row in records})
+
     change_factors = _build_change_factors(target_rows, target_source_id)
-    shared_value_factors = _build_shared_value_factors(records, target_rows, target_source_id)
+    shared_value_factors, structural_fields, held_back = _build_shared_value_factors(
+        records, target_rows, target_source_id, graph, record_count
+    )
 
     factors = [*change_factors, *shared_value_factors]
     for position, factor in enumerate(factors, start=1):
         factor.rank = position
 
     gaps: list[Gap] = []
+    if structural_fields:
+        gaps.append(
+            Gap(
+                description=(
+                    "Some field values were too common in this evidence to correlate on: "
+                    f"{', '.join(structural_fields)}."
+                ),
+                reason=(
+                    "Each is shared with more than a quarter of the records in this "
+                    "analysis, so matching on it isolates nothing about this "
+                    "transaction. They were left out of the ranking rather than "
+                    "padding it."
+                ),
+            )
+        )
+    if held_back:
+        gaps.append(
+            Gap(
+                description=(f"{held_back} further shared-value correlation(s) are not shown."),
+                reason=(
+                    f"Only the {_MAX_CORRELATION_FACTORS} most specific correlations are "
+                    "ranked, so the list stays readable. The rest were broader matches "
+                    "and would rank below those shown."
+                ),
+            )
+        )
     if not shared_value_factors:
         gaps.append(
             Gap(

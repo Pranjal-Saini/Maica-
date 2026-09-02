@@ -16,7 +16,14 @@ from maica.config.settings import get_settings
 from maica.evidence import repository
 from maica.graph.builder import build_dependency_graph
 from maica.graph.render import render_text
-from maica.reasoning.chat import ChatAnswer, ChatMessage, answer_question, build_evidence_context
+from maica.reasoning.chat import (
+    MAX_RECORDS_IN_CHAT_CONTEXT,
+    ChatAnswer,
+    ChatMessage,
+    answer_question,
+    build_evidence_context,
+    prioritise_source_ids,
+)
 from maica.reasoning.llm import ExplainedDiagnosis, explain_factors
 from maica.reasoning.models import DiagnosisResult
 from maica.reasoning.ollama_client import OllamaClient
@@ -30,6 +37,9 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     question: str
     history: list[ChatMessage] = []
+    #: The record the consultant is looking at, when the chat was opened from a
+    #: report. Decides what the evidence bundle covers first.
+    focus_source_id: str | None = None
 
 
 @router.get("/tenants/{tenant_id}/analyses", response_class=HTMLResponse)
@@ -198,8 +208,10 @@ async def chat_about_analysis(
     client: OllamaClient = Depends(get_llm_client),
 ) -> ChatAnswer:
     """Answers a question grounded strictly in this analysis's own evidence.
-    diagnose() is deterministic and does no model call, so running it per
-    record just to build context is cheap."""
+
+    The dependency graph is built once and reused across every record. It used
+    to be rebuilt inside each diagnose() call, which on a 5,000-record account
+    meant roughly half an hour of work before the model was even asked."""
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
     if not records:
         return ChatAnswer(
@@ -210,9 +222,44 @@ async def chat_about_analysis(
             grounded=False,
         )
 
-    source_ids = sorted({record.source_id for record in records})
-    diagnoses = [diagnose(records, source_id) for source_id in source_ids]
-    evidence_context = build_evidence_context(records, diagnoses)
+    graph = build_dependency_graph(records)
+    all_source_ids = sorted({record.source_id for record in records})
+
+    # Related records come from the focus record's own ranked factors, not from
+    # raw graph adjacency. Adjacency includes every record sharing a structural
+    # value (a currency, a subsidiary), which on a real account is most of them
+    # and prioritises nothing. The ranking has already discarded those.
+    focus = chat_request.focus_source_id
+    focus_diagnosis = (
+        diagnose(records, focus, graph=graph)
+        if focus is not None and focus in set(all_source_ids)
+        else None
+    )
+    related = (
+        sorted(
+            {
+                source_id
+                for factor in focus_diagnosis.factors
+                for source_id in factor.supporting_source_ids
+            }
+        )
+        if focus_diagnosis
+        else []
+    )
+
+    ordered_ids = prioritise_source_ids(all_source_ids, focus, related)
+    diagnoses = [
+        focus_diagnosis
+        if focus_diagnosis is not None and source_id == focus
+        else diagnose(records, source_id, graph=graph)
+        for source_id in ordered_ids[:MAX_RECORDS_IN_CHAT_CONTEXT]
+    ]
+    evidence_context = build_evidence_context(
+        records,
+        diagnoses,
+        records_in_analysis=len(all_source_ids),
+        focus_source_id=focus,
+    )
 
     return await answer_question(
         chat_request.question,

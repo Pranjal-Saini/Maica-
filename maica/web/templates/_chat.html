@@ -16,6 +16,7 @@
 <div id="chat-dock"
      data-tenant-id="{{ tenant_id }}"
      data-analysis-id="{{ analysis_id or '' }}"
+     data-source-id="{{ source_id or '' }}"
      class="fixed bottom-0 right-0 z-40">
   <div class="mx-auto w-full max-w-3xl px-4 pb-5">
     <form id="chat-form" class="flex items-center gap-2 rounded-full bg-ink py-2 pl-5 pr-2 shadow-2xl">
@@ -67,8 +68,12 @@
       const analysisId = dock.dataset.analysisId;
       if (!analysisId) return;
 
+      const params = new URLSearchParams();
+      if (question) params.set("q", question);
+      // The record on screen decides what the assistant looks at first.
+      if (dock.dataset.sourceId) params.set("record", dock.dataset.sourceId);
       let url = "/tenants/" + tenantId + "/analyses/" + analysisId + "/chat";
-      if (question) url += "?q=" + encodeURIComponent(question);
+      if (params.toString()) url += "?" + params.toString();
 
       // Reuse the same named window so repeated clicks don't scatter windows
       // across the desktop.

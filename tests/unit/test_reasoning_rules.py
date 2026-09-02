@@ -192,21 +192,65 @@ def test_a_confirmed_change_never_claims_it_caused_the_outcome() -> None:
         assert causal_word not in summary[1]
 
 
-def test_a_widely_shared_value_supports_no_conclusion() -> None:
-    # A GL account on half the ledger is routine. Ranking it as a lead pads the
-    # report with noise; INSUFFICIENT_EVIDENCE says so instead.
-    target = _change_draft("1001", "Account", "x", "4010 - Service Revenue", "jsmith")
-    others = [
-        _change_draft(str(2000 + i), "Account", "x", "4010 - Service Revenue", "jsmith")
-        for i in range(6)
-    ]
+def test_a_structural_value_is_reported_as_a_gap_not_ranked() -> None:
+    """At real scale a currency or subsidiary is shared with a third of the
+    account. Ranking those buried the useful factors: one record came back with
+    32 factors, the longest summary 13,757 characters of inlined record IDs."""
+    target = _change_draft("1001", "Currency", "x", "GBP", "jsmith")
+    others = [_change_draft(str(2000 + i), "Currency", "x", "GBP", "jsmith") for i in range(6)]
 
     result = diagnose([target, *others], "1001")
+
+    assert not [f for f in result.factors if "Correlation only" in f.summary]
+    assert any("too common in this evidence to correlate on" in g.description for g in result.gaps)
+    assert any("Currency" in g.description for g in result.gaps)
+
+
+def test_a_moderately_shared_value_is_kept_but_marked_as_background() -> None:
+    # Between "specific enough to chase" and "structural": shown, ranked last,
+    # and labelled so no one acts on it.
+    target = _change_draft("1001", "Account", "x", "4010", "jsmith")
+    sharers = [_change_draft(str(2000 + i), "Account", "x", "4010", "jsmith") for i in range(10)]
+    unrelated = [
+        _change_draft(str(3000 + i), "Account", "x", f"acct-{i}", "jsmith") for i in range(90)
+    ]
+
+    result = diagnose([target, *sharers, *unrelated], "1001")
     correlations = [f for f in result.factors if "Correlation only" in f.summary]
 
     assert correlations
     assert correlations[0].label == FactorLabel.INSUFFICIENT_EVIDENCE
-    assert "no conclusion should be drawn" in correlations[0].summary
+    assert "treat it as background, not a lead" in correlations[0].summary
+
+
+def test_summaries_stay_readable_when_hundreds_of_records_share_a_value() -> None:
+    target = _change_draft("1001", "Account", "x", "4010", "jsmith")
+    sharers = [_change_draft(str(2000 + i), "Account", "x", "4010", "jsmith") for i in range(40)]
+    unrelated = [
+        _change_draft(str(3000 + i), "Account", "x", f"acct-{i}", "jsmith") for i in range(900)
+    ]
+
+    result = diagnose([target, *sharers, *unrelated], "1001")
+    correlation = next(f for f in result.factors if "Correlation only" in f.summary)
+
+    assert "and 32 more" in correlation.summary
+    assert len(correlation.summary) < 500
+    assert len(correlation.supporting_source_ids) <= 26
+
+
+def test_only_the_most_specific_correlations_are_ranked_and_the_rest_declared() -> None:
+    target_rows = [
+        _change_draft("1001", f"Field{i}", "x", f"value-{i}", "jsmith") for i in range(8)
+    ]
+    partners = [
+        _change_draft(str(2000 + i), f"Field{i}", "x", f"value-{i}", "jsmith") for i in range(8)
+    ]
+
+    result = diagnose([*target_rows, *partners], "1001")
+    correlations = [f for f in result.factors if "Correlation only" in f.summary]
+
+    assert len(correlations) == 5
+    assert any("further shared-value correlation" in g.description for g in result.gaps)
 
 
 def test_a_narrowly_shared_value_stays_an_uncertain_lead() -> None:

@@ -25,7 +25,7 @@
       <span class="min-w-0">
         <span class="block text-sm font-semibold leading-tight">Ask about this evidence</span>
         <span class="block truncate text-xs text-gray-400">
-          {% if tenant_name %}{{ tenant_name }} · {% endif %}Analysis {{ analysis_id }}
+          {% if tenant_name %}{{ tenant_name }} · {% endif %}<span id="focus-note"></span>Analysis {{ analysis_id }}
         </span>
       </span>
     </div>
@@ -60,6 +60,7 @@
   <script>
     (function () {
       const endpoint = "/tenants/{{ tenant_id }}/analyses/{{ analysis_id }}/chat";
+      const focusSourceId = new URLSearchParams(window.location.search).get("record");
       const log = document.getElementById("chat-log");
       const form = document.getElementById("chat-form");
       const input = document.getElementById("chat-input");
@@ -93,7 +94,11 @@
           const response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question: question, history: history }),
+            body: JSON.stringify({
+              question: question,
+              history: history,
+              focus_source_id: focusSourceId,
+            }),
           });
           const body = await response.json();
           pending.remove();
@@ -118,6 +123,10 @@
 
       // A question typed into the composer before the window opened comes
       // through as ?q= so it is not lost.
+      if (focusSourceId) {
+        document.getElementById("focus-note").textContent = "Record " + focusSourceId + " · ";
+      }
+
       const opening = new URLSearchParams(window.location.search).get("q");
       if (opening && opening.trim()) ask(opening.trim());
     })();

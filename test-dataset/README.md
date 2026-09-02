@@ -67,3 +67,48 @@ ignored**.
 
 The upload result reports rows understood, rows skipped, and columns ignored
 for every file, so all of the above should be visible rather than silent.
+
+
+## Realistic scale
+
+The four files above are a readable story. They are far too small to show how
+the engine behaves on an account that has been live for years.
+
+```
+uv run python test-dataset/generate_large.py          # 5,000 transactions
+uv run python test-dataset/generate_large.py 25000    # bigger
+```
+
+Writes `test-dataset/large/` (gitignored — regenerate rather than commit it).
+The seed is fixed, so a run is reproducible and a change in output traces to a
+code change, not to different data. 5,000 transactions produce ~22,000 System
+Notes rows and ~52,000 normalized records across 48 entities, 12 GL accounts,
+10 changeable fields and 13 users, with the same messiness as file 3 mixed
+through: blank rows, missing IDs, unparseable dates, absent actors.
+
+### What running it at that size exposed
+
+Every one of these was a real defect found by the data, not a theoretical
+worry:
+
+| Symptom at 5,000 records | Cause | Fix |
+|---|---|---|
+| One chat question took **31 minutes** | `diagnose()` rebuilt the whole dependency graph per record, and the chat ran it on all 4,996 | Graph is built once and passed in; the chat analyses a bounded, prioritised subset |
+| A single factor summary ran to **13,757 characters** | Every shared record ID was inlined into the prose | Capped at 8 IDs plus "and N more" |
+| One factor cited **1,696 supporting records** | No cap | Capped at 25 |
+| **167 of 208 factors** were `INSUFFICIENT_EVIDENCE` | The "routine value" threshold was a fixed count of 5, tuned on the 8-row sample | Threshold is now the value's rarity *in this analysis*, not a fixed count |
+| One record produced **32 factors** | Every shared value became a factor, including currency and subsidiary | Structural values (>25% of records) are reported as a gap; correlations capped at the 5 most specific, the rest declared |
+| Evidence bundle was **225,000 tokens** against a 41k window | Nothing bounded it; it overflowed in silence | Hard 60,000-character budget, with what was left out stated in the bundle |
+| The bundle held 40 alphabetically-first strangers | No notion of which record was being looked at | The record on screen is analysed first, then the ones it is actually correlated with |
+
+After the fixes, on the same data: longest summary **526 characters**, most
+supporting IDs **26**, worst record **19 factors**, chat context built in
+**3.3 seconds** and 58,519 characters.
+
+### What this does not settle
+
+The data is synthetic and uniformly random. A real account is lumpy — a
+handful of scripts touching a handful of fields on thousands of records. This
+proves the engine survives volume and stays readable; it does not prove the
+ranking surfaces the right factor on a real client account. That still needs
+a real export.
