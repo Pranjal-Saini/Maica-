@@ -1,0 +1,7 @@
+InternalID,Transaction Date,Transaction Type,Entity,Amount,Account,Memo,Subsidiary,Currency,Approval Status
+4479,2026-07-16,Invoice,Northwind Trading Ltd,7300.00,4010 - Service Revenue,Change order 3,UK Ltd,GBP,Approved
+
+4480,16-07-2026,Invoice,Contoso Manufacturing,2100.00,4010 - Service Revenue,Support overage,US Inc,USD,Approved
+,2026-07-16,Invoice,Ghost Row Ltd,999.00,4000 - Product Revenue,No internal id at all,US Inc,USD,Pending
+4481,2026-07-17,Invoice,Fabrikam Logistics,,4000 - Product Revenue,Amount blank on purpose,US Inc,USD,Pending
+4482,not a date,Invoice,Northwind Trading Ltd,4400.00,4010 - Service Revenue,Unparseable date,UK Ltd,GBP,Approved

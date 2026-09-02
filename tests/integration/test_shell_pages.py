@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from maica.web.nav import NEED_ACCOUNT, NEED_ANALYSIS, NEED_PROMPTS
-from tests.conftest import create_tenant, login_as, signup_with_tenant
+from tests.conftest import create_tenant, login_as, logout, signup_with_tenant
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -140,3 +140,49 @@ async def test_opening_another_account_forgets_the_previous_analysis(
     # Deep dive must not link into the account that was just left.
     assert str(analysis_id) not in response.text
     assert f"/tenants/{other_tenant_id}/analyses?need={NEED_ANALYSIS}" in response.text
+
+
+async def test_report_page_does_not_wait_on_the_language_model(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # The report is deterministic; only its wording comes from the model. It
+    # used to block on one model call per factor, which made the page feel
+    # broken. The rule-based summary must be in the first response, with the
+    # narration fetched afterwards.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    analysis_id = await _upload_fixture(client, str(tenant_id))
+
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
+
+    text = response.text
+    assert "UNCERTAIN" in text
+    assert "This is a correlation, not a confirmed cause" in text  # the rule-based wording
+    assert "records/1001/explain" in text  # narration is fetched, not awaited
+
+
+async def test_chat_window_opens_as_its_own_page(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    analysis_id = await _upload_fixture(client, str(tenant_id))
+
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/chat")
+
+    assert response.status_code == 200
+    # Its own window: no sidebar shell around it.
+    assert 'id="sidebar"' not in response.text
+    assert "Ask about this evidence" in response.text
+    assert f"/tenants/{tenant_id}/analyses/{analysis_id}/chat" in response.text
+
+
+async def test_chat_window_is_tenant_guarded(client: AsyncClient, db_session: AsyncSession) -> None:
+    tenant_id = await signup_with_tenant(
+        client, db_session, "consultant-a@example.com", "Acme Corp"
+    )
+    analysis_id = await _upload_fixture(client, str(tenant_id))
+    await logout(client)
+    await login_as(client, db_session, "consultant-b@example.com")
+
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/chat")
+
+    assert response.status_code == 403

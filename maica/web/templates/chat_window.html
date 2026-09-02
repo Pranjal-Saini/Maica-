@@ -1,0 +1,120 @@
+{#
+  The chat in its own browser window, opened from the composer on the report
+  and evidence pages. Deliberately not built on base.html — no sidebar, no
+  page header — so it can sit beside the report on a second monitor.
+#}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MAICA — Ask about this evidence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { ink: "#111310", canvas: "#e8eae2", lime: "#d7f36f" } } },
+    };
+  </script>
+</head>
+<body class="flex h-screen flex-col bg-canvas text-ink antialiased">
+
+  <header class="flex items-center gap-2.5 border-b border-black/5 bg-white px-4 py-3">
+    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">M</span>
+    <span class="min-w-0">
+      <span class="block text-sm font-semibold leading-tight">Ask about this evidence</span>
+      <span class="block truncate text-xs text-gray-400">
+        {% if tenant_name %}{{ tenant_name }} · {% endif %}Analysis {{ analysis_id }}
+      </span>
+    </span>
+  </header>
+
+  <div id="chat-log" class="flex-1 space-y-3 overflow-y-auto p-4 text-sm">
+    <p id="chat-empty" class="rounded-2xl bg-white p-4 text-gray-500">
+      Answers come only from this analysis's evidence — the records you uploaded, the
+      ranked factors and the gaps. When the evidence doesn't cover something it says
+      so, rather than guessing about NetSuite.
+    </p>
+  </div>
+
+  <form id="chat-form" class="border-t border-black/5 bg-white p-3">
+    <div class="flex items-center gap-2 rounded-full bg-ink py-2 pl-5 pr-2">
+      <input id="chat-input" type="text" required autocomplete="off" autofocus
+             placeholder="Ask about this evidence…"
+             class="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/40 focus:outline-none" />
+      <button type="submit" id="chat-send" aria-label="Ask"
+              class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-lime text-ink
+                     transition hover:opacity-90 disabled:bg-white/15 disabled:text-white/30">
+        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10 16V4M5 9l5-5 5 5"/>
+        </svg>
+      </button>
+    </div>
+  </form>
+
+  <script>
+    (function () {
+      const endpoint = "/tenants/{{ tenant_id }}/analyses/{{ analysis_id }}/chat";
+      const log = document.getElementById("chat-log");
+      const form = document.getElementById("chat-form");
+      const input = document.getElementById("chat-input");
+      const send = document.getElementById("chat-send");
+      const history = [];
+
+      function appendMessage(role, text) {
+        const empty = document.getElementById("chat-empty");
+        if (empty) empty.remove();
+        const row = document.createElement("div");
+        row.className = role === "user" ? "text-right" : "text-left";
+        const bubble = document.createElement("span");
+        bubble.className = "inline-block max-w-[88%] rounded-2xl px-3 py-2 text-left leading-relaxed " +
+          (role === "user" ? "bg-ink text-white" : "bg-white text-ink");
+        bubble.textContent = text;
+        row.appendChild(bubble);
+        log.appendChild(row);
+        log.scrollTop = log.scrollHeight;
+        return row;
+      }
+
+      async function ask(question) {
+        appendMessage("user", question);
+        input.value = "";
+        input.disabled = true;
+        send.disabled = true;
+        const pending = appendMessage("assistant", "Thinking…");
+
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: question, history: history }),
+          });
+          const body = await response.json();
+          pending.remove();
+          appendMessage("assistant", body.answer);
+          history.push({ role: "user", content: question });
+          history.push({ role: "assistant", content: body.answer });
+        } catch (err) {
+          pending.remove();
+          appendMessage("assistant", "Could not reach the assistant: " + err);
+        } finally {
+          input.disabled = false;
+          send.disabled = false;
+          input.focus();
+        }
+      }
+
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        const question = input.value.trim();
+        if (question) ask(question);
+      });
+
+      // A question typed into the composer before the window opened comes
+      // through as ?q= so it is not lost.
+      const opening = new URLSearchParams(window.location.search).get("q");
+      if (opening && opening.trim()) ask(opening.trim());
+    })();
+  </script>
+</body>
+</html>

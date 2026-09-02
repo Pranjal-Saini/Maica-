@@ -138,11 +138,13 @@ async def get_record_report(
     tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
-    client: OllamaClient = Depends(get_llm_client),
 ) -> HTMLResponse:
+    """Renders straight from diagnose(), which is deterministic and makes no
+    model call, so the page is up immediately. The narration is fetched
+    afterwards from /explain — a local model needs one call per factor and
+    blocking the page on all of them made the report feel broken."""
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
     diagnosis = diagnose(records, source_id)
-    explained = await explain_factors(diagnosis, client=client, model=get_settings().llm_model)
     tenant = await repository.get_tenant(session, tenant_id)
     return templates.TemplateResponse(
         request,
@@ -157,9 +159,32 @@ async def get_record_report(
             source_id=source_id,
         )
         | {
-            "explained_factors": explained.explained_factors,
-            "gaps": explained.gaps,
+            "factors": diagnosis.factors,
+            "gaps": diagnosis.gaps,
             "next_step": suggest_next_step(diagnosis.factors),
+        },
+    )
+
+
+@router.get("/tenants/{tenant_id}/analyses/{analysis_id}/chat", response_class=HTMLResponse)
+async def chat_window(
+    request: Request,
+    analysis_id: uuid.UUID,
+    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    """The chat in its own window. Opened from the composer on the report and
+    evidence pages, so the conversation stops covering the report it is
+    about."""
+    tenant = await repository.get_tenant(session, tenant_id)
+    return templates.TemplateResponse(
+        request,
+        "chat_window.html",
+        {
+            "tenant_id": tenant_id,
+            "analysis_id": analysis_id,
+            "tenant_name": tenant.name if tenant else None,
         },
     )
 

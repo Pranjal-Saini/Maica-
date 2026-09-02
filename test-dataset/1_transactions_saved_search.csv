@@ -1,0 +1,9 @@
+Internal ID,Date,Type,Name,Amount,Account,Memo,Created By
+4471,7/12/2026,Invoice,Northwind Trading Ltd,18400.00,4010 - Service Revenue,Q3 implementation retainer,jsmith
+4472,7/12/2026,Invoice,Northwind Trading Ltd,9250.00,4010 - Service Revenue,Q3 support block,jsmith
+4473,7/13/2026,Invoice,Contoso Manufacturing,12750.00,4010 - Service Revenue,Migration phase 2,alopez
+4474,7/13/2026,Invoice,Contoso Manufacturing,3100.00,4000 - Product Revenue,License true-up,alopez
+4475,7/14/2026,Journal,Internal,-18400.00,2100 - Deferred Revenue,Reclass for 4471,System
+4476,7/14/2026,Invoice,Fabrikam Logistics,6600.00,4000 - Product Revenue,Annual licence renewal,dpatel
+4477,7/15/2026,Credit Memo,Northwind Trading Ltd,-2200.00,4010 - Service Revenue,Goodwill credit vs 4471,jsmith
+4478,7/15/2026,Invoice,Fabrikam Logistics,1450.00,4000 - Product Revenue,Freight recharge,dpatel

@@ -1,0 +1,14 @@
+Internal ID,Record Type,Date,Field,Old Value,New Value,Set By,Context,Type
+4471,Invoice,7/12/2026 09:14,Amount,15000.00,18400.00,jsmith,UI,Change
+4471,Invoice,7/12/2026 09:15,Account,4000 - Product Revenue,4010 - Service Revenue,System,SCHEDULED,Change
+4471,Invoice,7/12/2026 09:15,Status,Pending Approval,Approved,System,SCHEDULED,Change
+4471,Invoice,7/12/2026 11:02,Memo,,Q3 implementation retainer,jsmith,UI,Set
+4472,Invoice,7/12/2026 09:41,Account,4000 - Product Revenue,4010 - Service Revenue,System,SCHEDULED,Change
+4472,Invoice,7/12/2026 09:42,Status,Pending Approval,Approved,mchen,UI,Change
+4473,Invoice,7/13/2026 14:20,Account,4000 - Product Revenue,4010 - Service Revenue,System,SCHEDULED,Change
+4473,Invoice,7/13/2026 14:55,Amount,12750.00,12750.00,alopez,UI,Change
+4474,Invoice,7/13/2026 16:03,Status,Pending Approval,Approved,mchen,UI,Change
+4475,Journal,7/14/2026 02:00,Amount,,-18400.00,System,CSVIMPORT,Create
+4475,Journal,7/14/2026 02:00,Account,,2100 - Deferred Revenue,System,CSVIMPORT,Create
+4477,Credit Memo,7/15/2026 10:12,Amount,,-2200.00,jsmith,UI,Create
+4477,Credit Memo,7/15/2026 10:30,Status,Pending Approval,Approved,mchen,UI,Change
