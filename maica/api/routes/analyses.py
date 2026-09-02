@@ -5,7 +5,13 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from maica.api.deps import get_authorized_tenant_id, get_db_session, get_llm_client
+from maica.api.deps import (
+    get_authorized_tenant_id,
+    get_current_user,
+    get_db_session,
+    get_llm_client,
+)
+from maica.auth.models import User
 from maica.config.settings import get_settings
 from maica.evidence import repository
 from maica.graph.builder import build_dependency_graph
@@ -15,6 +21,7 @@ from maica.reasoning.llm import ExplainedDiagnosis, explain_factors
 from maica.reasoning.models import DiagnosisResult
 from maica.reasoning.ollama_client import OllamaClient
 from maica.reasoning.rules import diagnose, suggest_next_step
+from maica.web.nav import page_context
 from maica.web.templating import templates
 
 router = APIRouter()
@@ -29,11 +36,21 @@ class ChatRequest(BaseModel):
 async def list_tenant_analyses(
     request: Request,
     tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
     analyses = await repository.get_analyses_for_tenant(session, tenant_id)
+    tenant = await repository.get_tenant(session, tenant_id)
     return templates.TemplateResponse(
-        request, "analyses_list.html", {"tenant_id": tenant_id, "analyses": analyses}
+        request,
+        "analyses_list.html",
+        page_context(
+            user=user,
+            active="analyses",
+            tenant_id=tenant_id,
+            tenant_name=tenant.name if tenant else None,
+        )
+        | {"analyses": analyses},
     )
 
 
@@ -85,6 +102,7 @@ async def list_analysis_records(
     request: Request,
     analysis_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
@@ -92,10 +110,18 @@ async def list_analysis_records(
     for record in records:
         record_types_by_source_id.setdefault(record.source_id, record.record_type)
     distinct_records = sorted(record_types_by_source_id.items())
+    tenant = await repository.get_tenant(session, tenant_id)
     return templates.TemplateResponse(
         request,
         "records_list.html",
-        {"tenant_id": tenant_id, "analysis_id": analysis_id, "records": distinct_records},
+        page_context(
+            user=user,
+            active="deep_dive",
+            tenant_id=tenant_id,
+            tenant_name=tenant.name if tenant else None,
+            analysis_id=analysis_id,
+        )
+        | {"records": distinct_records},
     )
 
 
@@ -108,19 +134,26 @@ async def get_record_report(
     analysis_id: uuid.UUID,
     source_id: str,
     tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
     client: OllamaClient = Depends(get_llm_client),
 ) -> HTMLResponse:
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
     diagnosis = diagnose(records, source_id)
     explained = await explain_factors(diagnosis, client=client, model=get_settings().llm_model)
+    tenant = await repository.get_tenant(session, tenant_id)
     return templates.TemplateResponse(
         request,
         "report.html",
-        {
-            "tenant_id": tenant_id,
-            "analysis_id": analysis_id,
-            "source_id": source_id,
+        page_context(
+            user=user,
+            active="factors",
+            tenant_id=tenant_id,
+            tenant_name=tenant.name if tenant else None,
+            analysis_id=analysis_id,
+            source_id=source_id,
+        )
+        | {
             "explained_factors": explained.explained_factors,
             "gaps": explained.gaps,
             "next_step": suggest_next_step(diagnosis.factors),

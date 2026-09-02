@@ -1,6 +1,9 @@
 import uuid
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from maica.evidence.models import Analysis, RawEvidence, Record, Tenant
@@ -19,6 +22,10 @@ async def ensure_tenant(session: AsyncSession, tenant_id: uuid.UUID, name: str) 
     session.add(tenant)
     await session.flush()
     return tenant
+
+
+async def get_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> Tenant | None:
+    return await session.get(Tenant, tenant_id)
 
 
 async def create_analysis(session: AsyncSession, tenant_id: uuid.UUID, created_by: str) -> Analysis:
@@ -114,3 +121,37 @@ async def get_records_for_analysis(
     stmt = select(Record).where(Record.tenant_id == tenant_id, Record.analysis_id == analysis_id)
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+
+@dataclass(frozen=True)
+class TenantActivity:
+    """What the client-account cards show at a glance. A tenant with no
+    analyses yet is a normal state, not a missing row — callers get a zeroed
+    entry rather than a KeyError."""
+
+    analysis_count: int = 0
+    last_analysis_at: datetime | None = None
+
+
+async def get_activity_for_tenants(
+    session: AsyncSession, tenant_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, TenantActivity]:
+    """One grouped query for the whole dashboard, rather than a count per card."""
+    if not tenant_ids:
+        return {}
+
+    stmt = (
+        select(
+            Analysis.tenant_id,
+            func.count(Analysis.id),
+            func.max(Analysis.created_at),
+        )
+        .where(Analysis.tenant_id.in_(tenant_ids))
+        .group_by(Analysis.tenant_id)
+    )
+    result = await session.execute(stmt)
+    activity = {
+        tenant_id: TenantActivity(analysis_count=count, last_analysis_at=last_at)
+        for tenant_id, count, last_at in result.all()
+    }
+    return {tenant_id: activity.get(tenant_id, TenantActivity()) for tenant_id in tenant_ids}

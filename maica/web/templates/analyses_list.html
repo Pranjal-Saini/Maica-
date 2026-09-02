@@ -1,34 +1,43 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>MAICA — Analyses</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 text-gray-900 p-8">
-  <div class="max-w-xl mx-auto">
-    <p class="mb-4"><a class="text-blue-700 underline" href="/dashboard">&larr; Back to dashboard</a></p>
-    <h1 class="text-xl font-semibold mb-4">Analyses</h1>
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
 
-    {% if analyses %}
-    <ul class="space-y-2">
-      {% for analysis in analyses %}
-      <li>
-        <a class="text-blue-700 underline" href="/tenants/{{ tenant_id }}/analyses/{{ analysis.id }}/records">
-          Analysis from {{ analysis.created_at.strftime("%Y-%m-%d %H:%M") }} ({{ analysis.status }})
-        </a>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p class="text-gray-500">No analyses yet for this client account.</p>
-    {% endif %}
+{% block title %}MAICA — Analyses{% endblock %}
+{% block page_title %}Analyses{% endblock %}
+{% block page_subtitle %}Each analysis holds the evidence uploaded for one investigation.{% endblock %}
 
-    <p class="mt-6">
-      <a class="text-blue-700 underline" href="/tenants/{{ tenant_id }}/uploads/new">
-        + Upload evidence to start a new analysis
-      </a>
-    </p>
-  </div>
-</body>
-</html>
+{% block content %}
+<div class="mb-5 flex flex-wrap gap-2">
+  <a href="/tenants/{{ tenant_id }}/uploads/new"
+     class="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white
+            hover:bg-ink/90">
+    Upload evidence to start a new analysis
+  </a>
+</div>
+
+{% if analyses %}
+<div class="grid gap-3 lg:grid-cols-2">
+  {% for analysis in analyses %}
+  <a href="/tenants/{{ tenant_id }}/analyses/{{ analysis.id }}/records"
+     class="group flex items-center gap-4 rounded-2xl border border-gray-200 p-4 transition
+            hover:border-ink hover:shadow-md">
+    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-lime-soft text-ink">
+      {{ icons.icon("analyses") }}
+    </span>
+    <span class="min-w-0 flex-1">
+      <span class="block text-sm font-semibold">
+        Analysis from {{ analysis.created_at.strftime("%d %b %Y, %H:%M") }}
+      </span>
+      <span class="block truncate text-xs text-gray-400">
+        {{ analysis.status }} · started by {{ analysis.created_by }} · {{ analysis.id }}
+      </span>
+    </span>
+    <span class="text-gray-300 group-hover:text-ink">{{ icons.icon("arrow", "w-4 h-4") }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+  <p class="text-sm text-gray-500">No analyses yet for this client account.</p>
+</div>
+{% endif %}
+{% endblock %}

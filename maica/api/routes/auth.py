@@ -12,6 +12,8 @@ from maica.auth.google_oauth import (
 )
 from maica.auth.models import User
 from maica.config.settings import get_settings
+from maica.evidence import repository as evidence_repository
+from maica.web.nav import page_context
 from maica.web.templating import templates
 
 router = APIRouter()
@@ -115,12 +117,29 @@ async def dashboard(
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
     tenants = await auth_repository.list_tenants_for_user(session, user.id)
-    return templates.TemplateResponse(request, "dashboard.html", {"user": user, "tenants": tenants})
+    activity = await evidence_repository.get_activity_for_tenants(
+        session, [tenant.id for tenant in tenants]
+    )
+    return templates.TemplateResponse(
+        request,
+        "dashboard.html",
+        page_context(user=user, active="accounts", tenant_count=len(tenants))
+        | {"tenants": tenants, "activity": activity},
+    )
 
 
 @router.get("/tenants/new", response_class=HTMLResponse)
-async def new_tenant_form(request: Request, user: User = Depends(get_current_user)) -> HTMLResponse:
-    return templates.TemplateResponse(request, "new_tenant.html", {"error": None})
+async def new_tenant_form(
+    request: Request,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    tenants = await auth_repository.list_tenants_for_user(session, user.id)
+    return templates.TemplateResponse(
+        request,
+        "new_tenant.html",
+        page_context(user=user, active="accounts", tenant_count=len(tenants)) | {"error": None},
+    )
 
 
 @router.post("/tenants")

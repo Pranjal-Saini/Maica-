@@ -1,37 +1,62 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>MAICA — Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 text-gray-900 p-8">
-  <div class="max-w-xl mx-auto">
-    <div class="flex items-center justify-between mb-4">
-      <h1 class="text-xl font-semibold">Your client accounts</h1>
-      <form method="post" action="/logout">
-        <button type="submit" class="text-sm text-gray-500 underline">Log out</button>
-      </form>
-    </div>
-    <p class="text-sm text-gray-500 mb-4">Signed in as {{ user.name or user.email }}</p>
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
 
-    {% if tenants %}
-    <ul class="space-y-2">
-      {% for tenant in tenants %}
-      <li>
-        <a class="text-blue-700 underline" href="/tenants/{{ tenant.id }}/analyses">
-          {{ tenant.name }}
-        </a>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p class="text-gray-500">No client accounts yet.</p>
-    {% endif %}
+{% block title %}MAICA — Client accounts{% endblock %}
+{% block page_title %}Client accounts{% endblock %}
+{% block page_subtitle %}Open an account to work through its analyses.{% endblock %}
 
-    <p class="mt-6">
-      <a class="text-blue-700 underline" href="/tenants/new">+ Add a client account</a>
-    </p>
-  </div>
-</body>
-</html>
+{% block content %}
+{% set tints = [
+  {"tile": "bg-lime text-ink", "wash": "bg-lime-soft"},
+  {"tile": "bg-lav text-ink", "wash": "bg-lav-soft"},
+  {"tile": "bg-ink text-lime", "wash": "bg-gray-100"}
+] %}
+
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  {% for tenant in tenants %}
+    {% set stats = activity[tenant.id] %}
+    {% set tint = tints[loop.index0 % 3] %}
+    <a href="/tenants/{{ tenant.id }}/analyses"
+       class="group flex flex-col rounded-3xl border border-gray-200 p-5 transition
+              hover:-translate-y-0.5 hover:border-ink hover:shadow-lg">
+      <div class="mb-5 flex items-start justify-between">
+        <span class="grid h-11 w-11 place-items-center rounded-2xl text-sm font-bold {{ tint.tile }}">
+          {{ tenant.name[:2] | upper }}
+        </span>
+        <span class="rounded-full px-2.5 py-1 text-[11px] font-medium text-gray-600 {{ tint.wash }}">
+          {% if stats.analysis_count %}{{ stats.analysis_count }} analys{{ "es" if stats.analysis_count != 1 else "is" }}
+          {% else %}No analyses yet{% endif %}
+        </span>
+      </div>
+
+      <h2 class="truncate text-xl font-semibold tracking-tight" title="{{ tenant.name }}">{{ tenant.name }}</h2>
+
+      <p class="mt-1 text-sm text-gray-500">
+        {% if stats.last_analysis_at %}
+          Last analysis {{ stats.last_analysis_at.strftime("%d %b %Y") }}
+        {% else %}
+          Upload an export to start the first analysis
+        {% endif %}
+      </p>
+
+      <span class="mt-6 flex items-center gap-1.5 text-sm font-medium text-gray-400 group-hover:text-ink">
+        Open account {{ icons.icon("arrow", "w-4 h-4") }}
+      </span>
+    </a>
+  {% endfor %}
+
+  <a href="/tenants/new"
+     class="flex min-h-[196px] flex-col items-center justify-center gap-2 rounded-3xl border-2
+            border-dashed border-gray-200 p-5 text-gray-400 transition
+            hover:border-ink hover:text-ink">
+    <span class="grid h-11 w-11 place-items-center rounded-2xl bg-gray-100 text-2xl leading-none">+</span>
+    <span class="text-sm font-medium">Add a client account</span>
+  </a>
+</div>
+
+{% if not tenants %}
+<p class="mt-6 text-sm text-gray-500">
+  No client accounts yet. Add one, then upload a saved-search or System Notes export against it.
+</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,99 @@
+{#
+  Grounded chat panel. Used on both the evidence page (where the analysis may
+  not exist until the first upload lands) and the report page (where it always
+  does). Upload code calls window.maicaChatEnable(analysisId) once it has one.
+#}
+<div id="chat-panel"
+     data-tenant-id="{{ tenant_id }}"
+     data-analysis-id="{{ analysis_id or '' }}"
+     class="flex flex-col rounded-3xl border border-gray-200 bg-white p-5"
+     style="min-height: 30rem;">
+  <div class="flex items-center gap-2">
+    <span class="grid h-8 w-8 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">M</span>
+    <h2 class="text-base font-semibold">Ask about this evidence</h2>
+  </div>
+  <p class="mb-4 mt-2 text-xs leading-relaxed text-gray-500">
+    Answers come only from the evidence in this analysis. When the evidence doesn't
+    cover something it says so, rather than guessing about NetSuite.
+  </p>
+
+  <div id="chat-log" class="mb-3 flex-1 space-y-3 overflow-y-auto text-sm"></div>
+
+  <p id="chat-disabled" class="rounded-xl bg-gray-50 px-3 py-2.5 text-sm text-gray-500">
+    Upload evidence first, then you can ask questions about it here.
+  </p>
+
+  <form id="chat-form" class="hidden gap-2">
+    <input id="chat-input" type="text" required
+           placeholder="e.g. what changed on record {{ source_id or '1001' }}?"
+           class="min-w-0 flex-1 rounded-full border border-gray-200 px-4 py-2.5 text-sm
+                  focus:border-ink focus:outline-none" />
+    <button type="submit"
+            class="shrink-0 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white hover:bg-ink/90">
+      Ask
+    </button>
+  </form>
+</div>
+
+<script>
+  (function () {
+    const panel = document.getElementById("chat-panel");
+    const tenantId = panel.dataset.tenantId;
+    const log = document.getElementById("chat-log");
+    const form = document.getElementById("chat-form");
+    const history = [];
+
+    window.maicaChatEnable = function (analysisId) {
+      panel.dataset.analysisId = analysisId;
+      document.getElementById("chat-disabled").classList.add("hidden");
+      form.classList.remove("hidden");
+      form.classList.add("flex");
+    };
+
+    if (panel.dataset.analysisId) window.maicaChatEnable(panel.dataset.analysisId);
+
+    function appendMessage(role, text) {
+      const row = document.createElement("div");
+      row.className = role === "user" ? "text-right" : "text-left";
+      const bubble = document.createElement("span");
+      bubble.className = "inline-block max-w-[90%] rounded-2xl px-3 py-2 text-left leading-relaxed " +
+        (role === "user" ? "bg-ink text-white" : "bg-gray-100 text-ink");
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+      return row;
+    }
+
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const input = document.getElementById("chat-input");
+      const question = input.value.trim();
+      const analysisId = panel.dataset.analysisId;
+      if (!question || !analysisId) return;
+
+      appendMessage("user", question);
+      input.value = "";
+      const pending = appendMessage("assistant", "Thinking… (this model takes a few seconds)");
+
+      try {
+        const response = await fetch(
+          "/tenants/" + tenantId + "/analyses/" + analysisId + "/chat",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: question, history: history }),
+          }
+        );
+        const body = await response.json();
+        pending.remove();
+        appendMessage("assistant", body.answer);
+        history.push({ role: "user", content: question });
+        history.push({ role: "assistant", content: body.answer });
+      } catch (err) {
+        pending.remove();
+        appendMessage("assistant", "Could not reach the assistant: " + err);
+      }
+    });
+  })();
+</script>

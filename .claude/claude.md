@@ -114,8 +114,12 @@ Progress:
    logged-in user has been granted access.
 4. **DONE** — Fell out of #3: `/dashboard` lists a user's tenants,
    `/tenants/{id}/analyses` lists analyses within one.
-5. UI polish and broader test coverage with messier real-world-shaped exports —
-   not started.
+5. **PARTLY DONE** — UI rebuilt on one shared shell: a collapsible black
+   sidebar (`maica/web/nav.py` + `templates/base.html`) whose tenant-scoped
+   destinations render disabled with a stated reason until the context exists,
+   and a client-account card grid replacing the old link list. The grounded
+   chat panel is now a shared partial on both the evidence and report pages.
+   Still open: broader test coverage with messier real-world-shaped exports.
 6. Git remote + CI verification; Docker build verification once available —
    not started, needs a decision on where to host (GitHub/GitLab, which account).
 
