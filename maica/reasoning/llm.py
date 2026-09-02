@@ -34,6 +34,11 @@ class LLMRequestError(Exception):
     distinct from a successful response that fails schema validation."""
 
 
+class LLMTimeoutError(LLMRequestError):
+    """The model was reachable but did not answer in time. Worth telling apart
+    from an unreachable host: one says wait, the other says start the server."""
+
+
 class LLMClient(Protocol):
     """One interface any local or hosted model can implement, so this module
     never depends on a specific provider's SDK.

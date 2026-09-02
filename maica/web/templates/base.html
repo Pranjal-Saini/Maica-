@@ -132,6 +132,9 @@
 
       function setCollapsed(collapsed, persist) {
         sidebar.dataset.collapsed = collapsed ? "true" : "false";
+        // The bottom-docked chat composer centres on the content area, not the
+        // viewport, so it has to follow the sidebar as it opens and shuts.
+        document.documentElement.style.setProperty("--side-w", collapsed ? "76px" : "248px");
         toggle.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
         toggle.setAttribute("title", collapsed ? "Expand sidebar" : "Collapse sidebar");
         if (persist !== false) {

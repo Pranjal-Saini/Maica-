@@ -1,62 +1,78 @@
 {#
-  Grounded chat panel. Used on both the evidence page (where the analysis may
-  not exist until the first upload lands) and the report page (where it always
-  does). Upload code calls window.maicaChatEnable(analysisId) once it has one.
+  The grounded chat composer. Docked to the bottom of the content area rather
+  than boxed into the page, so it reads as one input you can always reach.
+  Used on both the evidence page (where the analysis may not exist until the
+  first upload lands) and the report page (where it always does) — upload code
+  calls window.maicaChatEnable(analysisId) once it has one.
 #}
-<div id="chat-panel"
+<style>
+  body { padding-bottom: 8.5rem; }
+  #chat-dock { left: calc(var(--side-w, 248px) + 2rem); }
+</style>
+
+<div id="chat-dock"
      data-tenant-id="{{ tenant_id }}"
      data-analysis-id="{{ analysis_id or '' }}"
-     class="flex flex-col rounded-3xl border border-gray-200 bg-white p-5"
-     style="min-height: 30rem;">
-  <div class="flex items-center gap-2">
-    <span class="grid h-8 w-8 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">M</span>
-    <h2 class="text-base font-semibold">Ask about this evidence</h2>
+     class="fixed bottom-0 right-0 z-40">
+  <div class="mx-auto w-full max-w-3xl px-4 pb-5">
+
+    <div id="chat-log"
+         class="mb-3 hidden max-h-[46vh] space-y-3 overflow-y-auto rounded-3xl bg-white p-4
+                text-sm shadow-2xl ring-1 ring-black/5"></div>
+
+    <form id="chat-form" class="flex items-center gap-2 rounded-full bg-ink py-2 pl-5 pr-2 shadow-2xl">
+      <input id="chat-input" type="text" required autocomplete="off"
+             placeholder="Ask about this evidence…"
+             class="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/40
+                    focus:outline-none disabled:placeholder-white/25" />
+      <button type="submit" id="chat-send" aria-label="Ask"
+              class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-lime text-ink
+                     transition hover:opacity-90 disabled:bg-white/15 disabled:text-white/30">
+        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10 16V4M5 9l5-5 5 5"/>
+        </svg>
+      </button>
+    </form>
+
+    <p class="mt-2 text-center text-[11px] text-gray-500">
+      Answers come only from this analysis's evidence — it says so when the evidence
+      doesn't cover something, rather than guessing about NetSuite.
+    </p>
   </div>
-  <p class="mb-4 mt-2 text-xs leading-relaxed text-gray-500">
-    Answers come only from the evidence in this analysis. When the evidence doesn't
-    cover something it says so, rather than guessing about NetSuite.
-  </p>
-
-  <div id="chat-log" class="mb-3 flex-1 space-y-3 overflow-y-auto text-sm"></div>
-
-  <p id="chat-disabled" class="rounded-xl bg-gray-50 px-3 py-2.5 text-sm text-gray-500">
-    Upload evidence first, then you can ask questions about it here.
-  </p>
-
-  <form id="chat-form" class="hidden gap-2">
-    <input id="chat-input" type="text" required
-           placeholder="e.g. what changed on record {{ source_id or '1001' }}?"
-           class="min-w-0 flex-1 rounded-full border border-gray-200 px-4 py-2.5 text-sm
-                  focus:border-ink focus:outline-none" />
-    <button type="submit"
-            class="shrink-0 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white hover:bg-ink/90">
-      Ask
-    </button>
-  </form>
 </div>
 
 <script>
   (function () {
-    const panel = document.getElementById("chat-panel");
-    const tenantId = panel.dataset.tenantId;
+    const dock = document.getElementById("chat-dock");
+    const tenantId = dock.dataset.tenantId;
     const log = document.getElementById("chat-log");
     const form = document.getElementById("chat-form");
+    const input = document.getElementById("chat-input");
+    const send = document.getElementById("chat-send");
     const history = [];
 
+    function setEnabled(enabled) {
+      input.disabled = !enabled;
+      send.disabled = !enabled;
+      input.placeholder = enabled
+        ? "Ask about this evidence…"
+        : "Upload evidence first, then ask about it here";
+    }
+
     window.maicaChatEnable = function (analysisId) {
-      panel.dataset.analysisId = analysisId;
-      document.getElementById("chat-disabled").classList.add("hidden");
-      form.classList.remove("hidden");
-      form.classList.add("flex");
+      dock.dataset.analysisId = analysisId;
+      setEnabled(true);
     };
 
-    if (panel.dataset.analysisId) window.maicaChatEnable(panel.dataset.analysisId);
+    setEnabled(Boolean(dock.dataset.analysisId));
 
     function appendMessage(role, text) {
+      log.classList.remove("hidden");
       const row = document.createElement("div");
       row.className = role === "user" ? "text-right" : "text-left";
       const bubble = document.createElement("span");
-      bubble.className = "inline-block max-w-[90%] rounded-2xl px-3 py-2 text-left leading-relaxed " +
+      bubble.className = "inline-block max-w-[85%] rounded-2xl px-3 py-2 text-left leading-relaxed " +
         (role === "user" ? "bg-ink text-white" : "bg-gray-100 text-ink");
       bubble.textContent = text;
       row.appendChild(bubble);
@@ -67,13 +83,13 @@
 
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
-      const input = document.getElementById("chat-input");
       const question = input.value.trim();
-      const analysisId = panel.dataset.analysisId;
+      const analysisId = dock.dataset.analysisId;
       if (!question || !analysisId) return;
 
       appendMessage("user", question);
       input.value = "";
+      setEnabled(false);
       const pending = appendMessage("assistant", "Thinking… (this model takes a few seconds)");
 
       try {
@@ -93,6 +109,9 @@
       } catch (err) {
         pending.remove();
         appendMessage("assistant", "Could not reach the assistant: " + err);
+      } finally {
+        setEnabled(true);
+        input.focus();
       }
     });
   })();

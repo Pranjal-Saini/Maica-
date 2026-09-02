@@ -14,7 +14,7 @@ from collections.abc import Sequence
 from pydantic import BaseModel
 
 from maica.graph.builder import RecordLike
-from maica.reasoning.llm import LLMClient, LLMRequestError
+from maica.reasoning.llm import LLMClient, LLMRequestError, LLMTimeoutError
 from maica.reasoning.models import DiagnosisResult
 
 CHAT_PROMPT_VERSION = "v1"
@@ -135,11 +135,21 @@ async def answer_question(
             user=_build_user_content(evidence_context, history, question),
             json_mode=False,  # this answer is prose for a human, not a parsed schema
         )
+    except LLMTimeoutError:
+        return ChatAnswer(
+            answer=(
+                "The assistant took too long to answer. It is probably still working "
+                "through this page's factors — wait a few seconds and ask again. The "
+                "ranked factors and gaps on this analysis are unaffected."
+            ),
+            grounded=False,
+        )
     except LLMRequestError:
         return ChatAnswer(
             answer=(
-                "The assistant could not be reached just now. Try again in a moment — "
-                "the ranked factors and gaps on this analysis are unaffected."
+                "The assistant could not be reached just now — check the language "
+                "model server is running. The ranked factors and gaps on this "
+                "analysis are unaffected."
             ),
             grounded=False,
         )

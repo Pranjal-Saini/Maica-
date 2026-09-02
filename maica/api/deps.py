@@ -43,4 +43,5 @@ async def get_authorized_tenant_id(
 
 
 async def get_llm_client() -> OllamaClient:
-    return OllamaClient(base_url=get_settings().ollama_base_url)
+    settings = get_settings()
+    return OllamaClient(base_url=settings.ollama_base_url, timeout=settings.llm_timeout_seconds)

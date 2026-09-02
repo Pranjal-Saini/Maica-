@@ -1,7 +1,7 @@
 import json
 
 from maica.reasoning.chat import ChatMessage, answer_question, build_evidence_context
-from maica.reasoning.llm import LLMRequestError
+from maica.reasoning.llm import LLMRequestError, LLMTimeoutError
 from maica.reasoning.models import DiagnosisResult, Factor, FactorLabel, Gap
 
 _MODEL = "qwen3:8b"
@@ -114,3 +114,25 @@ def test_evidence_context_carries_factors_and_gaps() -> None:
     assert analysed["source_id"] == "1001"
     assert analysed["ranked_factors"][0]["label"] == "UNCERTAIN"
     assert analysed["gaps"][0]["description"] == "no script evidence"
+
+
+class _TimingOutClient:
+    async def complete(self, *, model: str, system: str, user: str, json_mode: bool = True) -> str:
+        raise LLMTimeoutError("took too long")
+
+
+async def test_chat_tells_a_slow_model_apart_from_a_stopped_one() -> None:
+    # Both are unavailability, but only one is worth waiting out — the report
+    # page narrates each factor in its own call, and a local model serves them
+    # one at a time, so a question asked mid-render queues behind them.
+    timed_out = await answer_question(
+        "anything", evidence_context="{}", history=[], client=_TimingOutClient(), model=_MODEL
+    )
+    unreachable = await answer_question(
+        "anything", evidence_context="{}", history=[], client=_RaisingClient(), model=_MODEL
+    )
+
+    assert timed_out.grounded is False
+    assert "took too long" in timed_out.answer
+    assert unreachable.grounded is False
+    assert "could not be reached" in unreachable.answer

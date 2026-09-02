@@ -69,7 +69,7 @@ async def test_report_page_carries_the_chat_panel(
 
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
 
-    assert 'id="chat-panel"' in response.text
+    assert 'id="chat-dock"' in response.text
     assert f'data-analysis-id="{analysis_id}"' in response.text
 
 
@@ -82,7 +82,7 @@ async def test_upload_page_renders_with_chat_disabled_before_any_analysis(
 
     assert response.status_code == 200
     assert 'data-analysis-id=""' in response.text
-    assert "Upload evidence first" in response.text
+    assert "Upload evidence first, then ask about it here" in response.text
 
 
 async def test_client_account_cards_show_analysis_activity(

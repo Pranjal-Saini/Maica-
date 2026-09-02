@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     environment: str = "development"
     ollama_base_url: str = "http://localhost:11434"
     llm_model: str = "qwen3:8b"
+    # A local model serves one request at a time, so a chat question asked while a
+    # report is still narrating its factors queues behind them. 60s was too tight
+    # for that and surfaced as a spurious 'could not be reached'.
+    llm_timeout_seconds: float = 180.0
     # Signs the session cookie. Must be overridden via env var outside development —
     # anyone with this value can forge a session.
     session_secret_key: str = "dev-insecure-secret-change-in-production"

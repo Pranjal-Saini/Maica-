@@ -1,13 +1,13 @@
 import httpx
 
-from maica.reasoning.llm import LLMRequestError
+from maica.reasoning.llm import LLMRequestError, LLMTimeoutError
 
 
 class OllamaClient:
     """Talks to a local Ollama server's /api/chat endpoint. Implements the
     LLMClient protocol structurally — no shared base class needed."""
 
-    def __init__(self, base_url: str, timeout: float = 60.0) -> None:
+    def __init__(self, base_url: str, timeout: float = 180.0) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
 
@@ -33,5 +33,9 @@ class OllamaClient:
                 response.raise_for_status()
                 data = response.json()
                 return str(data["message"]["content"])
+        except httpx.TimeoutException as exc:
+            raise LLMTimeoutError(
+                f"Ollama did not answer within {self._timeout:.0f}s: {exc}"
+            ) from exc
         except (httpx.HTTPError, KeyError, ValueError) as exc:
             raise LLMRequestError(f"Ollama request failed: {exc}") from exc

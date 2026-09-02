@@ -1,7 +1,8 @@
 import httpx
+import pytest
 import respx
 
-from maica.reasoning.llm import LLMRequestError
+from maica.reasoning.llm import LLMRequestError, LLMTimeoutError
 from maica.reasoning.ollama_client import OllamaClient
 
 
@@ -74,3 +75,26 @@ async def test_missing_message_field_raises_llm_request_error() -> None:
     except LLMRequestError:
         raised = True
     assert raised
+
+
+@respx.mock
+async def test_timeout_raises_a_distinguishable_error() -> None:
+    # A slow local model and a stopped one need different advice, so the
+    # timeout must not collapse into the generic request failure.
+    respx.post("http://localhost:11434/api/chat").mock(side_effect=httpx.ReadTimeout("timed out"))
+    client = OllamaClient(base_url="http://localhost:11434", timeout=1.0)
+
+    with pytest.raises(LLMTimeoutError):
+        await client.complete(model="qwen3:8b", system="sys", user="usr")
+
+
+@respx.mock
+async def test_connection_failure_is_not_reported_as_a_timeout() -> None:
+    respx.post("http://localhost:11434/api/chat").mock(
+        side_effect=httpx.ConnectError("connection refused")
+    )
+    client = OllamaClient(base_url="http://localhost:11434")
+
+    with pytest.raises(LLMRequestError) as exc_info:
+        await client.complete(model="qwen3:8b", system="sys", user="usr")
+    assert not isinstance(exc_info.value, LLMTimeoutError)
