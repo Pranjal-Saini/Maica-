@@ -123,7 +123,7 @@ async def dashboard(
     return templates.TemplateResponse(
         request,
         "dashboard.html",
-        page_context(user=user, active="accounts", tenant_count=len(tenants))
+        page_context(request, user=user, active="accounts", tenant_count=len(tenants))
         | {"tenants": tenants, "activity": activity},
     )
 
@@ -138,7 +138,8 @@ async def new_tenant_form(
     return templates.TemplateResponse(
         request,
         "new_tenant.html",
-        page_context(user=user, active="accounts", tenant_count=len(tenants)) | {"error": None},
+        page_context(request, user=user, active="accounts", tenant_count=len(tenants))
+        | {"error": None},
     )
 
 

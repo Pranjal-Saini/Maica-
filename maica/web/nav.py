@@ -1,20 +1,31 @@
 """The sidebar navigation model.
 
-Every page shares one sidebar, but most of its destinations only exist once
-the consultant has picked a client account, then an analysis, then a record.
-Rather than render dead links, an item without enough context comes back
-disabled with a plain reason — the same "say what is missing" posture the
-reports themselves take.
+Every page shares one sidebar, and every row in it is clickable. Most rows
+need a client account, then an analysis, then a record before they point at
+real data — so the shell remembers the last one the consultant actually
+opened and reuses it. When there is genuinely nothing to remember, the row
+still leads somewhere useful: the page where that context gets picked,
+carrying a `need` hint so it can say what to choose.
 """
 
 import uuid
 from dataclasses import dataclass
 
+from starlette.requests import Request
+
 from maica.auth.models import User
 
-NEEDS_TENANT = "Open a client account first"
-NEEDS_ANALYSIS = "Open an analysis first"
-NEEDS_RECORD = "Open a record first"
+SESSION_KEY = "nav_context"
+
+NEED_ACCOUNT = "account"
+NEED_ANALYSIS = "analysis"
+NEED_RECORD = "record"
+
+NEED_PROMPTS = {
+    NEED_ACCOUNT: "Open a client account first — analyses, evidence and reports live inside one.",
+    NEED_ANALYSIS: "Open an analysis first — its records and ranked factors live inside it.",
+    NEED_RECORD: "Open a record to see its ranked contributing factors.",
+}
 
 
 @dataclass(frozen=True)
@@ -22,24 +33,73 @@ class NavItem:
     key: str
     label: str
     icon: str
-    href: str | None = None
+    href: str
     badge: str | None = None
-    disabled_reason: str | None = None
-
-    @property
-    def is_enabled(self) -> bool:
-        return self.href is not None
+    #: Set when the row leads to a picker instead of the section itself.
+    needs: str | None = None
 
 
-def build_nav(
+@dataclass(frozen=True)
+class NavContext:
+    """The last place the consultant actually was."""
+
+    tenant_id: str | None = None
+    analysis_id: str | None = None
+    source_id: str | None = None
+
+
+def remember_context(
+    request: Request,
     *,
     tenant_id: uuid.UUID | None = None,
     analysis_id: uuid.UUID | None = None,
     source_id: str | None = None,
-    tenant_count: int | None = None,
-) -> list[NavItem]:
-    tenant_base = f"/tenants/{tenant_id}" if tenant_id else None
-    analysis_base = f"{tenant_base}/analyses/{analysis_id}" if tenant_base and analysis_id else None
+) -> NavContext:
+    """Stores this page's context in the session and returns the merged view.
+
+    Narrowing resets what sits below it: moving to a different client account
+    drops the remembered analysis and record, because they belong to the
+    account being left. Without that the sidebar would happily link one
+    tenant's analysis from another tenant's page.
+    """
+    stored = request.session.get(SESSION_KEY) or {}
+    context = NavContext(
+        tenant_id=stored.get("tenant_id"),
+        analysis_id=stored.get("analysis_id"),
+        source_id=stored.get("source_id"),
+    )
+
+    if tenant_id is not None and str(tenant_id) != context.tenant_id:
+        context = NavContext(tenant_id=str(tenant_id))
+    if analysis_id is not None and str(analysis_id) != context.analysis_id:
+        context = NavContext(tenant_id=context.tenant_id, analysis_id=str(analysis_id))
+    if source_id is not None:
+        context = NavContext(
+            tenant_id=context.tenant_id,
+            analysis_id=context.analysis_id,
+            source_id=source_id,
+        )
+
+    request.session[SESSION_KEY] = {
+        "tenant_id": context.tenant_id,
+        "analysis_id": context.analysis_id,
+        "source_id": context.source_id,
+    }
+    return context
+
+
+def build_nav(context: NavContext, *, tenant_count: int | None = None) -> list[NavItem]:
+    tenant = context.tenant_id
+    analysis = context.analysis_id if tenant else None
+    source = context.source_id if analysis else None
+
+    pick_account = f"/dashboard?need={NEED_ACCOUNT}"
+    pick_analysis = f"/tenants/{tenant}/analyses?need={NEED_ANALYSIS}" if tenant else pick_account
+    pick_record = (
+        f"/tenants/{tenant}/analyses/{analysis}/records?need={NEED_RECORD}"
+        if analysis
+        else pick_analysis
+    )
 
     return [
         NavItem(
@@ -53,36 +113,39 @@ def build_nav(
             key="analyses",
             label="Analyses",
             icon="analyses",
-            href=f"{tenant_base}/analyses" if tenant_base else None,
-            disabled_reason=None if tenant_base else NEEDS_TENANT,
+            href=f"/tenants/{tenant}/analyses" if tenant else pick_account,
+            needs=None if tenant else NEED_ACCOUNT,
         ),
         NavItem(
             key="evidence",
             label="Evidence & chat",
             icon="upload",
-            href=f"{tenant_base}/uploads/new" if tenant_base else None,
-            disabled_reason=None if tenant_base else NEEDS_TENANT,
+            href=f"/tenants/{tenant}/uploads/new" if tenant else pick_account,
+            needs=None if tenant else NEED_ACCOUNT,
         ),
         NavItem(
             key="deep_dive",
             label="Deep dive",
             icon="deepdive",
-            href=f"{analysis_base}/records" if analysis_base else None,
-            disabled_reason=None if analysis_base else NEEDS_ANALYSIS,
+            href=f"/tenants/{tenant}/analyses/{analysis}/records" if analysis else pick_analysis,
+            needs=None if analysis else (NEED_ANALYSIS if tenant else NEED_ACCOUNT),
         ),
         NavItem(
             key="factors",
             label="Ranked factors",
             icon="factors",
-            href=f"{analysis_base}/records/{source_id}/report"
-            if analysis_base and source_id
-            else None,
-            disabled_reason=None if (analysis_base and source_id) else NEEDS_RECORD,
+            href=f"/tenants/{tenant}/analyses/{analysis}/records/{source}/report"
+            if source
+            else pick_record,
+            needs=None
+            if source
+            else (NEED_RECORD if analysis else (NEED_ANALYSIS if tenant else NEED_ACCOUNT)),
         ),
     ]
 
 
 def page_context(
+    request: Request,
     *,
     user: User,
     active: str,
@@ -94,15 +157,15 @@ def page_context(
 ) -> dict:
     """The shell context every page built on base.html needs. Routes merge
     their own page data on top of this."""
+    context = remember_context(
+        request, tenant_id=tenant_id, analysis_id=analysis_id, source_id=source_id
+    )
+    need = request.query_params.get("need")
     return {
         "user": user,
         "nav_active": active,
-        "nav_items": build_nav(
-            tenant_id=tenant_id,
-            analysis_id=analysis_id,
-            source_id=source_id,
-            tenant_count=tenant_count,
-        ),
+        "nav_items": build_nav(context, tenant_count=tenant_count),
+        "need_prompt": NEED_PROMPTS.get(need) if need else None,
         "tenant_id": tenant_id,
         "tenant_name": tenant_name,
         "analysis_id": analysis_id,

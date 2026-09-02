@@ -23,11 +23,10 @@
   <style>
     #sidebar { transition: width .18s ease; }
     #sidebar[data-collapsed="true"] { width: 76px; }
-    #sidebar[data-collapsed="true"] .side-label,
-    #sidebar[data-collapsed="true"] .side-only-open { display: none; }
+    #sidebar[data-collapsed="true"] .side-label { display: none; }
     #sidebar[data-collapsed="true"] .side-row { justify-content: center; }
+    #collapse-chevron { display: inline-flex; transform: rotate(180deg); transition: transform .18s ease; }
     #sidebar[data-collapsed="true"] #collapse-chevron { transform: rotate(0deg); }
-    #collapse-chevron { transform: rotate(180deg); transition: transform .18s ease; }
   </style>
 </head>
 <body class="bg-canvas text-ink antialiased">
@@ -36,51 +35,41 @@
     <!-- Sidebar -->
     <aside id="sidebar" data-collapsed="false"
            class="flex w-[248px] shrink-0 flex-col rounded-[26px] bg-ink text-white p-4">
-      <div class="side-row flex items-center gap-2 px-1 pb-6">
+      <a href="/dashboard" class="side-row flex items-center gap-2 rounded-xl px-1 py-1 hover:opacity-80">
         <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-lime text-ink font-bold">M</span>
         <span class="side-label text-lg font-semibold tracking-tight">maica</span>
-        <button type="button" id="collapse-toggle" aria-label="Collapse sidebar"
-                class="side-label ml-auto rounded-lg p-1.5 text-white/40 hover:bg-white/10 hover:text-white">
-          {{ icons.icon("chevron", "w-4 h-4") }}
-        </button>
-      </div>
+      </a>
+
+      <button type="button" id="collapse-toggle" aria-label="Collapse sidebar"
+              class="side-row mb-4 mt-2 flex items-center gap-3 rounded-xl px-3 py-2 text-sm
+                     text-white/40 hover:bg-white/10 hover:text-white">
+        <span id="collapse-chevron">{{ icons.icon("chevron", "w-4 h-4") }}</span>
+        <span class="side-label">Collapse</span>
+      </button>
 
       <nav class="flex flex-col gap-1">
         {% for item in nav_items %}
-          {% if item.is_enabled %}
-          <a href="{{ item.href }}"
-             class="side-row flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition
-                    {% if item.key == nav_active %}bg-lime text-ink font-semibold
-                    {% else %}text-white/70 hover:bg-white/10 hover:text-white{% endif %}">
-            {{ icons.icon(item.icon) }}
-            <span class="side-label">{{ item.label }}</span>
-            {% if item.badge %}
-            <span class="side-label ml-auto rounded-md px-1.5 py-0.5 text-[11px] font-semibold
-                         {% if item.key == nav_active %}bg-ink/15 text-ink{% else %}bg-lime text-ink{% endif %}">
-              {{ item.badge }}
-            </span>
-            {% endif %}
-          </a>
-          {% else %}
-          <span title="{{ item.disabled_reason }}"
-                class="side-row flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5
-                       text-sm text-white/25">
-            {{ icons.icon(item.icon) }}
-            <span class="side-label">{{ item.label }}</span>
+        <a href="{{ item.href }}"
+           {% if item.needs %}title="{{ item.label }} — pick a {{ item.needs }} first"{% endif %}
+           class="side-row flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition
+                  {% if item.key == nav_active %}bg-lime text-ink font-semibold
+                  {% elif item.needs %}text-white/45 hover:bg-white/10 hover:text-white
+                  {% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
+          {{ icons.icon(item.icon) }}
+          <span class="side-label">{{ item.label }}</span>
+          {% if item.badge %}
+          <span class="side-label ml-auto rounded-md px-1.5 py-0.5 text-[11px] font-semibold
+                       {% if item.key == nav_active %}bg-ink/15 text-ink{% else %}bg-lime text-ink{% endif %}">
+            {{ item.badge }}
           </span>
+          {% elif item.needs %}
+          <span class="side-label ml-auto text-[11px] text-white/30">pick {{ item.needs }}</span>
           {% endif %}
+        </a>
         {% endfor %}
       </nav>
 
-      {% set locked = nav_items | rejectattr("is_enabled") | list %}
-      {% if locked %}
-      <p class="side-label mt-3 px-3 text-[11px] leading-relaxed text-white/35">
-        {{ locked | length }} section{{ "s" if locked | length != 1 else "" }} unavailable —
-        {{ locked[0].disabled_reason | lower }}.
-      </p>
-      {% endif %}
-
-      <div class="side-only-open mt-auto rounded-2xl bg-white/5 p-4">
+      <div class="side-label mt-auto rounded-2xl bg-white/5 p-4">
         <div class="mb-2 flex items-center gap-2 text-lime">
           {{ icons.icon("shield", "w-4 h-4") }}
           <span class="text-xs font-semibold uppercase tracking-wide">Read-only</span>
@@ -121,6 +110,10 @@
         </div>
       </header>
 
+      {% if need_prompt %}
+      <p class="mb-5 rounded-2xl border border-lav bg-lav-soft px-4 py-3 text-sm">{{ need_prompt }}</p>
+      {% endif %}
+
       {% block content %}{% endblock %}
     </main>
   </div>
@@ -129,31 +122,25 @@
     (function () {
       const sidebar = document.getElementById("sidebar");
       const toggle = document.getElementById("collapse-toggle");
-      if (!sidebar || !toggle) return;
 
       // Restore the consultant's choice before anything else paints. With no
       // stored choice, a narrow screen starts collapsed so the sidebar does not
       // eat the page.
       let stored = null;
       try { stored = localStorage.getItem("maica-sidebar-collapsed"); } catch (e) {}
-      const collapsed = stored === null ? window.innerWidth < 900 : stored === "true";
-      sidebar.dataset.collapsed = collapsed ? "true" : "false";
+      setCollapsed(stored === null ? window.innerWidth < 900 : stored === "true", false);
 
-      function setCollapsed(collapsed) {
+      function setCollapsed(collapsed, persist) {
         sidebar.dataset.collapsed = collapsed ? "true" : "false";
         toggle.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
-        try { localStorage.setItem("maica-sidebar-collapsed", String(collapsed)); } catch (e) {}
+        toggle.setAttribute("title", collapsed ? "Expand sidebar" : "Collapse sidebar");
+        if (persist !== false) {
+          try { localStorage.setItem("maica-sidebar-collapsed", String(collapsed)); } catch (e) {}
+        }
       }
 
       toggle.addEventListener("click", function () {
-        setCollapsed(sidebar.dataset.collapsed !== "true");
-      });
-
-      // When collapsed the toggle itself is hidden, so the logo mark expands it again.
-      sidebar.querySelector(".side-row").addEventListener("click", function (event) {
-        if (sidebar.dataset.collapsed === "true" && !toggle.contains(event.target)) {
-          setCollapsed(false);
-        }
+        setCollapsed(sidebar.dataset.collapsed !== "true", true);
       });
     })();
   </script>

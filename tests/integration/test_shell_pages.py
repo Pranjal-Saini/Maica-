@@ -1,12 +1,12 @@
-"""The shared sidebar shell: every signed-in page renders it, and its
-tenant-scoped destinations only unlock once the context exists."""
+"""The shared sidebar shell: every signed-in page renders it, every row in
+it is clickable, and the rows remember the last place the consultant was."""
 
 from pathlib import Path
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from maica.web.nav import NEEDS_TENANT
+from maica.web.nav import NEED_ACCOUNT, NEED_ANALYSIS, NEED_PROMPTS
 from tests.conftest import create_tenant, login_as, signup_with_tenant
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -21,17 +21,28 @@ async def _upload_fixture(client: AsyncClient, tenant_id: str) -> str:
     return response.json()["analysis_id"]
 
 
-async def test_dashboard_locks_tenant_scoped_nav_until_an_account_is_open(
+async def test_every_sidebar_row_is_clickable_with_no_context_yet(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
-    await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    # A row that needs a client account still leads somewhere — the picker —
+    # rather than rendering as a dead control.
+    await login_as(client, db_session, "consultant@example.com")
 
     response = await client.get("/dashboard")
 
     assert "Client accounts" in response.text
     assert "Deep dive" in response.text
-    # Rendered, but as a disabled row explaining what is missing.
-    assert NEEDS_TENANT in response.text
+    assert f"/dashboard?need={NEED_ACCOUNT}" in response.text
+
+
+async def test_picker_page_says_what_to_choose(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await login_as(client, db_session, "consultant@example.com")
+
+    response = await client.get(f"/dashboard?need={NEED_ACCOUNT}")
+
+    assert NEED_PROMPTS[NEED_ACCOUNT] in response.text
 
 
 async def test_report_page_unlocks_every_sidebar_destination(
@@ -45,7 +56,7 @@ async def test_report_page_unlocks_every_sidebar_destination(
     text = response.text
     assert f"/tenants/{tenant_id}/uploads/new" in text
     assert f"/tenants/{tenant_id}/analyses/{analysis_id}/records" in text
-    assert NEEDS_TENANT not in text
+    assert f"/dashboard?need={NEED_ACCOUNT}" not in text
 
 
 async def test_report_page_carries_the_chat_panel(
@@ -100,3 +111,32 @@ async def test_dashboard_with_no_accounts_still_renders_the_shell(
     assert response.status_code == 200
     assert "Add a client account" in response.text
     assert "No client accounts yet" in response.text
+
+
+async def test_sidebar_remembers_the_analysis_after_returning_to_the_dashboard(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # The dashboard carries no analysis of its own, but "Deep dive" should
+    # still lead back to the one just being worked on.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    analysis_id = await _upload_fixture(client, str(tenant_id))
+    await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
+
+    response = await client.get("/dashboard")
+
+    assert f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report" in response.text
+
+
+async def test_opening_another_account_forgets_the_previous_analysis(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    other_tenant_id = await create_tenant(client, "Beta LLC")
+    analysis_id = await _upload_fixture(client, str(tenant_id))
+    await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
+
+    response = await client.get(f"/tenants/{other_tenant_id}/analyses")
+
+    # Deep dive must not link into the account that was just left.
+    assert str(analysis_id) not in response.text
+    assert f"/tenants/{other_tenant_id}/analyses?need={NEED_ANALYSIS}" in response.text

@@ -45,6 +45,7 @@ async def list_tenant_analyses(
         request,
         "analyses_list.html",
         page_context(
+            request,
             user=user,
             active="analyses",
             tenant_id=tenant_id,
@@ -115,6 +116,7 @@ async def list_analysis_records(
         request,
         "records_list.html",
         page_context(
+            request,
             user=user,
             active="deep_dive",
             tenant_id=tenant_id,
@@ -146,6 +148,7 @@ async def get_record_report(
         request,
         "report.html",
         page_context(
+            request,
             user=user,
             active="factors",
             tenant_id=tenant_id,

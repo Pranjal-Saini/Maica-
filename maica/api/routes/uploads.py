@@ -31,6 +31,7 @@ async def upload_form(
         request,
         "upload.html",
         page_context(
+            request,
             user=user,
             active="evidence",
             tenant_id=tenant_id,
