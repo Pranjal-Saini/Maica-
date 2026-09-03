@@ -31,11 +31,11 @@
   </style>
 </head>
 <body class="bg-canvas text-ink antialiased">
-  <div class="flex min-h-screen gap-3 p-3 md:gap-4 md:p-4">
+  <div class="flex h-screen gap-3 overflow-hidden p-3 md:gap-4 md:p-4">
 
     <!-- Sidebar -->
     <aside id="sidebar" data-collapsed="false"
-           class="flex w-[248px] shrink-0 flex-col rounded-[26px] bg-ink text-white p-4">
+           class="flex h-full w-[248px] shrink-0 flex-col overflow-y-auto rounded-[26px] bg-ink p-4 text-white">
       <a href="/dashboard" class="side-row flex items-center gap-[3px] rounded-xl px-1 py-1 hover:opacity-80">
         <img src="/static/maica-logo.png" alt="" aria-hidden="true"
              class="maica-mark h-9 w-9 shrink-0" />
@@ -71,7 +71,7 @@
         {% endfor %}
       </nav>
 
-      <div class="side-label mt-auto rounded-2xl bg-white/5 p-4">
+      <div class="side-label mt-6 rounded-2xl bg-white/5 p-4">
         <div class="mb-2 flex items-center gap-2 text-lime">
           {{ icons.icon("shield", "w-4 h-4") }}
           <span class="text-xs font-semibold uppercase tracking-wide">Read-only</span>
@@ -83,7 +83,7 @@
     </aside>
 
     <!-- Main panel -->
-    <main class="min-w-0 flex-1 rounded-[26px] bg-white p-5 md:p-8">
+    <main id="main-panel" class="min-w-0 flex-1 overflow-y-auto rounded-[26px] bg-white p-5 md:p-8">
       <header class="mb-7 flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0">
           {% if tenant_name %}

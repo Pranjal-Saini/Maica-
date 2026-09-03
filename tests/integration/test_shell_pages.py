@@ -300,3 +300,31 @@ async def test_logo_is_served_and_used_instead_of_the_letter_tile(
     assert asset.headers["content-type"] == "image/png"
     assert "/static/maica-logo.png" in page.text
     assert "maica-wordmark" in page.text
+
+
+async def test_sidebar_stays_put_and_only_the_content_panel_scrolls(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # The shell used to be min-h-screen, so a long report grew the sidebar with
+    # it and scrolled the nav — and the read-only card — off the screen.
+    await login_as(client, db_session, "consultant@example.com")
+
+    text = (await client.get("/dashboard")).text
+
+    assert "flex h-screen gap-3 overflow-hidden" in text
+    assert 'id="main-panel"' in text
+    assert "overflow-y-auto rounded-[26px] bg-white" in text
+
+
+async def test_read_only_note_sits_above_the_fold(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await login_as(client, db_session, "consultant@example.com")
+
+    text = (await client.get("/dashboard")).text
+    nav_end = text.index("</nav>")
+
+    # In the flow just after the nav, not pinned to the bottom of a tall column.
+    assert "never writes to a client NetSuite account" in text
+    assert text.index("never writes to a client NetSuite account") > nav_end
+    assert "mt-auto" not in text
