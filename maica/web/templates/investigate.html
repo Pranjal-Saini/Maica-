@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+
+{% block title %}MAICA — Find the problem{% endblock %}
+{% block page_title %}Find the problem{% endblock %}
+{% block page_subtitle %}Tell MAICA which records are wrong, and it compares them against the rest.{% endblock %}
+
+{% block content %}
+{% set base = "/tenants/" ~ tenant_id ~ "/analyses/" ~ analysis_id %}
+
+<div class="mb-6 rounded-md border border-gray-200 p-5">
+  <p class="mb-4 max-w-3xl text-sm leading-relaxed text-gray-600">
+    Everything else here ranks what is <em>unusual</em>, because unprompted that is all a tool
+    can know. You know something it does not — which records actually went wrong. Name them and
+    the question becomes answerable: what do they have that the others do not?
+  </p>
+
+  <form method="get" action="{{ base }}/investigate" class="grid gap-5 lg:grid-cols-2">
+    <div>
+      <label class="mb-1.5 block text-sm font-medium" for="ids">The records that are wrong</label>
+      <textarea id="ids" name="ids" rows="3" placeholder="4471, 4472, 4473"
+                class="w-full rounded-md border border-gray-200 px-3 py-2 font-mono text-sm
+                       focus:border-ink focus:outline-none">{{ ids }}</textarea>
+      <p class="mt-1 text-[11px] text-gray-400">
+        Internal IDs, separated however you have them — commas, spaces, or one per line.
+      </p>
+    </div>
+
+    <div>
+      <label class="mb-1.5 block text-sm font-medium">Or describe them by a value they share</label>
+      <div class="flex gap-2">
+        <input name="field" list="field-names" value="{{ field }}" placeholder="Field"
+               class="w-1/2 rounded-md border border-gray-200 px-3 py-2 text-sm
+                      focus:border-ink focus:outline-none" />
+        <input name="value" value="{{ value }}" placeholder="Value"
+               class="w-1/2 rounded-md border border-gray-200 px-3 py-2 text-sm
+                      focus:border-ink focus:outline-none" />
+      </div>
+      <datalist id="field-names">
+        {% for name in fields %}<option value="{{ name }}"></option>{% endfor %}
+      </datalist>
+      <p class="mt-1 text-[11px] text-gray-400">
+        For example Account = 4010 - Service Revenue, if that is where they wrongly landed.
+      </p>
+    </div>
+
+    <div class="lg:col-span-2">
+      <button type="submit"
+              class="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white hover:bg-ink/90">
+        Compare against the rest
+      </button>
+      <a href="{{ base }}/records" class="ml-3 text-sm text-gray-500 hover:text-ink">
+        Back to the deep dive
+      </a>
+    </div>
+  </form>
+</div>
+
+{% if described and investigation %}
+<section>
+  <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-400">What separates them</h2>
+  <p class="mb-1 text-sm font-medium">{{ investigation.headline }}</p>
+  <p class="mb-5 max-w-3xl text-xs leading-relaxed text-gray-500">{{ investigation.caveat }}</p>
+
+  {% if investigation.findings %}
+  <ol class="space-y-3">
+    {% for finding in investigation.findings %}
+    <li class="rounded-md border border-gray-200 p-5">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="grid h-8 w-8 place-items-center rounded-md bg-gray-100 text-sm font-bold">
+          {{ loop.index }}
+        </span>
+        <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide
+                     {% if finding.separation.value == 'ONLY IN AFFECTED' %}bg-brand text-white
+                     {% elif finding.separation.value == 'ABSENT FROM AFFECTED' %}bg-lav text-ink
+                     {% elif finding.separation.value == 'MORE COMMON IN AFFECTED' %}bg-brand-soft text-brand
+                     {% else %}bg-gray-100 text-gray-500{% endif %}">
+          {{ finding.separation.value }}
+        </span>
+        <span class="text-[11px] text-gray-400">{{ finding.meaning }}</span>
+      </div>
+
+      <p class="mt-3 leading-relaxed">{{ finding.describe() }}</p>
+
+      <div class="mt-3 rounded-md bg-gray-50 p-3">
+        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">The counts</p>
+        <p class="mt-1 text-sm">{{ finding.counts() }}</p>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+
+  {% if investigation.hidden_finding_count %}
+  <p class="mt-3 border-l-2 border-amber-300 pl-3 text-xs text-gray-500">
+    {{ investigation.hidden_finding_count }} further difference{{ "s" if investigation.hidden_finding_count != 1 }}
+    separated the two groups less sharply than those above and {{ "are" if investigation.hidden_finding_count != 1 else "is" }} not shown.
+  </p>
+  {% endif %}
+
+  {% else %}
+  <div class="rounded-md border border-dashed border-gray-200 p-10 text-center">
+    <p class="mx-auto max-w-xl text-sm leading-relaxed text-gray-500">
+      Nothing in this evidence tells the two groups apart. That is a real answer: whatever went
+      wrong is not visible in what has been uploaded. A System Notes export covering the right
+      period, or a script deployment list, would give this something more to compare on.
+    </p>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

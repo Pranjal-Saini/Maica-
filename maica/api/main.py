@@ -6,7 +6,15 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from maica.api.errors import ingest_validation_error_handler
-from maica.api.routes import analyses, auth, health, manage, patterns, uploads
+from maica.api.routes import (
+    analyses,
+    auth,
+    health,
+    investigate,
+    manage,
+    patterns,
+    uploads,
+)
 from maica.config.logging import configure_logging
 from maica.config.settings import get_settings
 from maica.evidence.db import get_engine
@@ -32,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(analyses.router)
     app.include_router(manage.router)
     app.include_router(patterns.router)
+    app.include_router(investigate.router)
     app.add_exception_handler(IngestValidationError, ingest_validation_error_handler)
 
     return app
