@@ -10,6 +10,7 @@
       theme: { extend: { colors: { ink: "#111310", canvas: "#e8eae2", lime: "#d7f36f" } } },
     };
   </script>
+  {% include "_brand.html" %}
 </head>
 <body class="bg-canvas text-ink antialiased">
   <div class="flex min-h-screen items-center justify-center p-4">
@@ -18,8 +19,9 @@
       <!-- Pitch -->
       <div class="flex flex-col justify-between bg-ink p-8 text-white">
         <div class="flex items-center gap-2">
-          <span class="grid h-8 w-8 place-items-center rounded-lg bg-lime font-bold text-ink">M</span>
-          <span class="text-lg font-semibold tracking-tight">maica</span>
+          <img src="/static/maica-logo.png" alt="" aria-hidden="true"
+               class="maica-mark h-9 w-9 shrink-0" />
+          <span class="maica-wordmark text-xl">maica</span>
         </div>
         <div class="my-10">
           <h2 class="text-3xl font-semibold leading-tight tracking-tight">

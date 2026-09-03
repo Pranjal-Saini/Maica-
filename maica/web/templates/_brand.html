@@ -1,0 +1,44 @@
+{#
+  Brand assets shared by every page that shows the logo lockup. Goes in <head>.
+
+  The supplied logo is a white mark on an OPAQUE black square — the PNG has no
+  alpha channel. Screen blending maps that black onto whatever is behind it, so
+  the mark sits on any dark surface with no visible tile edge, without altering
+  the artwork or adding an image-processing dependency to strip the background.
+  It therefore needs a dark surface behind it; on a light page put it on an .ink
+  tile first.
+#}
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Questrial&display=swap" rel="stylesheet" />
+<link rel="icon" href="/static/maica-logo.png" />
+<style>
+  /* Garet is licensed and is not committed to this repository — see
+     static/fonts/README.md. These rules are inert until the files are dropped
+     in, and the wordmark falls back to a geometric sans of similar proportion
+     so nothing looks broken meanwhile. */
+  @font-face {
+    font-family: "Garet";
+    src: url("/static/fonts/Garet-Book.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Garet";
+    src: url("/static/fonts/Garet-Heavy.woff2") format("woff2");
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  .maica-wordmark {
+    font-family: "Garet", Questrial, "Century Gothic", Futura, "Trebuchet MS", sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.005em;
+  }
+
+  .maica-mark {
+    mix-blend-mode: screen;
+  }
+</style>

@@ -286,3 +286,17 @@ async def test_report_chat_link_carries_the_record_being_viewed(
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
 
     assert 'data-source-id="1001"' in response.text
+
+
+async def test_logo_is_served_and_used_instead_of_the_letter_tile(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await login_as(client, db_session, "consultant@example.com")
+
+    page = await client.get("/dashboard")
+    asset = await client.get("/static/maica-logo.png")
+
+    assert asset.status_code == 200
+    assert asset.headers["content-type"] == "image/png"
+    assert "/static/maica-logo.png" in page.text
+    assert "maica-wordmark" in page.text

@@ -16,12 +16,15 @@
       theme: { extend: { colors: { ink: "#111310", canvas: "#e8eae2", lime: "#d7f36f" } } },
     };
   </script>
+  {% include "_brand.html" %}
 </head>
 <body class="flex h-screen flex-col bg-canvas text-ink antialiased">
 
   <header class="border-b border-black/5 bg-white">
     <div class="mx-auto flex w-full max-w-3xl items-center gap-2.5 px-5 py-3.5">
-      <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">M</span>
+      <span class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-ink">
+        <img src="/static/maica-logo.png" alt="" aria-hidden="true" class="maica-mark h-7 w-7" />
+      </span>
       <span class="min-w-0">
         <span class="block text-sm font-semibold leading-tight">Ask about this evidence</span>
         <span class="block truncate text-xs text-gray-400">
