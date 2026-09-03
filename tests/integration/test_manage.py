@@ -150,3 +150,43 @@ async def test_exporting_an_analysis_that_does_not_exist_is_a_404(
     response = await client.get(f"/tenants/{tenant_id}/analyses/{uuid.uuid4()}/export")
 
     assert response.status_code == 404
+
+
+async def test_deleting_shows_a_confirmation_message_on_the_next_page(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    await create_tenant(client, "Beta LLC")
+
+    await client.post(f"/tenants/{tenant_id}/delete")
+    dashboard = await client.get("/dashboard")
+
+    assert "Client account deleted successfully" in dashboard.text
+    assert 'id="toast"' in dashboard.text
+
+
+async def test_deleting_an_analysis_reports_it_on_the_analyses_page(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    analysis_id = await _upload(client, str(tenant_id))
+
+    await client.post(f"/tenants/{tenant_id}/analyses/{analysis_id}/delete")
+    page = await client.get(f"/tenants/{tenant_id}/analyses")
+
+    assert "Analysis deleted successfully" in page.text
+
+
+async def test_the_message_does_not_survive_a_refresh(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # Otherwise every later page view claims something was just deleted.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    await create_tenant(client, "Beta LLC")
+
+    await client.post(f"/tenants/{tenant_id}/delete")
+    first = await client.get("/dashboard")
+    second = await client.get("/dashboard")
+
+    assert "deleted successfully" in first.text
+    assert "deleted successfully" not in second.text

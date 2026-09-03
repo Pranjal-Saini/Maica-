@@ -21,6 +21,7 @@ from maica.api.deps import get_authorized_tenant_id, get_current_user, get_db_se
 from maica.auth import repository as auth_repository
 from maica.auth.models import User
 from maica.evidence import repository
+from maica.web.flash import set_flash
 from maica.web.nav import SESSION_KEY
 
 router = APIRouter()
@@ -78,6 +79,7 @@ async def delete_client_account(
     if (request.session.get(SESSION_KEY) or {}).get("tenant_id") == str(tenant_id):
         request.session.pop(SESSION_KEY, None)
 
+    set_flash(request, "Client account deleted successfully")
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -98,6 +100,7 @@ async def delete_analysis(
         stored["source_id"] = None
         request.session[SESSION_KEY] = stored
 
+    set_flash(request, "Analysis deleted successfully")
     return RedirectResponse(
         url=f"/tenants/{tenant_id}/analyses", status_code=status.HTTP_303_SEE_OTHER
     )
