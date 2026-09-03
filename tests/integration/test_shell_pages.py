@@ -59,30 +59,31 @@ async def test_report_page_unlocks_every_sidebar_destination(
     assert f"/dashboard?need={NEED_ACCOUNT}" not in text
 
 
-async def test_report_page_carries_the_chat_panel(
+async def test_no_chat_composer_is_rendered_on_any_page(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
-    # The chat used to live only on the upload page, where there is nothing to
-    # discuss yet. It belongs where the ranked factors are.
+    # The docked composer was removed: it floated over the report it was
+    # meant to discuss. The chat endpoints still exist but nothing links to
+    # them, so this guards against one creeping back in unnoticed.
     tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
     analysis_id = await _upload_fixture(client, str(tenant_id))
 
-    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
+    report = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
+    upload = await client.get(f"/tenants/{tenant_id}/uploads/new")
 
-    assert 'id="chat-dock"' in response.text
-    assert f'data-analysis-id="{analysis_id}"' in response.text
+    for response in (report, upload):
+        assert response.status_code == 200
+        assert "chat-dock" not in response.text
+        assert "Ask about this evidence" not in response.text
 
 
-async def test_upload_page_renders_with_chat_disabled_before_any_analysis(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_upload_page_renders(client: AsyncClient, db_session: AsyncSession) -> None:
     tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
 
     response = await client.get(f"/tenants/{tenant_id}/uploads/new")
 
     assert response.status_code == 200
-    assert 'data-analysis-id=""' in response.text
-    assert "Upload evidence first, then ask about it here" in response.text
+    assert "Upload evidence" in response.text
 
 
 async def test_client_account_cards_show_analysis_activity(
@@ -188,20 +189,6 @@ async def test_chat_window_is_tenant_guarded(client: AsyncClient, db_session: As
     assert response.status_code == 403
 
 
-async def test_chat_opens_as_a_full_tab_not_a_sized_popup(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
-    # window.open with a feature string makes a small popup; without one the
-    # browser opens a normal tab, which is what a full-width chat needs.
-    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
-    analysis_id = await _upload_fixture(client, str(tenant_id))
-
-    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
-
-    assert 'window.open(url, "maica-chat")' in response.text
-    assert "width=460" not in response.text
-
-
 async def test_report_shows_the_rows_behind_each_factor(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
@@ -277,17 +264,6 @@ async def test_chat_analyses_the_record_on_screen_first(
     assert response.status_code == 200
 
 
-async def test_report_chat_link_carries_the_record_being_viewed(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
-    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
-    analysis_id = await _upload_fixture(client, str(tenant_id))
-
-    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report")
-
-    assert 'data-source-id="1001"' in response.text
-
-
 async def test_logo_is_served_and_used_instead_of_the_letter_tile(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
@@ -330,3 +306,20 @@ async def test_read_only_note_sits_at_the_foot_of_the_sidebar(
     assert "never writes to a client NetSuite account" in aside
     assert 'class="side-label mt-auto' in aside
     assert aside.index("side-label mt-auto") > aside.index("</nav>")
+
+
+async def test_collapse_control_is_an_icon_button_beside_the_wordmark(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # Was a full-width row labelled "Collapse" below the logo. It is now an
+    # icon button on the right of the brand row, which becomes the same
+    # right-pointing chevron once the sidebar is shut.
+    await login_as(client, db_session, "consultant@example.com")
+
+    text = (await client.get("/dashboard")).text
+    brand_row = text[text.index('id="brand-row"') : text.index("<nav")]
+
+    assert 'id="collapse-toggle"' in brand_row
+    assert "toggle-panel" in brand_row
+    assert "toggle-chevron" in brand_row
+    assert ">Collapse<" not in text

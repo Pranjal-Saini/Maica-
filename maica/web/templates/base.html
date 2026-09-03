@@ -26,8 +26,15 @@
     #sidebar[data-collapsed="true"] { width: 76px; }
     #sidebar[data-collapsed="true"] .side-label { display: none; }
     #sidebar[data-collapsed="true"] .side-row { justify-content: center; }
-    #collapse-chevron { display: inline-flex; transform: rotate(180deg); transition: transform .18s ease; }
-    #sidebar[data-collapsed="true"] #collapse-chevron { transform: rotate(0deg); }
+    /* Expanded: a sidebar-toggle button sitting inline with the wordmark.
+       Collapsed: the wordmark goes, and the same button becomes the right-
+       pointing chevron that expands it again — unchanged from before. */
+    .toggle-panel, .toggle-chevron { display: inline-flex; }
+    .toggle-chevron { display: none; }
+    #sidebar[data-collapsed="true"] .toggle-panel { display: none; }
+    #sidebar[data-collapsed="true"] .toggle-chevron { display: inline-flex; }
+    #sidebar[data-collapsed="true"] #brand-row { flex-direction: column; gap: .5rem; padding: 0; }
+    #sidebar[data-collapsed="true"] #collapse-toggle { margin-left: 0; }
   </style>
 </head>
 <body class="bg-canvas text-ink antialiased">
@@ -36,18 +43,18 @@
     <!-- Sidebar -->
     <aside id="sidebar" data-collapsed="false"
            class="flex h-full w-[248px] shrink-0 flex-col overflow-y-auto rounded-[26px] bg-ink p-4 text-white">
-      <a href="/dashboard" class="side-row flex items-center gap-[3px] rounded-xl px-1 py-1 hover:opacity-80">
-        <img src="/static/maica-logo.png" alt="" aria-hidden="true"
-             class="maica-mark h-9 w-9 shrink-0" />
-        <span class="side-label maica-wordmark text-xl">Maica</span>
-      </a>
-
-      <button type="button" id="collapse-toggle" aria-label="Collapse sidebar"
-              class="side-row mb-4 mt-2 flex items-center gap-3 rounded-xl px-3 py-2 text-sm
-                     text-white/40 hover:bg-white/10 hover:text-white">
-        <span id="collapse-chevron">{{ icons.icon("chevron", "w-4 h-4") }}</span>
-        <span class="side-label">Collapse</span>
-      </button>
+      <div id="brand-row" class="mb-4 flex items-center px-1">
+        <a href="/dashboard" class="flex min-w-0 items-center gap-[3px] rounded-xl py-1 hover:opacity-80">
+          <img src="/static/maica-logo.png" alt="" aria-hidden="true"
+               class="maica-mark h-9 w-9 shrink-0" />
+          <span class="side-label maica-wordmark text-xl">Maica</span>
+        </a>
+        <button type="button" id="collapse-toggle" aria-label="Collapse sidebar"
+                class="ml-auto shrink-0 rounded-lg p-1.5 text-white/40 hover:bg-white/10 hover:text-white">
+          <span class="toggle-panel">{{ icons.icon("panel", "w-5 h-5") }}</span>
+          <span class="toggle-chevron">{{ icons.icon("chevron", "w-4 h-4") }}</span>
+        </button>
+      </div>
 
       <nav class="flex flex-col gap-1">
         {% for item in nav_items %}

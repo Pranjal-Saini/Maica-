@@ -49,7 +49,6 @@
   </div>
 </div>
 
-{% include "_chat.html" %}
 {% endblock %}
 
 {% block scripts %}
@@ -106,7 +105,6 @@
         });
 
         if (body.analysis_id) {
-          window.maicaChatEnable(body.analysis_id);
           const link = document.createElement("a");
           link.href = "/tenants/" + tenantId + "/analyses/" + body.analysis_id + "/records";
           link.className = "text-sm font-medium underline";
