@@ -316,15 +316,17 @@ async def test_sidebar_stays_put_and_only_the_content_panel_scrolls(
     assert "overflow-y-auto rounded-[26px] bg-white" in text
 
 
-async def test_read_only_note_sits_above_the_fold(
+async def test_read_only_note_sits_at_the_foot_of_the_sidebar(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
+    # mt-auto only puts it on screen because the sidebar is the viewport's
+    # height now. Back when the shell was min-h-screen it pushed the note to
+    # the bottom of the whole document, which is why it was never visible.
     await login_as(client, db_session, "consultant@example.com")
 
     text = (await client.get("/dashboard")).text
-    nav_end = text.index("</nav>")
+    aside = text[text.index("<aside") : text.index("</aside>")]
 
-    # In the flow just after the nav, not pinned to the bottom of a tall column.
-    assert "never writes to a client NetSuite account" in text
-    assert text.index("never writes to a client NetSuite account") > nav_end
-    assert "mt-auto" not in text
+    assert "never writes to a client NetSuite account" in aside
+    assert 'class="side-label mt-auto' in aside
+    assert aside.index("side-label mt-auto") > aside.index("</nav>")
