@@ -108,35 +108,6 @@ async def get_record_explanation(
     return await explain_factors(diagnosis, client=client, model=get_settings().llm_model)
 
 
-@router.get("/tenants/{tenant_id}/analyses/{analysis_id}/records", response_class=HTMLResponse)
-async def list_analysis_records(
-    request: Request,
-    analysis_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
-    user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session),
-) -> HTMLResponse:
-    records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
-    record_types_by_source_id: dict[str, str | None] = {}
-    for record in records:
-        record_types_by_source_id.setdefault(record.source_id, record.record_type)
-    distinct_records = sorted(record_types_by_source_id.items())
-    tenant = await repository.get_tenant(session, tenant_id)
-    return templates.TemplateResponse(
-        request,
-        "records_list.html",
-        page_context(
-            request,
-            user=user,
-            active="deep_dive",
-            tenant_id=tenant_id,
-            tenant_name=tenant.name if tenant else None,
-            analysis_id=analysis_id,
-        )
-        | {"records": distinct_records},
-    )
-
-
 @router.get(
     "/tenants/{tenant_id}/analyses/{analysis_id}/records/{source_id}/report",
     response_class=HTMLResponse,

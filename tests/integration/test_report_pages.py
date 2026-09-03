@@ -1,17 +1,22 @@
+import re
 import uuid
 from pathlib import Path
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from maica.evidence.shortlist import SHORTLIST_LIMIT
 from tests.conftest import signup_with_tenant
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
 
-async def test_records_list_page_links_to_report(
+async def test_deep_dive_names_a_shortlist_not_every_record(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
+    """It used to render one card per record, linking to each report. On a real
+    account that is 10,000 links ordered by nothing that matters. It now names a
+    ranked handful — record links are expected here, but only a few of them."""
     tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
@@ -25,8 +30,32 @@ async def test_records_list_page_links_to_report(
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1001/report" in response.text
-    assert f"/tenants/{tenant_id}/analyses/{analysis_id}/records/1003/report" in response.text
+    assert "Start here" in response.text
+    linked = set(re.findall(r"/records/([^/\"]+)/report", response.text))
+    assert 0 < len(linked) <= SHORTLIST_LIMIT
+
+
+async def test_jump_to_record_still_reaches_its_report(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # Grouping is for the consultant who does not know the ID. One who does
+    # must not be made to hunt through patterns for it.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
+    analysis_id = (
+        await client.post(
+            f"/tenants/{tenant_id}/uploads",
+            files={"files": ("saved_search_clean.csv", csv_bytes, "text/csv")},
+        )
+    ).json()["analysis_id"]
+
+    found = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records?q=1001")
+    missing = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records?q=999999")
+
+    assert found.status_code == 303
+    assert found.headers["location"].endswith("/records/1001/report")
+    assert missing.status_code == 200
+    assert "No record with ID" in missing.text
 
 
 async def test_records_list_page_with_no_records(

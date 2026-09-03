@@ -18,7 +18,7 @@ from maica.reasoning.models import DiagnosisResult, EvidenceItem, Factor, Factor
 # The absolute floor keeps small uploads working, where every ratio is large.
 _ALWAYS_SPECIFIC_SHARE_COUNT = 4
 _ROUTINE_SHARE_RATIO = 0.05
-_STRUCTURAL_SHARE_RATIO = 0.25
+STRUCTURAL_SHARE_RATIO = 0.25
 
 # A ranked map a consultant can read, not a dump. Correlations beyond this are
 # reported as a gap rather than dropped in silence.
@@ -169,7 +169,7 @@ def _shared_value_label(shared_count: int, record_count: int) -> FactorLabel | N
     ratio = shared_count / record_count if record_count else 1.0
     if ratio <= _ROUTINE_SHARE_RATIO:
         return FactorLabel.UNCERTAIN
-    if ratio <= _STRUCTURAL_SHARE_RATIO:
+    if ratio <= STRUCTURAL_SHARE_RATIO:
         return FactorLabel.INSUFFICIENT_EVIDENCE
     return None
 

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+
+{% block title %}MAICA — {{ pattern.field_name }}{% endblock %}
+{% block page_title %}{{ pattern.field_name }}{% endblock %}
+{% block page_subtitle %}{{ pattern.describe() }}{% endblock %}
+
+{% block content %}
+{% set base = "/tenants/" ~ tenant_id ~ "/analyses/" ~ analysis_id %}
+{% set first = (page - 1) * per_page + 1 %}
+{% set last = first + (records | length) - 1 %}
+
+<div class="mb-5 flex flex-wrap items-center gap-3">
+  <a href="{{ base }}/records"
+     class="inline-flex items-center gap-2 rounded-md border border-gray-200 px-4 py-2 text-sm
+            font-medium text-gray-600 hover:border-ink hover:text-ink">
+    Back to patterns
+  </a>
+  <span class="text-sm text-gray-500">
+    {% if total %}{{ "Showing {:,}–{:,} of {:,} record".format(first, last, total) }}{{ "s" if total != 1 }}{% else %}No records{% endif %}
+  </span>
+</div>
+
+{% if records %}
+<div class="overflow-x-auto rounded-md border border-gray-200">
+  <table class="w-full text-left text-sm">
+    <thead class="border-b border-gray-200 text-xs text-gray-400">
+      <tr>
+        <th class="px-4 py-2 font-medium">Record</th>
+        <th class="px-4 py-2 font-medium">Type</th>
+        <th class="px-4 py-2 font-medium">Changes to {{ pattern.field_name }}</th>
+        <th class="px-4 py-2 font-medium"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for source_id, record_type, changes in records %}
+      <tr class="border-t border-gray-100 hover:bg-gray-50">
+        <td class="px-4 py-2 font-mono">{{ source_id }}</td>
+        <td class="px-4 py-2 text-gray-500">{{ record_type or "unknown type" }}</td>
+        <td class="px-4 py-2 text-gray-500">{{ changes }}</td>
+        <td class="px-4 py-2 text-right">
+          <a class="font-medium text-brand hover:underline"
+             href="{{ base }}/records/{{ source_id | urlencode }}/report">Ranked factors →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="mt-4 flex items-center gap-2">
+  {% if page > 1 %}
+  <a href="?{{ query | replace('page=' ~ page, 'page=' ~ (page - 1)) }}{% if 'page=' not in query %}&amp;page={{ page - 1 }}{% endif %}"
+     class="rounded-md border border-gray-200 px-3 py-2 text-sm hover:border-ink">← Previous</a>
+  {% endif %}
+  <span class="text-xs text-gray-400">Page {{ page }}</span>
+  {% if has_next %}
+  <a href="?{{ query | replace('page=' ~ page, 'page=' ~ (page + 1)) }}{% if 'page=' not in query %}&amp;page={{ page + 1 }}{% endif %}"
+     class="rounded-md border border-gray-200 px-3 py-2 text-sm hover:border-ink">Next →</a>
+  {% endif %}
+</div>
+
+{% else %}
+<div class="rounded-md border border-dashed border-gray-200 p-10 text-center">
+  <p class="text-sm text-gray-500">No records match this pattern.</p>
+</div>
+{% endif %}
+{% endblock %}
