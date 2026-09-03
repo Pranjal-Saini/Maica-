@@ -18,7 +18,7 @@
 <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
   {% for source_id, record_type in records %}
   <a href="/tenants/{{ tenant_id }}/analyses/{{ analysis_id }}/records/{{ source_id }}/report"
-     class="group rounded-2xl border border-gray-200 p-5 transition hover:-translate-y-0.5
+     class="group rounded-md border border-gray-200 p-5 transition hover:-translate-y-0.5
             hover:border-ink hover:shadow-lg">
     <span class="block text-xs font-medium uppercase tracking-wide text-gray-400">
       {{ record_type or "unknown type" }}
@@ -31,7 +31,7 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+<div class="rounded-md border border-dashed border-gray-200 p-10 text-center">
   <p class="text-sm text-gray-500">No records found for this analysis.</p>
 </div>
 {% endif %}

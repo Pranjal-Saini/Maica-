@@ -22,6 +22,12 @@
   </script>
   {% include "_brand.html" %}
   <style>
+    /* Both panels still scroll — the browser's scrollbar chrome just isn't
+       part of the UI. The evidence tables keep theirs, where the bar is the
+       only hint that more columns exist. */
+    #main-panel, #sidebar { scrollbar-width: none; -ms-overflow-style: none; }
+    #main-panel::-webkit-scrollbar, #sidebar::-webkit-scrollbar { display: none; }
+
     #sidebar { transition: width .18s ease; }
     #sidebar[data-collapsed="true"] { width: 76px; }
     #sidebar[data-collapsed="true"] .side-label { display: none; }
@@ -42,15 +48,15 @@
 
     <!-- Sidebar -->
     <aside id="sidebar" data-collapsed="false"
-           class="flex h-full w-[248px] shrink-0 flex-col overflow-y-auto rounded-[26px] bg-ink p-4 text-white">
+           class="flex h-full w-[248px] shrink-0 flex-col overflow-y-auto rounded-md bg-ink p-4 text-white">
       <div id="brand-row" class="mb-4 flex items-center px-1">
-        <a href="/dashboard" class="flex min-w-0 items-center gap-[3px] rounded-xl py-1 hover:opacity-80">
+        <a href="/dashboard" class="flex min-w-0 items-center gap-[3px] rounded-md py-1 hover:opacity-80">
           <img src="/static/maica-logo.png" alt="" aria-hidden="true"
                class="maica-mark h-9 w-9 shrink-0" />
           <span class="side-label maica-wordmark text-xl">Maica</span>
         </a>
         <button type="button" id="collapse-toggle" aria-label="Collapse sidebar"
-                class="ml-auto shrink-0 rounded-lg p-1.5 text-white/40 hover:bg-white/10 hover:text-white">
+                class="ml-auto shrink-0 rounded-md p-1.5 text-white/40 hover:bg-white/10 hover:text-white">
           <span class="toggle-panel">{{ icons.icon("panel", "w-5 h-5") }}</span>
           <span class="toggle-chevron">{{ icons.icon("chevron", "w-4 h-4") }}</span>
         </button>
@@ -60,7 +66,7 @@
         {% for item in nav_items %}
         <a href="{{ item.href }}"
            {% if item.needs %}title="{{ item.label }} — pick a {{ item.needs }} first"{% endif %}
-           class="side-row flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition
+           class="side-row flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition
                   {% if item.key == nav_active %}bg-brand text-white font-semibold
                   {% elif item.needs %}text-white/45 hover:bg-white/10 hover:text-white
                   {% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
@@ -78,7 +84,7 @@
         {% endfor %}
       </nav>
 
-      <div class="side-label mt-auto rounded-2xl bg-white/5 p-4">
+      <div class="side-label mt-auto rounded-md bg-white/5 p-4">
         <div class="mb-2 flex items-center gap-2 text-brand-light">
           {{ icons.icon("shield", "w-4 h-4") }}
           <span class="text-xs font-semibold uppercase tracking-wide">Read-only</span>
@@ -90,7 +96,7 @@
     </aside>
 
     <!-- Main panel -->
-    <main id="main-panel" class="min-w-0 flex-1 overflow-y-auto rounded-[26px] bg-white p-5 md:p-8">
+    <main id="main-panel" class="min-w-0 flex-1 overflow-y-auto rounded-md bg-white p-5 md:p-8">
       <header class="mb-7 flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0">
           {% if tenant_name %}
@@ -120,7 +126,7 @@
       </header>
 
       {% if need_prompt %}
-      <p class="mb-5 rounded-2xl border border-lav bg-lav-soft px-4 py-3 text-sm">{{ need_prompt }}</p>
+      <p class="mb-5 rounded-md border border-lav bg-lav-soft px-4 py-3 text-sm">{{ need_prompt }}</p>
       {% endif %}
 
       {% block content %}{% endblock %}

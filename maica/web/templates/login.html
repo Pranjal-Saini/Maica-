@@ -22,7 +22,7 @@
 </head>
 <body class="bg-canvas text-ink antialiased">
   <div class="flex min-h-screen items-center justify-center p-4">
-    <div class="grid w-full max-w-4xl overflow-hidden rounded-[26px] bg-white md:grid-cols-2">
+    <div class="grid w-full max-w-4xl overflow-hidden rounded-md bg-white md:grid-cols-2">
 
       <!-- Pitch -->
       <div class="flex flex-col justify-between bg-ink p-8 text-white">
@@ -51,7 +51,7 @@
         <p class="mt-2 text-sm text-gray-500">Use your work Google account.</p>
 
         {% if error %}
-        <p class="mt-5 rounded-xl bg-red-50 px-3 py-2.5 text-sm text-red-700">{{ error }}</p>
+        <p class="mt-5 rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700">{{ error }}</p>
         {% endif %}
 
         {% if google_configured %}
@@ -67,7 +67,7 @@
           Continue with Google
         </a>
         {% else %}
-        <p class="mt-6 rounded-xl bg-gray-50 px-3 py-2.5 text-sm text-gray-500">
+        <p class="mt-6 rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-500">
           Google Sign-In is not configured on this server yet.
         </p>
         {% endif %}

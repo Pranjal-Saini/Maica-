@@ -289,7 +289,7 @@ async def test_sidebar_stays_put_and_only_the_content_panel_scrolls(
 
     assert "flex h-screen gap-3 overflow-hidden" in text
     assert 'id="main-panel"' in text
-    assert "overflow-y-auto rounded-[26px] bg-white" in text
+    assert "overflow-y-auto rounded-md bg-white" in text
 
 
 async def test_read_only_note_sits_at_the_foot_of_the_sidebar(
@@ -338,3 +338,16 @@ async def test_active_nav_item_uses_the_brand_colour_with_white_text(
     assert '"#384fff"' in text
     assert "bg-brand text-white font-semibold" in text
     assert "bg-brand text-ink" not in text
+
+
+async def test_panels_scroll_without_showing_scrollbar_chrome(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    await login_as(client, db_session, "consultant@example.com")
+
+    text = (await client.get("/dashboard")).text
+
+    assert "#main-panel::-webkit-scrollbar" in text
+    assert "scrollbar-width: none" in text
+    # Still scrollable — the bar is hidden, not the overflow.
+    assert "overflow-y-auto" in text

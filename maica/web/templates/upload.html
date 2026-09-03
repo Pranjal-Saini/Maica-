@@ -8,7 +8,7 @@
 
 {% block content %}
 <div class="max-w-2xl">
-  <div class="rounded-3xl border border-gray-200 p-5">
+  <div class="rounded-md border border-gray-200 p-5">
     <h2 class="text-base font-semibold">Upload evidence</h2>
     <p class="mb-4 mt-2 text-xs leading-relaxed text-gray-500">
       Saved-search and System Notes CSV exports. Drop several at once — each file's
@@ -22,7 +22,7 @@
       <div>
         <label class="mb-1.5 block text-sm font-medium" for="evidence_type">Evidence type</label>
         <select id="evidence_type" name="evidence_type"
-                class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
+                class="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm
                        focus:border-ink focus:outline-none">
           <option value="auto">Detect automatically (recommended)</option>
           <option value="saved_search_csv">Saved-search CSV export</option>
@@ -30,7 +30,7 @@
         </select>
       </div>
 
-      <label class="flex cursor-pointer flex-col items-center gap-1 rounded-2xl border-2 border-dashed
+      <label class="flex cursor-pointer flex-col items-center gap-1 rounded-md border-2 border-dashed
                     border-gray-200 px-4 py-8 text-center hover:border-ink">
         <span class="text-sm font-medium">Choose CSV files</span>
         <span id="file-hint" class="text-xs text-gray-400">No files selected</span>
@@ -89,12 +89,12 @@
           detail.className = "block text-gray-600";
 
           if (file.unrecognised_reason) {
-            card.className = "rounded-xl bg-amber-50 px-3 py-2";
+            card.className = "rounded-md bg-amber-50 px-3 py-2";
             detail.textContent = file.unrecognised_reason;
             name.textContent = file.filename + " — not recognised";
           } else {
             const s = file.raw_evidence.understood_summary;
-            card.className = "rounded-xl bg-brand-soft px-3 py-2";
+            card.className = "rounded-md bg-brand-soft px-3 py-2";
             name.textContent = file.filename + " — " + file.evidence_type;
             detail.textContent = s.rows_understood + " rows understood, " + s.rows_skipped +
               " skipped, " + file.records_created + " records created";

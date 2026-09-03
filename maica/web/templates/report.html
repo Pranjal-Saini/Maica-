@@ -45,9 +45,9 @@
 
     <ol class="space-y-3">
       {% for factor in factors %}
-      <li class="rounded-3xl border border-gray-200 p-5" data-rank="{{ factor.rank }}">
+      <li class="rounded-md border border-gray-200 p-5" data-rank="{{ factor.rank }}">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="grid h-8 w-8 place-items-center rounded-xl bg-gray-100 text-sm font-bold">
+          <span class="grid h-8 w-8 place-items-center rounded-md bg-gray-100 text-sm font-bold">
             {{ factor.rank }}
           </span>
           <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide
@@ -60,7 +60,7 @@
         <p class="factor-explanation mt-3 leading-relaxed">{{ factor.summary }}</p>
 
         {% if factor.evidence %}
-        <div class="mt-4 rounded-2xl bg-gray-50 p-3">
+        <div class="mt-4 rounded-md bg-gray-50 p-3">
           <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
             Evidence — check these rows in NetSuite
           </p>
@@ -113,7 +113,7 @@
       {% endfor %}
     </ol>
     {% else %}
-    <div class="rounded-3xl border border-dashed border-gray-200 p-10 text-center">
+    <div class="rounded-md border border-dashed border-gray-200 p-10 text-center">
       <p class="text-sm text-gray-500">No contributing factors were found in this evidence.</p>
     </div>
     {% endif %}
@@ -121,14 +121,14 @@
 
   <!-- Right rail -->
   <div class="space-y-4">
-    <section class="rounded-3xl bg-ink p-5 text-white">
+    <section class="rounded-md bg-ink p-5 text-white">
       <h2 class="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-brand-light">
         {{ icons.icon("arrow", "w-4 h-4") }} Next thing worth looking at
       </h2>
       <p class="text-sm leading-relaxed text-white/80">{{ next_step }}</p>
     </section>
 
-    <section class="rounded-3xl border border-gray-200 p-5">
+    <section class="rounded-md border border-gray-200 p-5">
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
         What could not be checked
       </h2>
@@ -146,7 +146,7 @@
       {% endif %}
     </section>
 
-    <section class="rounded-3xl border border-gray-200 p-5">
+    <section class="rounded-md border border-gray-200 p-5">
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
         What the labels mean
       </h2>

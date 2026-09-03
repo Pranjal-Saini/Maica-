@@ -25,12 +25,16 @@
     };
   </script>
   {% include "_brand.html" %}
+  <style>
+    #chat-scroller { scrollbar-width: none; -ms-overflow-style: none; }
+    #chat-scroller::-webkit-scrollbar { display: none; }
+  </style>
 </head>
 <body class="flex h-screen flex-col bg-canvas text-ink antialiased">
 
   <header class="border-b border-black/5 bg-white">
     <div class="mx-auto flex w-full max-w-3xl items-center gap-2.5 px-5 py-3.5">
-      <span class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-ink">
+      <span class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md bg-ink">
         <img src="/static/maica-logo.png" alt="" aria-hidden="true" class="maica-mark h-7 w-7" />
       </span>
       <span class="min-w-0">
@@ -42,9 +46,9 @@
     </div>
   </header>
 
-  <div class="flex-1 overflow-y-auto">
+  <div id="chat-scroller" class="flex-1 overflow-y-auto">
     <div id="chat-log" class="mx-auto w-full max-w-3xl space-y-3 px-5 py-6 text-sm">
-      <p id="chat-empty" class="rounded-2xl bg-white p-5 leading-relaxed text-gray-500">
+      <p id="chat-empty" class="rounded-md bg-white p-5 leading-relaxed text-gray-500">
         Answers come only from this analysis's evidence — the records you uploaded, the
         ranked factors and the gaps. When the evidence doesn't cover something it says
         so, rather than guessing about NetSuite.
@@ -84,7 +88,7 @@
         const row = document.createElement("div");
         row.className = role === "user" ? "text-right" : "text-left";
         const bubble = document.createElement("span");
-        bubble.className = "inline-block max-w-[85%] rounded-2xl px-3 py-2 text-left leading-relaxed " +
+        bubble.className = "inline-block max-w-[85%] rounded-md px-3 py-2 text-left leading-relaxed " +
           (role === "user" ? "bg-ink text-white" : "bg-white text-ink");
         bubble.textContent = text;
         row.appendChild(bubble);
