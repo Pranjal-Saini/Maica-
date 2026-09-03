@@ -323,3 +323,18 @@ async def test_collapse_control_is_an_icon_button_beside_the_wordmark(
     assert "toggle-panel" in brand_row
     assert "toggle-chevron" in brand_row
     assert ">Collapse<" not in text
+
+
+async def test_active_nav_item_uses_the_brand_colour_with_white_text(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # #384fff against black is 3.3:1 — fine as a filled selection, far too dark
+    # to put text on. White on it is 5.6:1, so the selected row inverts rather
+    # than keeping the dark text the old lime accent could carry.
+    await login_as(client, db_session, "consultant@example.com")
+
+    text = (await client.get("/dashboard")).text
+
+    assert '"#384fff"' in text
+    assert "bg-brand text-white font-semibold" in text
+    assert "bg-brand text-ink" not in text

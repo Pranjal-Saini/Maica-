@@ -7,7 +7,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: { extend: { colors: { ink: "#111310", canvas: "#e8eae2", lime: "#d7f36f" } } },
+      theme: {
+        extend: {
+          colors: {
+            ink: "#111310",
+            canvas: "#e8eae2",
+            brand: { DEFAULT: "#384fff", soft: "#e6e9ff", light: "#9db0ff" },
+          },
+        },
+      },
     };
   </script>
   {% include "_brand.html" %}
@@ -25,7 +33,7 @@
         </div>
         <div class="my-10">
           <h2 class="text-3xl font-semibold leading-tight tracking-tight">
-            When a transaction posts wrong, see <span class="text-lime">where to look</span>.
+            When a transaction posts wrong, see <span class="text-brand-light">where to look</span>.
           </h2>
           <p class="mt-4 text-sm leading-relaxed text-white/60">
             A ranked map of contributing factors across configuration and code — with

@@ -13,7 +13,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      theme: { extend: { colors: { ink: "#111310", canvas: "#e8eae2", lime: "#d7f36f" } } },
+      theme: {
+        extend: {
+          colors: {
+            ink: "#111310",
+            canvas: "#e8eae2",
+            brand: { DEFAULT: "#384fff", soft: "#e6e9ff", light: "#9db0ff" },
+          },
+        },
+      },
     };
   </script>
   {% include "_brand.html" %}
@@ -50,7 +58,7 @@
              placeholder="Ask about this evidence…"
              class="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/40 focus:outline-none" />
       <button type="submit" id="chat-send" aria-label="Ask"
-              class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-lime text-ink
+              class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand text-white
                      transition hover:opacity-90 disabled:bg-white/15 disabled:text-white/30">
         <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

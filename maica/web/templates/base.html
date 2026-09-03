@@ -13,7 +13,7 @@
           colors: {
             ink: "#111310",
             canvas: "#e8eae2",
-            lime: { DEFAULT: "#d7f36f", soft: "#eef9c4" },
+            brand: { DEFAULT: "#384fff", soft: "#e6e9ff", light: "#9db0ff" },
             lav: { DEFAULT: "#b9a7f2", soft: "#e7e0fb" },
           },
         },
@@ -61,14 +61,14 @@
         <a href="{{ item.href }}"
            {% if item.needs %}title="{{ item.label }} — pick a {{ item.needs }} first"{% endif %}
            class="side-row flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition
-                  {% if item.key == nav_active %}bg-lime text-ink font-semibold
+                  {% if item.key == nav_active %}bg-brand text-white font-semibold
                   {% elif item.needs %}text-white/45 hover:bg-white/10 hover:text-white
                   {% else %}text-white/75 hover:bg-white/10 hover:text-white{% endif %}">
           {{ icons.icon(item.icon) }}
           <span class="side-label">{{ item.label }}</span>
           {% if item.badge %}
           <span class="side-label ml-auto rounded-md px-1.5 py-0.5 text-[11px] font-semibold
-                       {% if item.key == nav_active %}bg-ink/15 text-ink{% else %}bg-lime text-ink{% endif %}">
+                       {% if item.key == nav_active %}bg-white/25 text-white{% else %}bg-brand text-white{% endif %}">
             {{ item.badge }}
           </span>
           {% elif item.needs %}
@@ -79,7 +79,7 @@
       </nav>
 
       <div class="side-label mt-auto rounded-2xl bg-white/5 p-4">
-        <div class="mb-2 flex items-center gap-2 text-lime">
+        <div class="mb-2 flex items-center gap-2 text-brand-light">
           {{ icons.icon("shield", "w-4 h-4") }}
           <span class="text-xs font-semibold uppercase tracking-wide">Read-only</span>
         </div>
@@ -102,7 +102,7 @@
 
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2.5 rounded-full border border-gray-200 py-1.5 pl-1.5 pr-4">
-            <span class="grid h-8 w-8 place-items-center rounded-full bg-ink text-sm font-semibold text-lime">
+            <span class="grid h-8 w-8 place-items-center rounded-full bg-ink text-sm font-semibold text-brand-light">
               {{ (user.name or user.email)[0] | upper }}
             </span>
             <span class="leading-tight">

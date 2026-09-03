@@ -94,7 +94,7 @@
             name.textContent = file.filename + " — not recognised";
           } else {
             const s = file.raw_evidence.understood_summary;
-            card.className = "rounded-xl bg-lime-soft px-3 py-2";
+            card.className = "rounded-xl bg-brand-soft px-3 py-2";
             name.textContent = file.filename + " — " + file.evidence_type;
             detail.textContent = s.rows_understood + " rows understood, " + s.rows_skipped +
               " skipped, " + file.records_created + " records created";
