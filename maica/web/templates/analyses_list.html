@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_icons.html" as icons %}
+{% import "_menu.html" as menu %}
 
 {% block title %}MAICA — Analyses{% endblock %}
 {% block page_title %}Analyses{% endblock %}
@@ -17,9 +18,10 @@
 {% if analyses %}
 <div class="grid gap-3 lg:grid-cols-2">
   {% for analysis in analyses %}
-  <a href="/tenants/{{ tenant_id }}/analyses/{{ analysis.id }}/records"
-     class="group flex items-center gap-4 rounded-md border border-gray-200 p-4 transition
-            hover:border-ink hover:shadow-md">
+  <div class="group relative flex items-center gap-4 rounded-md border border-gray-200 p-4
+              transition hover:border-ink hover:shadow-md">
+    <a href="/tenants/{{ tenant_id }}/analyses/{{ analysis.id }}/records"
+       class="absolute inset-0 rounded-md" aria-label="Open this analysis"></a>
     <span class="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-brand-soft text-brand">
       {{ icons.icon("analyses") }}
     </span>
@@ -31,8 +33,13 @@
         {{ analysis.status }} · started by {{ analysis.created_by }} · {{ analysis.id }}
       </span>
     </span>
-    <span class="text-gray-300 group-hover:text-ink">{{ icons.icon("arrow", "w-4 h-4") }}</span>
-  </a>
+    {{ menu.dots(
+         "menu-analysis-" ~ analysis.id,
+         "/tenants/" ~ tenant_id ~ "/analyses/" ~ analysis.id ~ "/export",
+         "/tenants/" ~ tenant_id ~ "/analyses/" ~ analysis.id ~ "/delete",
+         "analysis",
+         "from " ~ analysis.created_at.strftime("%d %b %Y, %H:%M")) }}
+  </div>
   {% endfor %}
 </div>
 {% else %}
@@ -40,4 +47,6 @@
   <p class="text-sm text-gray-500">No analyses yet for this client account.</p>
 </div>
 {% endif %}
+
+{{ menu.menu_script() }}
 {% endblock %}

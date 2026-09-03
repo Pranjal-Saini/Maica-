@@ -351,3 +351,52 @@ async def test_panels_scroll_without_showing_scrollbar_chrome(
     assert "scrollbar-width: none" in text
     # Still scrollable — the bar is hidden, not the overflow.
     assert "overflow-y-auto" in text
+
+
+async def test_client_cards_and_analyses_carry_an_actions_menu(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    analysis_id = await _upload_fixture(client, str(tenant_id))
+
+    dashboard = (await client.get("/dashboard")).text
+    analyses = (await client.get(f"/tenants/{tenant_id}/analyses")).text
+
+    assert f"/tenants/{tenant_id}/export" in dashboard
+    assert f"/tenants/{tenant_id}/delete" in dashboard
+    assert f"/tenants/{tenant_id}/analyses/{analysis_id}/export" in analyses
+    assert f"/tenants/{tenant_id}/analyses/{analysis_id}/delete" in analyses
+    # Deleting is confirmed, and says what it does and does not touch.
+    assert "It cannot be undone" in dashboard
+    assert "Nothing in NetSuite is affected" in dashboard
+
+
+async def test_the_actions_menu_is_not_nested_inside_the_card_link(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # A form inside an <a> is invalid HTML and browsers recover from it
+    # unpredictably — the card uses a stretched overlay link instead.
+    await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+
+    text = (await client.get("/dashboard")).text
+    card_start = text.index('aria-label="Open Acme Corp"')
+    card = text[card_start : text.index("Add a client account")]
+
+    assert "absolute inset-0" in text
+    assert "</a>" in card[: card.index("<form")]
+
+
+async def test_menu_script_is_included_exactly_once_per_page(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # A stray {% endblock %} once put the script inside <title>, and it ended
+    # up bound twice — every trigger toggling itself open then shut again.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    await _upload_fixture(client, str(tenant_id))
+
+    dashboard = (await client.get("/dashboard")).text
+    analyses = (await client.get(f"/tenants/{tenant_id}/analyses")).text
+
+    assert dashboard.count("One handler for every") == 1
+    assert analyses.count("One handler for every") == 1
+    assert "<title>MAICA — Client accounts</title>" in dashboard

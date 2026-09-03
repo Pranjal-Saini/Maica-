@@ -1,5 +1,6 @@
 import uuid
 
+from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -74,3 +75,12 @@ async def list_tenants_for_user(session: AsyncSession, user_id: uuid.UUID) -> li
     )
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+
+async def delete_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> None:
+    """Drops the client account itself and every grant into it. Call after the
+    evidence repository has cleared the data that references this tenant."""
+    await session.execute(
+        sa_delete(UserTenantAccess).where(UserTenantAccess.tenant_id == tenant_id)
+    )
+    await session.execute(sa_delete(Tenant).where(Tenant.id == tenant_id))

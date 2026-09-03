@@ -1,0 +1,78 @@
+{#
+  The ⋮ menu used on client-account cards and analysis rows.
+
+  `id` must be unique per menu on the page. `export_url` downloads a JSON
+  bundle; `delete_url` is POSTed by a real form so the browser's own
+  confirmation guards it and it works without JavaScript.
+#}
+{% macro dots(id, export_url, delete_url, noun, name) %}
+<div class="menu relative z-20 shrink-0" id="{{ id }}">
+  <button type="button" aria-haspopup="true" aria-expanded="false"
+          aria-label="Actions for {{ name }}"
+          class="menu-trigger grid h-8 w-8 place-items-center rounded-md text-gray-400
+                 hover:bg-gray-100 hover:text-ink">
+    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <circle cx="10" cy="4" r="1.6" /><circle cx="10" cy="10" r="1.6" /><circle cx="10" cy="16" r="1.6" />
+    </svg>
+  </button>
+
+  <div hidden
+       class="menu-panel absolute right-0 top-9 w-60 overflow-hidden rounded-md border
+              border-gray-200 bg-white py-1 text-left shadow-lg">
+    <a href="{{ export_url }}" class="block px-3 py-2 text-sm hover:bg-gray-50">
+      Export {{ noun }}
+      <span class="block text-[11px] text-gray-400">JSON, including the uploaded rows</span>
+    </a>
+    <form method="post" action="{{ delete_url }}"
+          onsubmit="return confirm('Delete this {{ noun }}: {{ name }}?\n\nThis removes what MAICA stores — the evidence you uploaded and everything derived from it. It cannot be undone. Nothing in NetSuite is affected.');">
+      <button type="submit"
+              class="block w-full px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50">
+        Delete {{ noun }}
+        <span class="block text-[11px] text-red-400">Removes MAICA's copy, not the NetSuite data</span>
+      </button>
+    </form>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro menu_script() %}
+<script>
+  // One handler for every ⋮ on the page: open one at a time, close on an
+  // outside click or Escape.
+  (function () {
+    const menus = Array.from(document.querySelectorAll(".menu"));
+
+    function closeAll(except) {
+      menus.forEach(function (menu) {
+        if (menu === except) return;
+        menu.querySelector(".menu-panel").hidden = true;
+        menu.querySelector(".menu-trigger").setAttribute("aria-expanded", "false");
+      });
+    }
+
+    menus.forEach(function (menu) {
+      const trigger = menu.querySelector(".menu-trigger");
+      const panel = menu.querySelector(".menu-panel");
+
+      // Stop the bubble, never the default: the export link still has to
+      // navigate and the delete form still has to submit. Without this the
+      // document-level close would fire immediately after opening.
+      menu.addEventListener("click", function (event) {
+        event.stopPropagation();
+      });
+
+      trigger.addEventListener("click", function () {
+        const opening = panel.hidden;
+        closeAll(menu);
+        panel.hidden = !opening;
+        trigger.setAttribute("aria-expanded", String(opening));
+      });
+    });
+
+    document.addEventListener("click", function () { closeAll(null); });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") closeAll(null);
+    });
+  })();
+</script>
+{% endmacro %}

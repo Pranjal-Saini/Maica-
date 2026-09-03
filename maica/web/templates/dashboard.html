@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_icons.html" as icons %}
+{% import "_menu.html" as menu %}
 
 {% block title %}MAICA — Client accounts{% endblock %}
 {% block page_title %}Client accounts{% endblock %}
@@ -16,17 +17,29 @@
   {% for tenant in tenants %}
     {% set stats = activity[tenant.id] %}
     {% set tint = tints[loop.index0 % 3] %}
-    <a href="/tenants/{{ tenant.id }}/analyses"
-       class="group flex flex-col rounded-md border border-gray-200 p-5 transition
-              hover:-translate-y-0.5 hover:border-ink hover:shadow-lg">
-      <div class="mb-5 flex items-start justify-between">
-        <span class="grid h-11 w-11 place-items-center rounded-md text-sm font-bold {{ tint.tile }}">
+    {# A div with a stretched overlay link, not an <a>: the ⋮ menu is
+       interactive and cannot legally nest inside an anchor. #}
+    <div class="group relative flex flex-col rounded-md border border-gray-200 p-5 transition
+                hover:-translate-y-0.5 hover:border-ink hover:shadow-lg">
+      <a href="/tenants/{{ tenant.id }}/analyses" class="absolute inset-0 rounded-md"
+         aria-label="Open {{ tenant.name }}"></a>
+
+      <div class="mb-5 flex items-start justify-between gap-2">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-md text-sm font-bold {{ tint.tile }}">
           {{ tenant.name[:2] | upper }}
         </span>
-        <span class="rounded-full px-2.5 py-1 text-[11px] font-medium text-gray-600 {{ tint.wash }}">
-          {% if stats.analysis_count %}{{ stats.analysis_count }} analys{{ "es" if stats.analysis_count != 1 else "is" }}
-          {% else %}No analyses yet{% endif %}
-        </span>
+        <div class="flex items-center gap-1">
+          <span class="rounded-full px-2.5 py-1 text-[11px] font-medium text-gray-600 {{ tint.wash }}">
+            {% if stats.analysis_count %}{{ stats.analysis_count }} analys{{ "es" if stats.analysis_count != 1 else "is" }}
+            {% else %}No analyses yet{% endif %}
+          </span>
+          {{ menu.dots(
+               "menu-tenant-" ~ tenant.id,
+               "/tenants/" ~ tenant.id ~ "/export",
+               "/tenants/" ~ tenant.id ~ "/delete",
+               "client account",
+               tenant.name) }}
+        </div>
       </div>
 
       <h2 class="truncate text-xl font-semibold tracking-tight" title="{{ tenant.name }}">{{ tenant.name }}</h2>
@@ -42,7 +55,7 @@
       <span class="mt-6 flex items-center gap-1.5 text-sm font-medium text-gray-400 group-hover:text-ink">
         Open account {{ icons.icon("arrow", "w-4 h-4") }}
       </span>
-    </a>
+    </div>
   {% endfor %}
 
   <a href="/tenants/new"
@@ -59,4 +72,6 @@
   No client accounts yet. Add one, then upload a saved-search or System Notes export against it.
 </p>
 {% endif %}
+
+{{ menu.menu_script() }}
 {% endblock %}
