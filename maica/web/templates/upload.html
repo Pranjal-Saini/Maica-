@@ -37,9 +37,14 @@
         <input type="file" name="files" accept=".csv" class="hidden" multiple required />
       </label>
 
-      <button type="submit"
-              class="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white hover:bg-ink/90">
-        Upload
+      <button type="submit" id="upload-button"
+              class="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm
+                     font-medium text-white hover:bg-ink/90 disabled:cursor-not-allowed
+                     disabled:opacity-70">
+        <span id="upload-spinner" hidden
+              class="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/30
+                     border-t-white"></span>
+        <span id="upload-label">Upload</span>
       </button>
     </form>
 
@@ -65,13 +70,20 @@
         : count + " files selected";
     });
 
+    function setUploading(busy) {
+      document.getElementById("upload-button").disabled = busy;
+      document.getElementById("upload-spinner").hidden = !busy;
+      document.getElementById("upload-label").textContent = busy ? "Uploading" : "Upload";
+      document.getElementById("upload-status").textContent = "";
+    }
+
     document.getElementById("upload-form").addEventListener("submit", async function (event) {
       event.preventDefault();
       const data = new FormData(event.target);
 
-      document.getElementById("upload-status").textContent = "Uploading…";
+      setUploading(true);
       const results = document.getElementById("upload-result");
-      results.innerHTML = "";
+      results.replaceChildren();
 
       try {
         const response = await fetch("/tenants/" + tenantId + "/uploads", {
@@ -79,7 +91,6 @@
           body: data,
         });
         const body = await response.json();
-        document.getElementById("upload-status").textContent = "";
 
         (body.files || []).forEach(function (file) {
           const card = document.createElement("div");
@@ -113,6 +124,10 @@
         }
       } catch (err) {
         document.getElementById("upload-status").textContent = "Upload failed: " + err;
+      } finally {
+        // Always restores the button, so a failed upload can be retried
+        // rather than leaving a permanently spinning control.
+        setUploading(false);
       }
     });
   })();

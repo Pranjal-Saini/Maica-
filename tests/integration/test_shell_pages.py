@@ -400,3 +400,19 @@ async def test_menu_script_is_included_exactly_once_per_page(
     assert dashboard.count("One handler for every") == 1
     assert analyses.count("One handler for every") == 1
     assert "<title>MAICA — Client accounts</title>" in dashboard
+
+
+async def test_the_upload_button_carries_its_own_progress_spinner(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # Was a line of "Uploading…" text under the form. The button itself is the
+    # better place: it disables while in flight, so the same files cannot be
+    # sent twice by an impatient second click.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+
+    text = (await client.get(f"/tenants/{tenant_id}/uploads/new")).text
+
+    assert "animate-spin" in text
+    assert 'id="upload-spinner"' in text
+    assert "upload-button" in text
+    assert 'textContent = "Uploading…"' not in text
