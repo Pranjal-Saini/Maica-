@@ -57,12 +57,6 @@
       {{ shortlist.entries | length }} of {{ "{:,}".format(total_records) }} records
     </span>
   </div>
-  <p class="mb-2 max-w-3xl text-xs leading-relaxed text-gray-500">{{ shortlist_note }}</p>
-  {% if shortlist_exclusion %}
-  <p class="mb-4 max-w-3xl border-l-2 border-amber-300 pl-3 text-xs leading-relaxed text-gray-500">
-    {{ shortlist_exclusion }}
-  </p>
-  {% endif %}
 
   <ol class="space-y-3">
     {% for entry in shortlist.entries %}
@@ -99,11 +93,7 @@
 {% endif %}
 
 {% if total_records %}
-<p class="mb-1 text-sm font-medium">{{ index.coverage.summary }}</p>
-<p class="mb-5 max-w-3xl text-xs leading-relaxed text-gray-500">
-  A pattern is a count of what the evidence records, not a finding — records sharing one
-  are not shown to have influenced each other. {{ index.coverage.counting_note }}
-</p>
+<p class="mb-5 text-sm font-medium">{{ index.coverage.summary }}</p>
 {% endif %}
 
 {% if index.gaps %}

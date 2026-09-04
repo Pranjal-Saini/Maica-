@@ -244,13 +244,6 @@ class Coverage:
             f"{self.pattern_count} pattern{'s' if self.pattern_count != 1 else ''}"
         )
 
-    @property
-    def counting_note(self) -> str:
-        return (
-            "A record appears once per field it had changed, so these counts add up to "
-            "more than the number of records. Each is a count of records, not a share of them."
-        )
-
 
 def coverage_gaps(coverage: Coverage) -> list[Gap]:
     """Named omissions, in the same shape the report page already renders."""
@@ -486,33 +479,4 @@ def describe_reason(reason: ShortlistReasonLike) -> str:
     return (
         f"{what} — on {reason.records_sharing:,} of {reason.total_records:,} "
         f"record{'s' if plural else ''} in this analysis ({shown})"
-    )
-
-
-def shortlist_exclusion_note(unattributed_rows: int) -> str | None:
-    """Says what the ranking ignored, and why. A row with no recorded actor is
-    a hole in the export; scoring it would rank records for having patchy
-    evidence rather than for anything about the account."""
-    if not unattributed_rows:
-        return None
-    plural = unattributed_rows != 1
-    return (
-        f"{unattributed_rows:,} change{'s' if plural else ''} recorded no actor and "
-        f"{'were' if plural else 'was'} left out of this ranking — a gap in the export "
-        "is not a property of the record. They are still counted in the patterns below."
-    )
-
-
-def shortlist_note(key_kind: str) -> str:
-    """What the ranking was computed from, said out loud on the page."""
-    if key_kind == "value":
-        return (
-            "Ranked on which field values each record holds, because this analysis "
-            "carries no change history. Upload a System Notes export to rank on who "
-            "changed what instead."
-        )
-    return (
-        "Ranked on how unusual each record's changes are for this account — the field, "
-        "who changed it, and in what context. Being unusual is not evidence of being "
-        "wrong; it is where there is most to look at."
     )

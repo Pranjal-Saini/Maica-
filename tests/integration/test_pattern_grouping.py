@@ -137,7 +137,8 @@ async def test_a_snapshot_only_analysis_still_ranks_and_says_what_it_ranked_on(
 
     text = response.text
     assert "Start here" in text
-    assert "carries no change history" in text
+    # The ranking still runs on value keys; the gap block says why there are no
+    # change patterns to show.
     assert "No change patterns could be built" in text
     assert "System Notes" in text
 
@@ -158,19 +159,6 @@ async def test_a_part_snapshot_analysis_states_its_coverage(
 
     assert "have change evidence" in response.text
     assert "appear only in snapshot evidence" in response.text
-
-
-async def test_the_page_warns_that_pattern_counts_overlap(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
-    # A record is counted once per field it had changed, so the cards add up to
-    # more than the record total. Unsaid, that reads as a broken tool.
-    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
-    analysis_id = await _upload(client, str(tenant_id), "notes.csv", NOTES)
-
-    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records")
-
-    assert "add up to more than the number of records" in response.text
 
 
 async def test_sorting_smallest_first_reaches_the_rare_pattern(
@@ -285,7 +273,6 @@ async def test_every_shortlisted_record_states_why_it_is_there(
 
     shortlist = response.text[response.text.index("Start here") :]
     assert "records in this analysis" in shortlist
-    assert "Ranked on how unusual" in shortlist
 
 
 async def test_the_shortlist_is_tenant_guarded(

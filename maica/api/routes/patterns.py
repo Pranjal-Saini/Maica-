@@ -26,8 +26,6 @@ from maica.reasoning.patterns import (
     ChangePattern,
     build_pattern_index,
     describe_reason,
-    shortlist_exclusion_note,
-    shortlist_note,
     value_facets,
 )
 from maica.web.nav import page_context
@@ -107,8 +105,6 @@ async def deep_dive(
         | {
             "index": index,
             "shortlist": shortlist,
-            "shortlist_note": shortlist_note(shortlist.key_kind),
-            "shortlist_exclusion": shortlist_exclusion_note(shortlist.unattributed_rows),
             "describe_reason": describe_reason,
             "facets": facets,
             "jump_miss": jumped if jumped else None,

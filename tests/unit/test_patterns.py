@@ -137,7 +137,7 @@ def test_a_pattern_never_claims_it_caused_anything() -> None:
     prose = " ".join(
         [pattern.describe() for group in index.groups for pattern in group.patterns]
         + [gap.description + gap.reason for gap in index.gaps]
-        + [index.coverage.summary, index.coverage.counting_note]
+        + [index.coverage.summary]
     ).lower()
 
     for word in ("caused", "because", "due to", "responsible", "triggered", "explains why"):
