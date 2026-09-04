@@ -33,9 +33,12 @@
             {% if stats.analysis_count %}{{ stats.analysis_count }} analys{{ "es" if stats.analysis_count != 1 else "is" }}
             {% else %}No analyses yet{% endif %}
           </span>
+          {# No export at this level: a whole account is not a document, and
+             the JSON dump it used to produce was an archive nobody read. The
+             per-analysis PDF is the thing worth handing over. #}
           {{ menu.dots(
                "menu-tenant-" ~ tenant.id,
-               "/tenants/" ~ tenant.id ~ "/export",
+               None,
                "/tenants/" ~ tenant.id ~ "/delete",
                "client account",
                tenant.name) }}

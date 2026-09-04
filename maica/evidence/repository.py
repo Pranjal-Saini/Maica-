@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import func, select
@@ -158,83 +158,23 @@ async def get_activity_for_tenants(
     return {tenant_id: activity.get(tenant_id, TenantActivity()) for tenant_id in tenant_ids}
 
 
-# --- Export and deletion -------------------------------------------------
+# --- Deletion ------------------------------------------------------------
 #
 # These write to MAICA's own store only. Client NetSuite access stays
 # read-only: nothing here reaches an ERP, and deleting a client account here
 # removes MAICA's copy of the evidence, never anything in NetSuite.
 
 
-async def _export_analysis(session: AsyncSession, tenant_id: uuid.UUID, analysis: Analysis) -> dict:
-    evidence_stmt = select(RawEvidence).where(
-        RawEvidence.tenant_id == tenant_id, RawEvidence.analysis_id == analysis.id
-    )
-    raw_evidence = list((await session.execute(evidence_stmt)).scalars().all())
-    records = await get_records_for_analysis(session, tenant_id, analysis.id)
-
-    return {
-        "analysis_id": str(analysis.id),
-        "status": analysis.status,
-        "created_by": analysis.created_by,
-        "created_at": analysis.created_at.isoformat() if analysis.created_at else None,
-        "raw_evidence": [
-            {
-                "raw_evidence_id": str(item.id),
-                "source_type": item.source_type,
-                "fetched_or_uploaded_at": item.fetched_or_uploaded_at.isoformat()
-                if item.fetched_or_uploaded_at
-                else None,
-                "request_made": item.request_made,
-                "understood_summary": item.understood_summary,
-                "unavailable_reason": item.unavailable_reason,
-                "payload": item.payload,
-            }
-            for item in raw_evidence
-        ],
-        "records": [
-            {
-                "source_id": record.source_id,
-                "record_type": record.record_type,
-                "field_name": record.field_name,
-                "old_value": record.old_value,
-                "new_value": record.new_value,
-                "actor": record.actor,
-                "context": record.context,
-                "occurred_at": record.occurred_at.isoformat() if record.occurred_at else None,
-            }
-            for record in records
-        ],
-    }
-
-
-async def export_analysis(
+async def get_raw_evidence_for_analysis(
     session: AsyncSession, tenant_id: uuid.UUID, analysis_id: uuid.UUID
-) -> dict | None:
-    """One analysis, whole. The original uploaded rows travel with it, not just
-    the normalized view — an export that drops the source evidence cannot be
-    audited against NetSuite later."""
-    analysis = await get_analysis(session, tenant_id, analysis_id)
-    if analysis is None:
-        return None
-    tenant = await get_tenant(session, tenant_id)
-    return {
-        "exported_at": datetime.now(UTC).isoformat(),
-        "tenant_id": str(tenant_id),
-        "tenant_name": tenant.name if tenant else None,
-        "analyses": [await _export_analysis(session, tenant_id, analysis)],
-    }
-
-
-async def export_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> dict:
-    """Everything MAICA holds for one client account."""
-    tenant = await get_tenant(session, tenant_id)
-    analyses = await get_analyses_for_tenant(session, tenant_id)
-    return {
-        "exported_at": datetime.now(UTC).isoformat(),
-        "tenant_id": str(tenant_id),
-        "tenant_name": tenant.name if tenant else None,
-        "analyses": [await _export_analysis(session, tenant_id, analysis) for analysis in analyses],
-    }
+) -> list[RawEvidence]:
+    """What was uploaded into this analysis, and how each file was understood."""
+    stmt = (
+        select(RawEvidence)
+        .where(RawEvidence.tenant_id == tenant_id, RawEvidence.analysis_id == analysis_id)
+        .order_by(RawEvidence.fetched_or_uploaded_at)
+    )
+    return list((await session.execute(stmt)).scalars().all())
 
 
 async def delete_analysis(

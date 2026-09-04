@@ -362,7 +362,9 @@ async def test_client_cards_and_analyses_carry_an_actions_menu(
     dashboard = (await client.get("/dashboard")).text
     analyses = (await client.get(f"/tenants/{tenant_id}/analyses")).text
 
-    assert f"/tenants/{tenant_id}/export" in dashboard
+    # A client account offers delete only — its export was an archive dump
+    # nobody read, and the document lives one level down.
+    assert f"/tenants/{tenant_id}/export" not in dashboard
     assert f"/tenants/{tenant_id}/delete" in dashboard
     assert f"/tenants/{tenant_id}/analyses/{analysis_id}/export" in analyses
     assert f"/tenants/{tenant_id}/analyses/{analysis_id}/delete" in analyses

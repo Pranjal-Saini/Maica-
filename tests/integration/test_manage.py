@@ -5,7 +5,6 @@ here than anywhere else: a delete that crossed accounts would destroy another
 consultant's evidence.
 """
 
-import json
 import uuid
 from pathlib import Path
 
@@ -28,35 +27,33 @@ async def _upload(client: AsyncClient, tenant_id: str) -> str:
     return response.json()["analysis_id"]
 
 
-async def test_export_client_account_carries_records_and_the_uploaded_rows(
+async def test_exporting_an_analysis_produces_a_pdf_a_consultant_can_hand_over(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
-    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
-    await _upload(client, str(tenant_id))
-
-    response = await client.get(f"/tenants/{tenant_id}/export")
-
-    assert response.status_code == 200
-    assert "attachment" in response.headers["content-disposition"]
-    bundle = json.loads(response.text)
-    assert bundle["tenant_name"] == "Acme Corp"
-    assert len(bundle["analyses"]) == 1
-    analysis = bundle["analyses"][0]
-    assert any(r["source_id"] == "1001" for r in analysis["records"])
-    # The original rows travel too — a normalized-only export cannot be
-    # audited back against NetSuite.
-    assert analysis["raw_evidence"][0]["payload"]["rows"]
-
-
-async def test_export_one_analysis(client: AsyncClient, db_session: AsyncSession) -> None:
+    """It used to be a JSON dump of every stored row. Nobody reads 50,000 rows
+    of JSON to find out what happened, so the export is now a document."""
     tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
     analysis_id = await _upload(client, str(tenant_id))
 
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/export")
 
     assert response.status_code == 200
-    bundle = json.loads(response.text)
-    assert [a["analysis_id"] for a in bundle["analyses"]] == [analysis_id]
+    assert response.headers["content-type"] == "application/pdf"
+    assert "attachment" in response.headers["content-disposition"]
+    assert response.headers["content-disposition"].endswith('.pdf"')
+    assert response.content.startswith(b"%PDF")
+
+
+async def test_a_client_account_has_no_export_of_its_own(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # A whole account is not a document. The per-analysis PDF is the thing
+    # worth handing over, so the account-level JSON dump is gone.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+
+    response = await client.get(f"/tenants/{tenant_id}/export")
+
+    assert response.status_code == 404
 
 
 async def test_deleting_an_analysis_removes_its_evidence_and_records(
@@ -117,7 +114,9 @@ async def test_another_users_account_can_be_neither_exported_nor_deleted(
     await logout(client)
     await login_as(client, db_session, "consultant-b@example.com")
 
-    assert (await client.get(f"/tenants/{tenant_id}/export")).status_code == 403
+    assert (
+        await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/export")
+    ).status_code == 403
     assert (await client.post(f"/tenants/{tenant_id}/delete")).status_code == 403
     assert (
         await client.post(f"/tenants/{tenant_id}/analyses/{analysis_id}/delete")

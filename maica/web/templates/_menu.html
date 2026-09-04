@@ -19,10 +19,12 @@
   <div hidden
        class="menu-panel absolute right-0 top-9 w-60 overflow-hidden rounded-md border
               border-gray-200 bg-white py-1 text-left shadow-lg">
+    {% if export_url %}
     <a href="{{ export_url }}" class="block px-3 py-2 text-sm hover:bg-gray-50">
       Export {{ noun }}
-      <span class="block text-[11px] text-gray-400">JSON, including the uploaded rows</span>
+      <span class="block text-[11px] text-gray-400">PDF summary you can hand over</span>
     </a>
+    {% endif %}
     <form method="post" action="{{ delete_url }}"
           onsubmit="return confirm('Delete this {{ noun }}: {{ name }}?\n\nThis removes what MAICA stores — the evidence you uploaded and everything derived from it. It cannot be undone. Nothing in NetSuite is affected.');">
       <button type="submit"
