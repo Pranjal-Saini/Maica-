@@ -135,3 +135,20 @@ async def test_the_shortlist_is_tenant_guarded(
     listing = await client.get(f"/tenants/{tenant_id}/analyses")
 
     assert listing.status_code == 403
+
+
+async def test_each_shortlisted_record_is_visibly_a_link_to_its_report(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # The whole card links through, and says where to. With only the ID
+    # linked the card read as static text and the report was unreachable by
+    # eye — the sidebar's "Ranked factors" stays disabled until a record is
+    # picked, so this is the only way in from here.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    analysis_id = await _upload(client, str(tenant_id), "notes.csv", NOTES)
+
+    response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records")
+
+    shortlist = response.text[response.text.index("know which one?") :]
+    assert "See ranked factors" in shortlist
+    assert shortlist.count("/report") >= 1
