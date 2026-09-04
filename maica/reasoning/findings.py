@@ -22,6 +22,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
 
+from maica.reasoning.phrasing import actor_phrase, context_phrase
+
 #: Below this, a perfect separation is as likely to be chance as substance.
 MIN_AFFECTED_FOR_CONFIDENCE = 3
 
@@ -99,16 +101,10 @@ class Finding:
         return SEPARATION_MEANINGS[self.separation]
 
     def describe(self) -> str:
-        from maica.reasoning.patterns import ACTOR_SYSTEM, ACTOR_UNATTRIBUTED
-
-        if self.actor_class == ACTOR_SYSTEM:
-            who = "by System (an automated process, not a specific person)"
-        elif self.actor_class == ACTOR_UNATTRIBUTED:
-            who = "by an actor this export did not record"
-        else:
-            who = "by a named user"
-        where = f" via {self.context}" if self.context else " with no context recorded"
-        return f"{self.field_name} changed {who}{where}"
+        return (
+            f"{self.field_name} changed {actor_phrase(self.actor_class)} "
+            f"{context_phrase(self.context)}"
+        )
 
     def counts(self) -> str:
         return (

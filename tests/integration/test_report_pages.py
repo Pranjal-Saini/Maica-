@@ -15,8 +15,9 @@ async def test_deep_dive_names_a_shortlist_not_every_record(
     client: AsyncClient, db_session: AsyncSession
 ) -> None:
     """It used to render one card per record, linking to each report. On a real
-    account that is 10,000 links ordered by nothing that matters. It now names a
-    ranked handful — record links are expected here, but only a few of them."""
+    account that is 10,000 links ordered by nothing that matters. The page now
+    asks which transaction went wrong; the only record links left belong to the
+    fallback shortlist for a consultant who cannot answer that."""
     tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
     csv_bytes = (FIXTURES / "saved_search_clean.csv").read_bytes()
 
@@ -30,9 +31,9 @@ async def test_deep_dive_names_a_shortlist_not_every_record(
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "Start here" in response.text
+    assert "Which transaction posted wrong?" in response.text
     linked = set(re.findall(r"/records/([^/\"]+)/report", response.text))
-    assert 0 < len(linked) <= SHORTLIST_LIMIT
+    assert len(linked) <= SHORTLIST_LIMIT
 
 
 async def test_jump_to_record_still_reaches_its_report(

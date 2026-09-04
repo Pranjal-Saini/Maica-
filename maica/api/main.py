@@ -9,10 +9,10 @@ from maica.api.errors import ingest_validation_error_handler
 from maica.api.routes import (
     analyses,
     auth,
+    deep_dive,
     health,
     investigate,
     manage,
-    patterns,
     uploads,
 )
 from maica.config.logging import configure_logging
@@ -39,7 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(uploads.router)
     app.include_router(analyses.router)
     app.include_router(manage.router)
-    app.include_router(patterns.router)
+    app.include_router(deep_dive.router)
     app.include_router(investigate.router)
     app.add_exception_handler(IngestValidationError, ingest_validation_error_handler)
 

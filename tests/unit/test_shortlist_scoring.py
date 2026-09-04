@@ -10,7 +10,7 @@ that SQL is answerable to.
 from dataclasses import dataclass
 
 from maica.evidence.shortlist import ShortlistReason, _weight
-from maica.reasoning.patterns import describe_reason
+from maica.reasoning.phrasing import describe_reason
 
 
 @dataclass(frozen=True)
@@ -136,3 +136,21 @@ def test_a_reason_never_claims_the_record_is_wrong() -> None:
 
     for word in ("caused", "because", "due to", "responsible", "triggered", "wrong", "suspicious"):
         assert word not in prose
+
+
+def test_actor_classes_match_the_three_the_sql_produces() -> None:
+    # aggregates._actor_class_case emits exactly these strings. If the Python
+    # and the SQL ever disagree, a whole class of records silently vanishes
+    # from the comparison.
+    from maica.reasoning.phrasing import (
+        ACTOR_SYSTEM,
+        ACTOR_UNATTRIBUTED,
+        ACTOR_USER,
+        classify_actor,
+    )
+
+    assert classify_actor("System") == ACTOR_SYSTEM
+    assert classify_actor("  system  ") == ACTOR_SYSTEM
+    assert classify_actor("jsmith") == ACTOR_USER
+    assert classify_actor(None) == ACTOR_UNATTRIBUTED
+    assert classify_actor("   ") == ACTOR_UNATTRIBUTED

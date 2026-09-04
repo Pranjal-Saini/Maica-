@@ -2,197 +2,70 @@
 {% import "_icons.html" as icons %}
 
 {% block title %}MAICA — Deep dive{% endblock %}
-{% block page_title %}Deep dive{% endblock %}
-{% block page_subtitle %}Start with the records least like the rest of this account.{% endblock %}
+{% block page_title %}Which transaction posted wrong?{% endblock %}
+{% block page_subtitle %}Enter it and MAICA ranks what touched it.{% endblock %}
 
 {% block content %}
 {% set base = "/tenants/" ~ tenant_id ~ "/analyses/" ~ analysis_id %}
 
-<div class="mb-5 flex flex-wrap items-center gap-2">
-  <a href="{{ base }}/investigate"
-     class="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium
-            text-white hover:bg-ink/90">
-    I know which records are wrong
-  </a>
-  <a href="{{ base }}/uploads/new"
-     class="inline-flex items-center gap-2 rounded-md border border-gray-200 px-4 py-2 text-sm
-            font-medium text-gray-600 hover:border-ink hover:text-ink">
-    Upload more evidence
-  </a>
+<form method="get" action="{{ base }}/records" class="mb-3 flex max-w-xl flex-wrap gap-2">
+  <input name="q" value="{{ not_found or '' }}" autofocus autocomplete="off"
+         placeholder="Internal ID, e.g. 4471"
+         class="min-w-0 flex-1 rounded-md border border-gray-200 px-4 py-3 font-mono text-sm
+                focus:border-ink focus:outline-none" />
+  <button type="submit"
+          class="rounded-md bg-ink px-6 py-3 text-sm font-medium text-white hover:bg-ink/90">
+    Show me
+  </button>
+</form>
 
-  <form method="get" action="{{ base }}/records" class="flex items-center gap-2">
-    <input type="hidden" name="sort" value="{{ index.sort }}" />
-    <input name="q" placeholder="Go to record ID" autocomplete="off"
-           class="w-44 rounded-md border border-gray-200 px-3 py-2 text-sm
-                  focus:border-ink focus:outline-none" />
-    <button type="submit"
-            class="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-600
-                   hover:border-ink hover:text-ink">Go</button>
-  </form>
-
-  {% if index.groups %}
-  <span class="ml-auto flex items-center gap-1 text-xs text-gray-400">
-    Sort
-    {% for option, label in [("largest", "Most records"), ("smallest", "Fewest records"), ("field", "Field name")] %}
-    <a href="{{ base }}/records?sort={{ option }}"
-       class="rounded-md px-2 py-1 {% if index.sort == option %}bg-ink text-white{% else %}hover:bg-gray-100{% endif %}">
-      {{ label }}
-    </a>
-    {% endfor %}
-  </span>
-  {% endif %}
-</div>
-
-{% if jump_miss %}
-<p class="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
-  No record with ID <span class="font-mono">{{ jump_miss }}</span> in this analysis.
+{% if not_found %}
+<p class="mb-3 max-w-xl rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
+  No record with ID <span class="font-mono">{{ not_found }}</span> in this analysis.
 </p>
 {% endif %}
 
-{% if not shortlist.is_empty %}
-<section class="mb-8">
-  <div class="mb-3 flex flex-wrap items-baseline gap-3">
-    <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-400">Start here</h2>
-    <span class="text-xs text-gray-400">
-      {{ shortlist.entries | length }} of {{ "{:,}".format(total_records) }} records
-    </span>
-  </div>
+<p class="mb-10 text-xs text-gray-400">
+  {{ "{:,}".format(total_records) }} record{{ "s" if total_records != 1 }} in this analysis ·
+  <a class="underline hover:text-ink" href="{{ base }}/investigate">several of them are wrong</a> ·
+  <a class="underline hover:text-ink" href="{{ base }}/uploads/new">upload more evidence</a>
+</p>
 
-  <ol class="space-y-3">
+{% if not shortlist.is_empty %}
+<section class="border-t border-gray-100 pt-6">
+  <h2 class="text-sm font-semibold">Don't know which one?</h2>
+  <p class="mb-4 max-w-2xl text-xs leading-relaxed text-gray-500">
+    These are the records least like the rest of this account. Unusual is not the same as
+    wrong — if you know the transaction, the box above is the better route.
+    {#- A snapshot export carries no change history, so the ranking falls back to
+        the values records hold. hard-rules.md: say which inputs were unavailable. -#}
+    {% if shortlist.key_kind == "value" %}
+    <span class="mt-1 block">
+      No change patterns could be built here — only a saved-search snapshot was uploaded, so
+      this is ranked on the values records hold rather than on who changed what. Upload a
+      System Notes export to rank on the change history.
+    </span>
+    {% endif %}
+  </p>
+
+  <ol class="grid gap-2 lg:grid-cols-2">
     {% for entry in shortlist.entries %}
-    <li class="rounded-md border border-gray-200 p-4">
-      <div class="flex flex-wrap items-center gap-3">
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-ink text-sm font-bold text-white">
-          {{ loop.index }}
-        </span>
-        <a class="font-mono text-lg font-semibold hover:underline"
+    <li class="rounded-md border border-gray-200 p-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <a class="font-mono font-semibold hover:underline"
            href="{{ base }}/records/{{ entry.source_id | urlencode }}/report">{{ entry.source_id }}</a>
         <span class="text-xs text-gray-400">{{ entry.record_type or "unknown type" }}</span>
-        <a class="ml-auto text-sm font-medium text-brand hover:underline"
-           href="{{ base }}/records/{{ entry.source_id | urlencode }}/report">Ranked factors →</a>
       </div>
-
-      <ul class="mt-3 space-y-1.5">
-        {% for reason in entry.reasons %}
-        <li class="border-l-2 border-brand-soft pl-3 text-sm leading-relaxed">
-          {{ describe_reason(reason) }}
-        </li>
-        {% endfor %}
-      </ul>
-
-      {% if entry.hidden_reason_count %}
-      <p class="mt-2 pl-3 text-[11px] text-gray-400">
-        and {{ entry.hidden_reason_count }} further signal{{ "s" if entry.hidden_reason_count != 1 }}
-        on this record, each shared more widely than those above.
+      {% if entry.reasons %}
+      <p class="mt-1 text-xs leading-relaxed text-gray-500">
+        {{ describe_reason(entry.reasons[0]) }}
       </p>
       {% endif %}
     </li>
     {% endfor %}
   </ol>
 </section>
-{% endif %}
-
-{% if total_records %}
-<p class="mb-5 text-sm font-medium">{{ index.coverage.summary }}</p>
-{% endif %}
-
-{% if index.gaps %}
-<div class="mb-5 space-y-3 rounded-md border border-gray-200 p-4">
-  <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400">
-    What these groups do not cover
-  </h2>
-  {% for gap in index.gaps %}
-  <div class="border-l-2 border-amber-300 pl-3 text-sm">
-    <span class="block font-medium">{{ gap.description }}</span>
-    <span class="block text-gray-500">{{ gap.reason }}</span>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-{% if index.groups %}
-<details class="rounded-md border border-gray-200">
-  <summary class="cursor-pointer px-4 py-3 text-sm font-semibold">
-    All change patterns
-    <span class="ml-2 font-normal text-gray-400">
-      {{ index.coverage.pattern_count }} across {{ index.groups | length }} field{{ "s" if index.groups | length != 1 }}
-      — the detail behind the shortlist
-    </span>
-  </summary>
-  <div class="space-y-2 border-t border-gray-100 p-3">
-  {% for group in index.groups %}
-  <details class="rounded-md border border-gray-200" {% if loop.first %}open{% endif %}>
-    <summary class="flex cursor-pointer flex-wrap items-center gap-3 px-4 py-3">
-      <span class="text-base font-semibold">{{ group.field_name }}</span>
-      <span class="rounded-full bg-brand-soft px-2.5 py-1 text-[11px] font-medium text-brand">
-        {{ "{:,}".format(group.record_count) }} record{{ "s" if group.record_count != 1 }}
-      </span>
-      <span class="text-xs text-gray-400">
-        {{ "{:,}".format(group.change_count) }} change{{ "s" if group.change_count != 1 }} ·
-        {{ group.patterns | length }} pattern{{ "s" if group.patterns | length != 1 }}
-      </span>
-    </summary>
-
-    <div class="border-t border-gray-100 p-3">
-      <div class="grid gap-2 lg:grid-cols-2">
-        {% for pattern in group.patterns %}
-        <a class="group rounded-md border border-gray-200 p-3 transition hover:border-ink hover:shadow-sm"
-           href="{{ base }}/patterns/records?{% for key, value in pattern.query_params().items() %}{{ key | urlencode }}={{ value | urlencode }}{% if not loop.last %}&amp;{% endif %}{% endfor %}">
-          <span class="flex flex-wrap items-center gap-2">
-            <span class="text-lg font-semibold">{{ "{:,}".format(pattern.record_count) }}</span>
-            <span class="text-xs text-gray-400">records</span>
-            {% if pattern.is_automation %}
-            <span class="rounded-full bg-lav-soft px-2 py-0.5 text-[10px] font-semibold text-ink">
-              automation
-            </span>
-            {% endif %}
-          </span>
-          <span class="mt-1 block text-sm leading-relaxed">{{ pattern.describe() }}</span>
-          <span class="mt-1 block text-[11px] text-gray-400">
-            {{ "{:,}".format(pattern.change_count) }} change{{ "s" if pattern.change_count != 1 }} ·
-            {{ pattern.timing }}
-          </span>
-        </a>
-        {% endfor %}
-      </div>
-
-      {% if group.hidden_reason %}
-      <p class="mt-3 border-l-2 border-amber-300 pl-3 text-xs text-gray-500">{{ group.hidden_reason }}</p>
-      {% endif %}
-    </div>
-  </details>
-  {% endfor %}
-  </div>
-</details>
-
-{% elif facets %}
-<h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
-  Group by shared value instead
-</h2>
-<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-  {% for facet in facets %}
-  <div class="rounded-md border border-gray-200 p-4">
-    <span class="block text-base font-semibold">{{ facet.field_name }}</span>
-    <span class="mt-1 block text-sm text-gray-500">
-      {{ facet.distinct_values }} distinct value{{ "s" if facet.distinct_values != 1 }}
-    </span>
-    <span class="mt-1 block text-[11px] text-gray-400">
-      largest covers {{ "%.1f" | format(facet.largest_share * 100) }}% of records
-    </span>
-  </div>
-  {% endfor %}
-</div>
-
-{% elif total_records %}
-<div class="rounded-md border border-dashed border-gray-200 p-10 text-center">
-  <p class="text-sm text-gray-500">
-    No further grouping to show — every field here is either unique per record or shared
-    by nearly all of them, so grouping on one would separate nothing. The shortlist above
-    is unaffected; it ranks records rather than grouping them.
-  </p>
-</div>
-
-{% else %}
+{% elif total_records == 0 %}
 <div class="rounded-md border border-dashed border-gray-200 p-10 text-center">
   <p class="text-sm text-gray-500">No records found for this analysis.</p>
 </div>

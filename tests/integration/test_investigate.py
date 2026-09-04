@@ -151,7 +151,7 @@ async def test_the_deep_dive_offers_the_stronger_path(
     response = await client.get(f"/tenants/{tenant_id}/analyses/{analysis_id}/records")
 
     assert f"/tenants/{tenant_id}/analyses/{analysis_id}/investigate" in response.text
-    assert "I know which records are wrong" in response.text
+    assert "several of them are wrong" in response.text
 
 
 async def test_investigating_another_tenants_analysis_is_refused(

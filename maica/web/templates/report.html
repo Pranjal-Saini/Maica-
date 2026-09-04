@@ -126,6 +126,18 @@
         {{ icons.icon("arrow", "w-4 h-4") }} Next thing worth looking at
       </h2>
       <p class="text-sm leading-relaxed text-white/80">{{ next_step }}</p>
+
+      {# The one follow-on worth offering: this record's top change is either a
+         one-off or a pattern, and only a comparison against the rest of the
+         account can tell the consultant which. #}
+      {% if factors and factors[0].evidence and factors[0].evidence[0].new_value %}
+      {% set lead = factors[0].evidence[0] %}
+      <a class="mt-4 inline-flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-2 text-xs
+                font-medium text-white hover:bg-white/20"
+         href="/tenants/{{ tenant_id }}/analyses/{{ analysis_id }}/investigate?field={{ lead.field_name | urlencode }}&amp;value={{ lead.new_value | urlencode }}">
+        Is this happening to other transactions?
+      </a>
+      {% endif %}
     </section>
 
     <section class="rounded-md border border-gray-200 p-5">
