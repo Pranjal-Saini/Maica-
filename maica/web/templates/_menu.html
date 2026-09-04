@@ -25,8 +25,13 @@
       <span class="block text-[11px] text-gray-400">PDF summary you can hand over</span>
     </a>
     {% endif %}
+    {# The name is client-supplied. Interpolating it into an on* attribute puts
+       HTML-escaped text where a JS string literal is expected, and the HTML parser
+       decodes the entities before the JS parser runs — so &#39; becomes a real
+       quote and closes the literal. It travels as data and is read back from the
+       DOM instead. #}
     <form method="post" action="{{ delete_url }}"
-          onsubmit="return confirm('Delete this {{ noun }}: {{ name }}?\n\nThis removes what MAICA stores — the evidence you uploaded and everything derived from it. It cannot be undone. Nothing in NetSuite is affected.');">
+          class="menu-delete" data-noun="{{ noun }}" data-name="{{ name }}">
       <button type="submit"
               class="block w-full px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50">
         Delete {{ noun }}
@@ -51,6 +56,19 @@
         menu.querySelector(".menu-trigger").setAttribute("aria-expanded", "false");
       });
     }
+
+    document.querySelectorAll("form.menu-delete").forEach(function (form) {
+      form.addEventListener("submit", function (event) {
+        const confirmed = window.confirm(
+          "Delete this " + form.dataset.noun + ": " + form.dataset.name + "?
+
+" +
+          "This removes what MAICA stores — the evidence you uploaded and everything " +
+          "derived from it. It cannot be undone. Nothing in NetSuite is affected."
+        );
+        if (!confirmed) event.preventDefault();
+      });
+    });
 
     menus.forEach(function (menu) {
       const trigger = menu.querySelector(".menu-trigger");

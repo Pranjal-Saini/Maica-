@@ -193,7 +193,7 @@
   // summaries stay, which is a complete report, not a broken one.
   (function () {
     const status = document.getElementById("narration-status");
-    const url = "/tenants/{{ tenant_id }}/analyses/{{ analysis_id }}/records/{{ source_id }}/explain";
+    const url = {{ ("/tenants/" ~ tenant_id ~ "/analyses/" ~ analysis_id ~ "/records/" ~ source_id ~ "/explain") | tojson }};
 
     fetch(url)
       .then(function (response) {

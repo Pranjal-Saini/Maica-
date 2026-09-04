@@ -100,6 +100,9 @@ async def google_callback(
 
     user = await auth_repository.get_or_create_user_from_google(session, google_user)
     await session.commit()
+    # Drop anything the visitor accumulated before signing in — the oauth state,
+    # a remembered nav context — rather than carrying it into their session.
+    request.session.clear()
     request.session["user_id"] = str(user.id)
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 

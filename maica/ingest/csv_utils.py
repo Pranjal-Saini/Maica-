@@ -1,6 +1,7 @@
 import csv
 import io
 import re
+from collections.abc import Iterator
 from datetime import datetime
 
 from maica.ingest.errors import IngestValidationError
@@ -61,3 +62,17 @@ def score_header_row(raw_input: bytes, alias_map: dict[str, str]) -> int:
     return sum(
         1 for raw in reader.fieldnames if re.sub(r"\s+", " ", raw.strip().lower()) in alias_map
     )
+
+
+def iter_rows(reader: csv.DictReader) -> Iterator[dict]:
+    """Yields the reader's rows, turning a malformed file into a named gap.
+
+    csv raises on a field over its 128 KB limit and on some quoting errors, and
+    an uploaded export is untrusted input by definition — a 500 there tells the
+    consultant nothing and looks like the tool broke rather than the file being
+    unreadable.
+    """
+    try:
+        yield from reader
+    except csv.Error as exc:
+        raise IngestValidationError(f"could not read this CSV: {exc}") from exc

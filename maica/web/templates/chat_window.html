@@ -10,7 +10,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MAICA — Ask about this evidence</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/static/vendor/tailwind-play.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -74,7 +74,7 @@
 
   <script>
     (function () {
-      const endpoint = "/tenants/{{ tenant_id }}/analyses/{{ analysis_id }}/chat";
+      const endpoint = {{ ("/tenants/" ~ tenant_id ~ "/analyses/" ~ analysis_id ~ "/chat") | tojson }};
       const focusSourceId = new URLSearchParams(window.location.search).get("record");
       const log = document.getElementById("chat-log");
       const form = document.getElementById("chat-form");

@@ -16,6 +16,12 @@ COPY maica ./maica
 COPY migrations ./migrations
 COPY alembic.ini ./
 
+# Drop root before running. A container process that only reads uploads and
+# talks to Postgres has no reason to be able to write the image, and it limits
+# what a parser bug in untrusted CSV can reach.
+RUN useradd --create-home --uid 10001 maica && chown -R maica:maica /app
+USER maica
+
 EXPOSE 8000
 
 CMD ["uv", "run", "uvicorn", "maica.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -19,7 +19,15 @@ async def get_current_user(
     user_id = request.session.get("user_id")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="not authenticated")
-    user = await auth_repository.get_user_by_id(session, uuid.UUID(user_id))
+    try:
+        parsed = uuid.UUID(str(user_id))
+    except ValueError:
+        # A session carrying a non-UUID is a tampered or stale cookie, which is
+        # an authentication failure rather than a server fault.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="not authenticated"
+        ) from None
+    user = await auth_repository.get_user_by_id(session, parsed)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="not authenticated")
     return user

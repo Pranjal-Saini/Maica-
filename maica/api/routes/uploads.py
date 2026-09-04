@@ -17,6 +17,13 @@ from maica.web.templating import templates
 
 router = APIRouter()
 
+#: Starlette's 1 MB part limit applies to non-file parts only; a file part is
+#: spooled to disk with no cap and then read whole into memory here. A real
+#: saved-search export is a few MB, so this is generous.
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+#: Starlette allows 1,000 parts per request by default.
+MAX_FILES_PER_UPLOAD = 20
+
 
 @router.get("/tenants/{tenant_id}/uploads/new", response_class=HTMLResponse)
 async def upload_form(
@@ -99,6 +106,7 @@ async def _ingest_one_file(
 
 @router.post("/tenants/{tenant_id}/uploads", response_model=UploadResponse)
 async def upload_evidence(
+    request: Request,
     files: list[UploadFile],
     evidence_type: str = Form(AUTO_DETECT),
     analysis_id: uuid.UUID | None = Form(None),
@@ -112,6 +120,18 @@ async def upload_evidence(
     if evidence_type != AUTO_DETECT and get_ingest_source(evidence_type) is None:
         raise IngestValidationError(f"unknown evidence_type '{evidence_type}'")
 
+    if len(files) > MAX_FILES_PER_UPLOAD:
+        raise IngestValidationError(
+            f"{len(files)} files in one upload; the limit is {MAX_FILES_PER_UPLOAD}."
+        )
+
+    declared = request.headers.get("content-length")
+    if declared is not None and declared.isdigit() and int(declared) > MAX_UPLOAD_BYTES:
+        raise IngestValidationError(
+            f"Upload is {int(declared) / 1_048_576:.0f} MB; the limit is "
+            f"{MAX_UPLOAD_BYTES // 1_048_576} MB. Split the export and upload it in parts."
+        )
+
     analysis = None
     if analysis_id is not None:
         analysis = await repository.get_analysis(session, tenant_id, analysis_id)
@@ -119,8 +139,17 @@ async def upload_evidence(
         analysis = await repository.create_analysis(session, tenant_id, created_by="upload")
 
     results: list[FileUploadResult] = []
+    budget = MAX_UPLOAD_BYTES
     for upload in files:
-        raw_input = await upload.read()
+        # Content-Length can be absent or wrong, so the bytes are also counted as
+        # they arrive rather than trusted from the header.
+        raw_input = await upload.read(budget + 1)
+        if len(raw_input) > budget:
+            raise IngestValidationError(
+                f"Upload exceeds {MAX_UPLOAD_BYTES // 1_048_576} MB in total. "
+                "Split the export and upload it in parts."
+            )
+        budget -= len(raw_input)
         results.append(
             await _ingest_one_file(
                 session,

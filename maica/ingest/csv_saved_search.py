@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from maica.ingest.csv_utils import (
     build_dict_reader,
     decode_text,
+    iter_rows,
     normalize_header,
     score_header_row,
     try_parse_date,
@@ -90,7 +91,7 @@ class CsvSavedSearchSource(IngestSource):
         skip_reasons: list[str] = []
         rows_skipped = 0
 
-        for line_number, raw_row in enumerate(reader, start=2):
+        for line_number, raw_row in enumerate(iter_rows(reader), start=2):
             if raw_row is None or all(not (v or "").strip() for v in raw_row.values()):
                 continue  # blank row — noise, not a gap
 

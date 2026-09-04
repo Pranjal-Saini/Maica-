@@ -59,7 +59,7 @@
 {% block scripts %}
 <script>
   (function () {
-    const tenantId = "{{ tenant_id }}";
+    const tenantId = {{ tenant_id | string | tojson }};
     const fileInput = document.querySelector('input[name="files"]');
 
     fileInput.addEventListener("change", function () {

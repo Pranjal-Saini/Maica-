@@ -15,6 +15,7 @@ no transaction to start from. It is the weaker path and is presented as one.
 """
 
 import uuid
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -44,8 +45,15 @@ async def deep_dive(
     """Takes a transaction and hands straight over to its ranked factors."""
     asked = q.strip()
     if asked and await aggregates.source_id_exists(session, tenant_id, analysis_id, asked):
+        # Percent-encode the whole segment. A record id comes verbatim from an
+        # uploaded CSV — untrusted by design — and RedirectResponse leaves "/"
+        # alone, so an id of "../../..//evil.com" resolves to a protocol-relative
+        # off-site redirect in the browser.
         return RedirectResponse(
-            url=f"/tenants/{tenant_id}/analyses/{analysis_id}/records/{asked}/report",
+            url=(
+                f"/tenants/{tenant_id}/analyses/{analysis_id}"
+                f"/records/{quote(asked, safe='')}/report"
+            ),
             status_code=303,
         )
 
