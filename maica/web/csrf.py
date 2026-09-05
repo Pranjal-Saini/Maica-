@@ -16,6 +16,12 @@ from fastapi import HTTPException, Request, status
 SESSION_KEY = "csrf_token"
 FORM_FIELD = "csrf_token"
 
+#: Accepted as an alternative to the form field, for requests issued by script
+#: rather than by a submitted form. It is not a weaker channel: a cross-site
+#: page cannot set a custom header without turning the request into a
+#: preflighted one, which same-origin policy then refuses.
+HEADER_FIELD = "X-CSRF-Token"
+
 
 def issue_token(request: Request) -> str:
     """The session's token, minted on first use and stable thereafter.
@@ -37,6 +43,11 @@ def verify(request: Request, submitted: str | None) -> None:
     Compared with compare_digest so a wrong token cannot be recovered a
     character at a time from response timing.
     """
+    # The form field wins when present, even when it is wrong: a submitted-but-
+    # wrong token is a failure, not an invitation to look somewhere else.
+    if submitted is None:
+        submitted = request.headers.get(HEADER_FIELD)
+
     expected = request.session.get(SESSION_KEY)
     # Compared as bytes: compare_digest raises TypeError on non-ASCII strings,
     # so a token of 'e-acute' turned a 403 into a 500 inside the check itself.

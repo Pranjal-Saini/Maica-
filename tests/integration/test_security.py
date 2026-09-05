@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from maica.api.main import create_app
 from maica.config.settings import INSECURE_SESSION_KEY, get_settings
+from maica.web.csrf import HEADER_FIELD
 from tests.conftest import login_as, signup_with_tenant
 
 
@@ -223,6 +224,9 @@ async def test_deleting_without_a_csrf_token_is_refused(
     lock, because SameSite is one attribute away from being loosened for an
     unrelated reason and nothing would fail loudly when it was."""
     tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    # conftest arms every logged-in client with the token the way a browser
+    # carries the hidden field. Sending none is what this test is about.
+    client.headers.pop(HEADER_FIELD, None)
 
     response = await client.post(f"/tenants/{tenant_id}/delete")
 

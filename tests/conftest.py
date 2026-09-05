@@ -3,6 +3,8 @@ from collections.abc import AsyncGenerator
 
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://maica:maica@localhost:5432/maica_test")
 
+import re
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
@@ -15,6 +17,7 @@ from maica.auth.models import User, UserTenantAccess
 from maica.config.settings import get_settings
 from maica.evidence.db import Base
 from maica.evidence.models import Analysis, RawEvidence, Record, Tenant
+from maica.web.csrf import HEADER_FIELD
 
 
 @pytest.fixture(scope="session")
@@ -87,7 +90,25 @@ async def login_as(client: AsyncClient, db_session: AsyncSession, email: str) ->
         return user
 
     client.app_for_tests.dependency_overrides[get_current_user] = _override_get_current_user  # type: ignore[attr-defined]
+    await arm_csrf(client)
     return user
+
+
+async def arm_csrf(client: AsyncClient) -> str:
+    """Reads the session's CSRF token from a rendered form and sends it on
+    every later request, which is what a browser does with the hidden field.
+
+    Armed here rather than at each call site so that a route gaining
+    verify_csrf() does not silently break tests that are about something else.
+    Tests that exercise the CSRF control itself strip this header first — see
+    test_security.py — so "no token" stays something a test has to ask for.
+    """
+    page = await client.get("/tenants/new")
+    match = re.search(r'name="csrf_token" value="([^"]+)"', page.text)
+    assert match is not None, "no CSRF token rendered on /tenants/new"
+    token = match.group(1)
+    client.headers[HEADER_FIELD] = token
+    return token
 
 
 async def logout(client: AsyncClient) -> None:
