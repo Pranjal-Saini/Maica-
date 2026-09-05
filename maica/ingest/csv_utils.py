@@ -56,12 +56,29 @@ def score_header_row(raw_input: bytes, alias_map: dict[str, str]) -> int:
         return 0
 
     reader = build_dict_reader(text)
-    if not reader.fieldnames:
+    try:
+        fieldnames = read_header(reader)
+    except IngestValidationError:
+        # This function is called speculatively on an unknown upload, and its
+        # contract is that it never raises. An unreadable header scores 0.
+        return 0
+    if not fieldnames:
         return 0
 
-    return sum(
-        1 for raw in reader.fieldnames if re.sub(r"\s+", " ", raw.strip().lower()) in alias_map
-    )
+    return sum(1 for raw in fieldnames if re.sub(r"\s+", " ", raw.strip().lower()) in alias_map)
+
+
+def read_header(reader: csv.DictReader) -> list[str] | None:
+    """The header row, or None when there is none.
+
+    DictReader reads the header lazily on first access, outside iter_rows, so a
+    header field over csv's 128 KB limit raised a bare _csv.Error and 500'd —
+    the same failure iter_rows was written to prevent, on the line before it.
+    """
+    try:
+        return reader.fieldnames if reader.fieldnames is None else list(reader.fieldnames)
+    except csv.Error as exc:
+        raise IngestValidationError(f"could not read this CSV's header row: {exc}") from exc
 
 
 def iter_rows(reader: csv.DictReader) -> Iterator[dict]:

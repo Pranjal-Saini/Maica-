@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% import "_icons.html" as icons %}
-{% import "_menu.html" as menu %}
+{# with context: the macro needs request.state.csp_nonce and csrf_token,
+   and a plain import gives it an empty namespace. #}
+{% import "_menu.html" as menu with context %}
 
 {% block title %}MAICA — Analyses{% endblock %}
 {% block page_title %}Analyses{% endblock %}

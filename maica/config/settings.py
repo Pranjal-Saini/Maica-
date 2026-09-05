@@ -11,7 +11,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+asyncpg://maica:maica@localhost:5432/maica"
-    environment: str = "development"
+    # Defaults to production so a missing ENVIRONMENT fails safe. The guard in
+    # create_app() only skips the insecure-key check in development, and an
+    # unset variable used to land there — which is exactly the deploy that
+    # forgets its env vars.
+    environment: str = "production"
     ollama_base_url: str = "http://localhost:11434"
     llm_model: str = "qwen3:8b"
     # A local model serves one request at a time, so a chat question asked while a

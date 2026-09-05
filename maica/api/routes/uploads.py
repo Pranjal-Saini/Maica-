@@ -12,6 +12,8 @@ from maica.evidence.normalizer import get_normalizer
 from maica.evidence.schemas import FileUploadResult, RawEvidenceRead, UploadResponse
 from maica.ingest.errors import IngestValidationError
 from maica.ingest.registry import AUTO_DETECT, detect_evidence_type, get_ingest_source
+from maica.web.csrf import FORM_FIELD
+from maica.web.csrf import verify as verify_csrf
 from maica.web.nav import page_context
 from maica.web.templating import templates
 
@@ -109,6 +111,7 @@ async def upload_evidence(
     request: Request,
     files: list[UploadFile],
     evidence_type: str = Form(AUTO_DETECT),
+    csrf_token: str = Form(None, alias=FORM_FIELD),
     analysis_id: uuid.UUID | None = Form(None),
     tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     session: AsyncSession = Depends(get_db_session),
@@ -117,6 +120,10 @@ async def upload_evidence(
     type is detected from its own headers by default, so a saved-search export
     and a System Notes export can be dropped together and land in the same
     analysis."""
+    # multipart/form-data is a CORS-simple request, so this is the route that
+    # would be forgeable first if SameSite were ever loosened.
+    verify_csrf(request, csrf_token)
+
     if evidence_type != AUTO_DETECT and get_ingest_source(evidence_type) is None:
         raise IngestValidationError(f"unknown evidence_type '{evidence_type}'")
 

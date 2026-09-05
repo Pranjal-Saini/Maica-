@@ -1,9 +1,41 @@
+import heapq
 from collections import defaultdict
 from collections.abc import Sequence
 
 import networkx as nx
 
-from maica.graph.builder import RecordLike, field_value_node_id, record_node_id
+from maica.graph.builder import RecordLike, field_value_node_id
+
+#: Ids listed inline before the rest are summarised. Naming every record that
+#: shares a value is quadratic in the size of the group: on a currency or
+#: subsidiary column, one 4,000-record analysis rendered 139 MB in 18 seconds,
+#: on the event loop, for any authenticated caller who asked.
+MAX_SHARED_IDS = 10
+
+
+def _sharers(graph: nx.Graph, node_id: str) -> tuple[list[str], int]:
+    """The first few record ids on a value node, and how many there are.
+
+    Computed once per value rather than once per record. Doing it per record
+    walks every neighbour N times for a value held by N records, which is what
+    made a currency column quadratic.
+    """
+    if not graph.has_node(node_id):
+        return [], 0
+    neighbours = [n.removeprefix("record:") for n in graph.neighbors(node_id)]
+    # nsmallest, not sorted: only the ids that will be printed need ordering.
+    return heapq.nsmallest(MAX_SHARED_IDS + 1, neighbours), len(neighbours)
+
+
+def _shared_suffix(top: list[str], total: int, source_id: str) -> str:
+    others = [candidate for candidate in top if candidate != source_id][:MAX_SHARED_IDS]
+    remaining = total - 1 - len(others)  # -1 for this record itself
+    if not others:
+        return ""
+    shown = ", ".join(others)
+    if remaining > 0:
+        return f" (shared with {shown} and {remaining} more)"
+    return f" (shared with {shown})"
 
 
 def render_text(graph: nx.Graph, records: Sequence[RecordLike]) -> str:
@@ -15,6 +47,7 @@ def render_text(graph: nx.Graph, records: Sequence[RecordLike]) -> str:
     for record in records:
         rows_by_source_id[record.source_id].append(record)
 
+    sharer_cache: dict[str, tuple[list[str], int]] = {}
     lines: list[str] = []
     for source_id in sorted(rows_by_source_id):
         rows = rows_by_source_id[source_id]
@@ -27,12 +60,10 @@ def render_text(graph: nx.Graph, records: Sequence[RecordLike]) -> str:
                 continue
 
             node_id = field_value_node_id(row.field_name, row.new_value)
-            shared_with = sorted(
-                neighbor.removeprefix("record:")
-                for neighbor in (graph.neighbors(node_id) if graph.has_node(node_id) else [])
-                if neighbor != record_node_id(source_id)
-            )
-            suffix = f" (shared with {', '.join(shared_with)})" if shared_with else ""
+            if node_id not in sharer_cache:
+                sharer_cache[node_id] = _sharers(graph, node_id)
+            top, total = sharer_cache[node_id]
+            suffix = _shared_suffix(top, total, source_id)
             lines.append(f"  {row.field_name} = {row.new_value!r}{suffix}")
 
         lines.append("")

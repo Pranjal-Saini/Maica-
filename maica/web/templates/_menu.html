@@ -61,9 +61,7 @@
     document.querySelectorAll("form.menu-delete").forEach(function (form) {
       form.addEventListener("submit", function (event) {
         const confirmed = window.confirm(
-          "Delete this " + form.dataset.noun + ": " + form.dataset.name + "?
-
-" +
+          "Delete this " + form.dataset.noun + ": " + form.dataset.name + "?\n\n" +
           "This removes what MAICA stores — the evidence you uploaded and everything " +
           "derived from it. It cannot be undone. Nothing in NetSuite is affected."
         );

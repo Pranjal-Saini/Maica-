@@ -5,6 +5,7 @@ from maica.ingest.csv_utils import (
     decode_text,
     iter_rows,
     normalize_header,
+    read_header,
     score_header_row,
     try_parse_date,
 )
@@ -67,7 +68,8 @@ class SystemNotesCsvSource(IngestSource):
 
         text = decode_text(raw_input)
         reader = build_dict_reader(text)
-        if not reader.fieldnames:
+        fieldnames = read_header(reader)
+        if not fieldnames:
             return IngestResult(
                 request=request,
                 rows=[],
@@ -79,7 +81,7 @@ class SystemNotesCsvSource(IngestSource):
                 unavailable_reason="no header row found in uploaded file",
             )
 
-        header_map = {raw: normalize_header(raw, _HEADER_ALIASES) for raw in reader.fieldnames}
+        header_map = {raw: normalize_header(raw, _HEADER_ALIASES) for raw in fieldnames}
         columns_recognized = sorted(
             {v for v in header_map.values() if v in _HEADER_ALIASES.values()}
         )

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from maica.api.deps import (
     get_authorized_tenant_id,
@@ -74,8 +75,10 @@ async def get_analysis_graph(
     records = await repository.get_records_for_analysis(session, tenant_id, analysis_id)
     if not records:
         return "No records found for this analysis."
-    graph = build_dependency_graph(records)
-    return render_text(graph, records)
+    # Rendering is CPU-bound and this handler is async, so it runs on the event
+    # loop and stalls every other tenant's request while it works. Handing it to
+    # a thread keeps one caller's large analysis from freezing the instance.
+    return await run_in_threadpool(render_text, build_dependency_graph(records), records)
 
 
 @router.get(

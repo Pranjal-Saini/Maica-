@@ -38,7 +38,14 @@ def verify(request: Request, submitted: str | None) -> None:
     character at a time from response timing.
     """
     expected = request.session.get(SESSION_KEY)
-    if not expected or not submitted or not secrets.compare_digest(str(expected), submitted):
+    # Compared as bytes: compare_digest raises TypeError on non-ASCII strings,
+    # so a token of 'e-acute' turned a 403 into a 500 inside the check itself.
+    matches = (
+        bool(expected)
+        and bool(submitted)
+        and secrets.compare_digest(str(expected).encode("utf-8"), str(submitted).encode("utf-8"))
+    )
+    if not matches:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This form has expired or was not submitted from this site. Reload and retry.",
