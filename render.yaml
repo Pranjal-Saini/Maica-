@@ -1,0 +1,60 @@
+# Render blueprint. `render.yaml` at the repo root is picked up by
+# Render → New → Blueprint, which creates the service and its database together.
+#
+# The Dockerfile is the build: same image locally and in production, non-root,
+# production dependencies only. Nothing here duplicates it.
+
+databases:
+  - name: maica-db
+    # Not `free`: Render deletes a free Postgres after 30 days, and this one
+    # holds a client's uploaded ledger evidence.
+    plan: 0.1c-256mb
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: maica
+    runtime: docker
+    # 2 GB, not 512 MB. Parsing a 25 MB upload peaks at ~494 MB of heap before
+    # any ORM object exists — measured with tracemalloc, and the reason a
+    # smaller instance would OOM on a file inside the app's own stated limit.
+    plan: 1c-2g
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    # Migrations run after the image is built and before the new instance takes
+    # traffic, so a deploy never serves against a schema it does not have.
+    preDeployCommand: uv run alembic upgrade head
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: maica-db
+          property: connectionString
+
+      # Render supplies "postgresql://…"; Settings rewrites the scheme to name
+      # the asyncpg driver, so the value above is used unedited.
+
+      - key: ENVIRONMENT
+        value: production
+
+      # Generated once and kept. Rotating it signs every existing session out.
+      - key: SESSION_SECRET_KEY
+        generateValue: true
+
+      # Set in the dashboard, not here — secrets do not belong in the repo.
+      # GOOGLE_REDIRECT_URI must be this service's public URL plus
+      # /auth/google/callback, and the same URI must be registered as an
+      # authorised redirect in the Google Cloud console.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+
+      # The LLM explanation layer only. Ollama is not reachable from Render, so
+      # leave these unset until a hosted model sits behind LLMClient — the
+      # reports still render, they just carry no generated narration.
+      - key: OLLAMA_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        sync: false

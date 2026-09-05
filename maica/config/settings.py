@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 #: The value shipped in .env.example. Anyone with it can forge a session cookie
@@ -36,6 +37,23 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str = "http://127.0.0.1:8000/auth/google/callback"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_the_async_driver(cls, url: str) -> str:
+        """Names the asyncpg driver when the host supplies a bare URL.
+
+        Managed Postgres hands out "postgresql://..." (Render, Neon) or the
+        older "postgres://..." (Heroku-style). SQLAlchemy reads the scheme as
+        the driver, so both route to psycopg2 — which this app does not install
+        — and the failure surfaces at first connection as a missing module
+        rather than as a configuration problem. Rewriting the scheme here means
+        a hosting provider's connection string can be pasted in unedited.
+        """
+        for prefix in ("postgresql://", "postgres://"):
+            if url.startswith(prefix):
+                return "postgresql+asyncpg://" + url[len(prefix) :]
+        return url
 
     @property
     def is_development(self) -> bool:
