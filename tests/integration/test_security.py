@@ -292,3 +292,55 @@ async def test_the_session_cookie_survives_the_return_trip_from_google(client: A
     assert "samesite=lax" in set_cookie.lower()
     assert "samesite=strict" not in set_cookie.lower()
     assert "httponly" in set_cookie.lower()
+
+
+async def test_the_upload_page_supplies_the_token_the_upload_route_demands(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """The route gained verify_csrf and the page was never given the token, so
+    every browser upload 403'd while the suite stayed green — conftest arms the
+    header on every request, which exercised a path no browser takes.
+
+    This walks the browser's path instead: strip the armed header, read the
+    token out of the rendered page the way the page's own script does, and send
+    it back. A page that does not publish a usable token fails here.
+    """
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    page = await client.get(f"/tenants/{tenant_id}/uploads/new")
+    assert page.status_code == 200
+
+    match = re.search(r'const csrfToken = "([^"]+)"', page.text)
+    assert match is not None, "the upload page does not publish a CSRF token to its script"
+
+    # Publishing the token is not enough — the script has to send it. Nothing
+    # here drives real JavaScript, so this asserts on the rendered source: the
+    # fetch that posts the upload must carry the header. Without this line the
+    # test passes with the header deleted, which is how the bug shipped.
+    assert f'"{HEADER_FIELD}": csrfToken' in page.text, (
+        "the upload script does not send the CSRF token it was given"
+    )
+
+    client.headers.pop(HEADER_FIELD, None)
+    row = b"Internal ID,Date,Type,Name,Amount,Account,Memo\n1,1/1/2026,Bill,X,1.00,4000,m\n"
+    response = await client.post(
+        f"/tenants/{tenant_id}/uploads",
+        files={"files": ("export.csv", row, "text/csv")},
+        headers={HEADER_FIELD: match.group(1)},
+    )
+
+    assert response.status_code == 200, response.text
+
+
+async def test_an_upload_without_the_token_is_still_refused(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # The counterpart: the control above must not be passing for free.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    client.headers.pop(HEADER_FIELD, None)
+    row = b"Internal ID,Date,Type,Name,Amount,Account,Memo\n1,1/1/2026,Bill,X,1.00,4000,m\n"
+
+    response = await client.post(
+        f"/tenants/{tenant_id}/uploads", files={"files": ("export.csv", row, "text/csv")}
+    )
+
+    assert response.status_code == 403

@@ -60,6 +60,10 @@
 <script nonce="{{ request.state.csp_nonce }}">
   (function () {
     const tenantId = {{ tenant_id | string | tojson }};
+    // The upload route verifies CSRF like every other state-changing route.
+    // fetch() has no form to carry the hidden field, so it travels as the
+    // header instead — a cross-site page cannot set one without a preflight.
+    const csrfToken = {{ csrf_token | tojson }};
     const fileInput = document.querySelector('input[name="files"]');
 
     fileInput.addEventListener("change", function () {
@@ -88,9 +92,21 @@
       try {
         const response = await fetch("/tenants/" + tenantId + "/uploads", {
           method: "POST",
+          headers: { "X-CSRF-Token": csrfToken },
           body: data,
         });
         const body = await response.json();
+
+        // A refused upload used to render nothing at all: the success shape was
+        // the only one handled, so body.files was undefined and the loop below
+        // simply did nothing. Silence reads as a hung page.
+        if (!response.ok) {
+          const detail = typeof body.detail === "string"
+            ? body.detail
+            : "Upload failed (" + response.status + "). Reload the page and try again.";
+          document.getElementById("upload-status").textContent = detail;
+          return;
+        }
 
         (body.files || []).forEach(function (file) {
           const card = document.createElement("div");
