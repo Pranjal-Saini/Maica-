@@ -29,6 +29,19 @@ casually — it signs session cookies, so a new value signs every user out.
 the `Secure` cookie flag, HSTS, and the refusal to boot on the published
 development session key.
 
+### If the deploy exits before binding
+
+Two failures look like "no open ports detected" but are not port problems:
+
+- `SESSION_SECRET_KEY is still the development default` — the app refuses to
+  start rather than sign cookies with a value published in `.env.example`. Set
+  the variable; the process never reached the point of opening a port.
+- Any other startup exception. The port scan message is always the *symptom*;
+  read the lines above it.
+
+The container binds `$PORT` when the host sets one (Render defaults to 10000)
+and 8000 otherwise, so no port configuration is needed on either side.
+
 ### Sizing
 
 The web service is `1c-2g` rather than the cheaper 512 MB plan because parsing

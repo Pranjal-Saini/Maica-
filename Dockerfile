@@ -24,4 +24,12 @@ USER maica
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "maica.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Bind whatever the host asks for, falling back to 8000 for local runs. Render
+# sets PORT (10000 by default) and only "usually" manages to detect a service
+# listening somewhere else — a hardcoded port fails the port scan and the
+# deploy dies with no open ports detected.
+#
+# sh -c is needed because the exec form does not expand variables, and the
+# leading exec hands PID 1 to the server so SIGTERM reaches it and shutdown
+# stays graceful instead of waiting to be killed.
+CMD ["sh", "-c", "exec uv run uvicorn maica.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
