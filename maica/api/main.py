@@ -49,9 +49,13 @@ def create_app() -> FastAPI:
         # Starlette only adds `Secure` when https_only is set, so without this the
         # session travels in cleartext over any plain-HTTP request to the host.
         https_only=not settings.is_development,
-        # Chosen rather than inherited: lax is starlette's default, and CSRF
-        # protection on the delete routes currently rests entirely on it.
-        same_site="strict",
+        # Lax, not strict. Strict withholds the cookie on every cross-site
+        # top-level navigation — including Google's redirect back to
+        # /auth/callback, which leaves oauth_state unreadable and makes sign-in
+        # fail for everyone. Lax still withholds it from cross-site POSTs,
+        # which is the CSRF property that matters, and the state-changing
+        # routes now carry their own tokens rather than relying on it alone.
+        same_site="lax",
     )
     app.mount("/static", StaticFiles(directory="maica/web/static"), name="static")
 

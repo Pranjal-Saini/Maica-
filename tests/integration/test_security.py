@@ -272,3 +272,23 @@ async def test_an_overlong_client_account_name_is_refused(
     response = await client.post("/tenants", data={"name": "x" * 500, "csrf_token": token})
 
     assert response.status_code == 422
+
+
+async def test_the_session_cookie_survives_the_return_trip_from_google(client: AsyncClient) -> None:
+    """SameSite=strict looks like the safer choice and is not: it withholds the
+    cookie on every cross-site top-level navigation, including Google's
+    redirect back to /auth/callback. That leaves oauth_state unreadable and
+    fails sign-in for everyone with "could not be verified".
+
+    Lax still withholds the cookie from cross-site POSTs — the property CSRF
+    cares about — and the state-changing routes now carry their own tokens
+    rather than resting on it alone. httpx does not enforce SameSite, so this
+    asserts the configured value; the browser is what enforces it.
+    """
+    response = await client.get("/auth/google/login")
+
+    assert response.status_code in (302, 307), response.text[:300]
+    set_cookie = response.headers["set-cookie"]
+    assert "samesite=lax" in set_cookie.lower()
+    assert "samesite=strict" not in set_cookie.lower()
+    assert "httponly" in set_cookie.lower()
