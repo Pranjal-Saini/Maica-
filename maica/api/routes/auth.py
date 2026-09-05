@@ -13,10 +13,16 @@ from maica.auth.google_oauth import (
 from maica.auth.models import User
 from maica.config.settings import get_settings
 from maica.evidence import repository as evidence_repository
+from maica.web.csrf import FORM_FIELD
+from maica.web.csrf import verify as verify_csrf
 from maica.web.nav import page_context
 from maica.web.templating import templates
 
 router = APIRouter()
+
+#: A client account name is a label, not a document. Unbounded, it goes into
+#: every card, every PDF header and the delete confirmation.
+MAX_TENANT_NAME = 120
 
 
 @router.get("/")
@@ -108,7 +114,12 @@ async def google_callback(
 
 
 @router.post("/logout")
-async def logout(request: Request) -> RedirectResponse:
+async def logout(
+    request: Request, csrf_token: str = Form(None, alias=FORM_FIELD)
+) -> RedirectResponse:
+    # Forced logout is only an annoyance, but it is a state change driven by a
+    # form and there is no reason for it to be the one that is unprotected.
+    verify_csrf(request, csrf_token)
     request.session.clear()
     return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -149,11 +160,13 @@ async def new_tenant_form(
 @router.post("/tenants")
 async def create_tenant(
     request: Request,
-    name: str = Form(...),
+    name: str = Form(..., max_length=MAX_TENANT_NAME),
+    csrf_token: str = Form(None, alias=FORM_FIELD),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> RedirectResponse:
-    tenant = await auth_repository.create_tenant_for_user(session, user.id, name)
+    verify_csrf(request, csrf_token)
+    tenant = await auth_repository.create_tenant_for_user(session, user.id, name.strip())
     await session.commit()
     return RedirectResponse(
         url=f"/tenants/{tenant.id}/analyses", status_code=status.HTTP_303_SEE_OTHER

@@ -10,31 +10,38 @@ vendored into static/, `script-src` no longer names an external host, so a
 compromised third party cannot execute on a page showing client data.
 """
 
-from starlette.types import ASGIApp
+import secrets
+
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 #: Google Fonts serves the wordmark's fallback face. Everything else is 'self'.
 _FONT_CSS = "https://fonts.googleapis.com"
 _FONT_FILES = "https://fonts.gstatic.com"
 
-#: 'unsafe-inline' for scripts is a real weakening and is here on purpose: the
-#: templates carry inline <script> blocks, and replacing it with per-request
-#: nonces means threading one through every template that has one. It still
-#: blocks loading script from another origin, which is what the vendoring was
-#: for. Nonces are the next step, not a substitute for it.
-_POLICY = "; ".join(
-    [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline'",
-        f"style-src 'self' 'unsafe-inline' {_FONT_CSS}",
-        f"font-src 'self' {_FONT_FILES}",
-        "img-src 'self' data:",
-        "connect-src 'self'",
-        "form-action 'self'",
-        "base-uri 'self'",
-        "frame-ancestors 'none'",
-        "object-src 'none'",
-    ]
-)
+
+#: Every inline <script> in the templates carries this request's nonce, so the
+#: policy can name them individually instead of allowing inline script wholesale.
+#: That is what makes CSP an actual XSS control rather than a way of blocking
+#: third-party hosts: injected markup has no way to guess the nonce.
+#:
+#: style-src still needs 'unsafe-inline' — Tailwind's Play build writes styles
+#: into the document at runtime, and it cannot be nonced. Removing that needs the
+#: compiled-stylesheet build step described in static/vendor/README.md.
+def _policy(nonce: str) -> str:
+    return "; ".join(
+        [
+            "default-src 'self'",
+            f"script-src 'self' 'nonce-{nonce}'",
+            f"style-src 'self' 'unsafe-inline' {_FONT_CSS}",
+            f"font-src 'self' {_FONT_FILES}",
+            "img-src 'self' data:",
+            "connect-src 'self'",
+            "form-action 'self'",
+            "base-uri 'self'",
+            "frame-ancestors 'none'",
+            "object-src 'none'",
+        ]
+    )
 
 
 class SecurityHeadersMiddleware:
@@ -49,23 +56,28 @@ class SecurityHeadersMiddleware:
         self.app = app
         self._https_only = https_only
 
-    async def __call__(self, scope, receive, send) -> None:  # type: ignore[no-untyped-def]
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
-        async def send_with_headers(message) -> None:  # type: ignore[no-untyped-def]
+        # One nonce per request, readable by the templates as
+        # request.state.csp_nonce and named in this response's policy.
+        nonce = secrets.token_urlsafe(16)
+        scope.setdefault("state", {})["csp_nonce"] = nonce
+
+        async def send_with_headers(message: Message) -> None:
             if message["type"] == "http.response.start":
                 headers = message.setdefault("headers", [])
-                for name, value in self.headers():
+                for name, value in self.headers(nonce):
                     headers.append((name.encode("latin-1"), value.encode("latin-1")))
             await send(message)
 
         await self.app(scope, receive, send_with_headers)
 
-    def headers(self) -> list[tuple[str, str]]:
+    def headers(self, nonce: str) -> list[tuple[str, str]]:
         values = [
-            ("content-security-policy", _POLICY),
+            ("content-security-policy", _policy(nonce)),
             ("x-content-type-options", "nosniff"),
             ("referrer-policy", "same-origin"),
             ("x-frame-options", "DENY"),

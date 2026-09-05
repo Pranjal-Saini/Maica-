@@ -7,6 +7,7 @@ someone do — a test named after a header teaches nobody why it matters.
 
 import base64
 import json
+import re
 
 import pytest
 from httpx import AsyncClient
@@ -73,7 +74,31 @@ async def test_no_page_loads_script_from_another_origin(client: AsyncClient) -> 
     response = await client.get("/login")
 
     assert "cdn.tailwindcss.com" not in response.text
-    assert "script-src 'self' 'unsafe-inline'" in response.headers["content-security-policy"]
+    assert "script-src 'self' 'nonce-" in response.headers["content-security-policy"]
+    assert "'unsafe-inline'" not in _script_src(response.headers["content-security-policy"])
+
+
+def _script_src(policy: str) -> str:
+    return next(part for part in policy.split("; ") if part.startswith("script-src"))
+
+
+async def test_inline_scripts_carry_the_nonce_the_policy_names(client: AsyncClient) -> None:
+    """Without this the policy would block the app's own scripts, which is the
+    failure mode that makes people put 'unsafe-inline' back."""
+    response = await client.get("/login")
+
+    nonce = _script_src(response.headers["content-security-policy"]).split("'nonce-")[1].strip("'")
+    assert f'<script nonce="{nonce}">' in response.text
+
+
+async def test_the_nonce_changes_per_request(client: AsyncClient) -> None:
+    # A fixed nonce is the same as no nonce: injected markup could carry it.
+    first = await client.get("/login")
+    second = await client.get("/login")
+
+    assert _script_src(first.headers["content-security-policy"]) != _script_src(
+        second.headers["content-security-policy"]
+    )
 
 
 async def test_a_client_account_name_cannot_break_out_of_the_delete_confirmation(
@@ -189,3 +214,57 @@ async def test_an_unreadable_csv_is_a_named_gap_not_a_crash(
 
     assert response.status_code == 422
     assert "could not read this CSV" in response.text
+
+
+async def test_deleting_without_a_csrf_token_is_refused(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """SameSite=strict already blocks the cross-site POST. This is the second
+    lock, because SameSite is one attribute away from being loosened for an
+    unrelated reason and nothing would fail loudly when it was."""
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+
+    response = await client.post(f"/tenants/{tenant_id}/delete")
+
+    assert response.status_code == 403
+    assert "expired or was not submitted from this site" in response.text
+
+
+async def test_deleting_with_the_session_token_succeeds(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # The token has to actually work, or the protection is just an outage.
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    dashboard = await client.get("/dashboard")
+    token = re.search(r'name="csrf_token" value="([^"]+)"', dashboard.text).group(1)
+
+    response = await client.post(f"/tenants/{tenant_id}/delete", data={"csrf_token": token})
+
+    assert response.status_code == 303
+
+
+async def test_a_token_from_another_session_is_refused(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    tenant_id = await signup_with_tenant(client, db_session, "consultant@example.com", "Acme Corp")
+    await client.get("/dashboard")
+
+    response = await client.post(
+        f"/tenants/{tenant_id}/delete", data={"csrf_token": "borrowed-from-elsewhere"}
+    )
+
+    assert response.status_code == 403
+
+
+async def test_an_overlong_client_account_name_is_refused(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # The name goes into every card, the PDF header and the delete
+    # confirmation; unbounded it is a free way to make those unreadable.
+    await login_as(client, db_session, "consultant@example.com")
+    page = await client.get("/tenants/new")
+    token = re.search(r'name="csrf_token" value="([^"]+)"', page.text).group(1)
+
+    response = await client.post("/tenants", data={"name": "x" * 500, "csrf_token": token})
+
+    assert response.status_code == 422

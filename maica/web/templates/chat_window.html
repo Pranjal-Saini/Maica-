@@ -11,7 +11,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MAICA — Ask about this evidence</title>
   <script src="/static/vendor/tailwind-play.js"></script>
-  <script>
+  <script nonce="{{ request.state.csp_nonce }}">
     tailwind.config = {
       theme: {
         extend: {
@@ -72,7 +72,7 @@
     </div>
   </form>
 
-  <script>
+  <script nonce="{{ request.state.csp_nonce }}">
     (function () {
       const endpoint = {{ ("/tenants/" ~ tenant_id ~ "/analyses/" ~ analysis_id ~ "/chat") | tojson }};
       const focusSourceId = new URLSearchParams(window.location.search).get("record");

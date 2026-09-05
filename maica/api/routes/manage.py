@@ -12,7 +12,7 @@ the confirmation is native and works without JavaScript.
 
 import uuid
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,8 @@ from maica.auth.models import User
 from maica.evidence import aggregates, repository
 from maica.evidence import shortlist as shortlist_queries
 from maica.reasoning.phrasing import describe_reason
+from maica.web.csrf import FORM_FIELD
+from maica.web.csrf import verify as verify_csrf
 from maica.web.flash import set_flash
 from maica.web.nav import SESSION_KEY
 from maica.web.report_pdf import AnalysisReport, SourceSummary, build_analysis_pdf
@@ -104,10 +106,12 @@ async def export_analysis(
 @router.post("/tenants/{tenant_id}/delete")
 async def delete_client_account(
     request: Request,
+    csrf_token: str = Form(None, alias=FORM_FIELD),
     tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> RedirectResponse:
+    verify_csrf(request, csrf_token)
     await repository.delete_tenant_data(session, tenant_id)
     await auth_repository.delete_tenant(session, tenant_id)
     await session.commit()
@@ -125,10 +129,12 @@ async def delete_client_account(
 async def delete_analysis(
     request: Request,
     analysis_id: uuid.UUID,
+    csrf_token: str = Form(None, alias=FORM_FIELD),
     tenant_id: uuid.UUID = Depends(get_authorized_tenant_id),
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> RedirectResponse:
+    verify_csrf(request, csrf_token)
     await repository.delete_analysis(session, tenant_id, analysis_id)
     await session.commit()
 

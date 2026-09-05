@@ -32,6 +32,7 @@
        DOM instead. #}
     <form method="post" action="{{ delete_url }}"
           class="menu-delete" data-noun="{{ noun }}" data-name="{{ name }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
       <button type="submit"
               class="block w-full px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50">
         Delete {{ noun }}
@@ -43,7 +44,7 @@
 {% endmacro %}
 
 {% macro menu_script() %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
   // One handler for every ⋮ on the page: open one at a time, close on an
   // outside click or Escape.
   (function () {

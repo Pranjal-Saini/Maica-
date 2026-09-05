@@ -186,7 +186,7 @@
 
 {% block scripts %}
 {% if factors %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
   // The ranked factors, labels and evidence above are already final — they come
   // from deterministic rules, not the model. This only swaps the wording for the
   // model's plainer phrasing once it arrives. If it never does, the rule-based

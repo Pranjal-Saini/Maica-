@@ -57,7 +57,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ request.state.csp_nonce }}">
   (function () {
     const tenantId = {{ tenant_id | string | tojson }};
     const fileInput = document.querySelector('input[name="files"]');

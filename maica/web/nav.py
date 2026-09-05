@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from starlette.requests import Request
 
 from maica.auth.models import User
+from maica.web.csrf import issue_token
 from maica.web.flash import pop_flash
 
 SESSION_KEY = "nav_context"
@@ -167,6 +168,7 @@ def page_context(
         "nav_active": active,
         # Read once per render, and cleared by the read.
         "flash": pop_flash(request),
+        "csrf_token": issue_token(request),
         "nav_items": build_nav(context, tenant_count=tenant_count),
         "need_prompt": NEED_PROMPTS.get(need) if need else None,
         "tenant_id": tenant_id,
