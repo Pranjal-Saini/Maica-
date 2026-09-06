@@ -41,20 +41,24 @@
       <canvas id="trace-canvas" aria-hidden="true"></canvas>
       <span id="watermark" class="maica-wordmark" aria-hidden="true">Maica</span>
 
-      <div class="flex items-center gap-[3px]">
-        <img src="/static/maica-logo.png" alt="" aria-hidden="true"
-             class="maica-mark h-9 w-9 shrink-0" />
-        <span class="maica-wordmark text-xl">Maica</span>
-      </div>
+      <div>
+        <div class="flex items-center gap-[3px]">
+          <img src="/static/maica-logo.png" alt="" aria-hidden="true"
+               class="maica-mark h-9 w-9 shrink-0" />
+          <span class="maica-wordmark text-xl">Maica</span>
+        </div>
 
-      <div class="max-w-lg py-12">
-        <h2 class="text-3xl font-semibold leading-[1.15] tracking-tight lg:text-[2.6rem]">
-          When a transaction posts wrong, see <span class="text-brand-light">where to look</span>.
-        </h2>
-        <p class="mt-5 max-w-md text-sm leading-relaxed text-white/55 lg:text-[.95rem]">
-          A ranked map of contributing factors across configuration and code — with
-          the gaps named, not hidden.
-        </p>
+        <!-- Grouped with the mark rather than spaced away from it, so the claim
+             reads as Maica's line and not as free-floating panel copy. -->
+        <div class="mt-10 max-w-lg lg:mt-12">
+          <h2 class="text-3xl font-semibold leading-[1.15] tracking-tight lg:text-[2.6rem]">
+            When a transaction posts wrong, see <span class="text-brand-light">where to look</span>.
+          </h2>
+          <p class="mt-5 max-w-md text-sm leading-relaxed text-white/55 lg:text-[.95rem]">
+            A ranked map of contributing factors across configuration and code — with
+            the gaps named, not hidden.
+          </p>
+        </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-white/35">
