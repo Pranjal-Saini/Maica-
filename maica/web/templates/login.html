@@ -19,45 +19,79 @@
     };
   </script>
   {% include "_brand.html" %}
+  <style>
+    /* The traces sit behind the panel's text, never over it. */
+    #trace-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #pitch-panel > *:not(#trace-canvas) { position: relative; z-index: 1; }
+    /* The wordmark repeated as a watermark, cropped by the panel. */
+    #watermark {
+      position: absolute; bottom: -.14em; left: -.04em;
+      font-size: clamp(7rem, 17vw, 13rem); line-height: .8;
+      color: rgba(255, 255, 255, .028); user-select: none; pointer-events: none;
+    }
+  </style>
 </head>
-<body class="bg-canvas text-ink antialiased">
-  <div class="flex min-h-screen items-center justify-center p-4">
-    <div class="grid w-full max-w-4xl overflow-hidden rounded-md bg-white md:grid-cols-2">
+<body class="bg-white text-ink antialiased">
+  <div class="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
 
-      <!-- Pitch -->
-      <div class="flex flex-col justify-between bg-ink p-8 text-white">
-        <div class="flex items-center gap-[3px]">
-          <img src="/static/maica-logo.png" alt="" aria-hidden="true"
-               class="maica-mark h-9 w-9 shrink-0" />
-          <span class="maica-wordmark text-xl">Maica</span>
-        </div>
-        <div class="my-10">
-          <h2 class="text-3xl font-semibold leading-tight tracking-tight">
-            When a transaction posts wrong, see <span class="text-brand-light">where to look</span>.
-          </h2>
-          <p class="mt-4 text-sm leading-relaxed text-white/60">
-            A ranked map of contributing factors across configuration and code — with
-            the gaps named, not hidden.
-          </p>
-        </div>
-        <p class="text-xs text-white/40">
-          Read-only. MAICA never writes to a client NetSuite account.
+    <!-- Pitch -->
+    <section id="pitch-panel"
+             class="relative isolate flex min-h-[19rem] flex-col justify-between
+                    overflow-hidden bg-ink p-8 text-white lg:min-h-screen lg:p-12">
+      <canvas id="trace-canvas" aria-hidden="true"></canvas>
+      <span id="watermark" class="maica-wordmark" aria-hidden="true">Maica</span>
+
+      <div class="flex items-center gap-[3px]">
+        <img src="/static/maica-logo.png" alt="" aria-hidden="true"
+             class="maica-mark h-9 w-9 shrink-0" />
+        <span class="maica-wordmark text-xl">Maica</span>
+      </div>
+
+      <div class="max-w-lg py-12">
+        <h2 class="text-3xl font-semibold leading-[1.15] tracking-tight lg:text-[2.6rem]">
+          When a transaction posts wrong, see <span class="text-brand-light">where to look</span>.
+        </h2>
+        <p class="mt-5 max-w-md text-sm leading-relaxed text-white/55 lg:text-[.95rem]">
+          A ranked map of contributing factors across configuration and code — with
+          the gaps named, not hidden.
         </p>
       </div>
 
-      <!-- Sign in -->
-      <div class="flex flex-col justify-center p-8">
-        <h1 class="text-2xl font-semibold tracking-tight">Sign in to MAICA</h1>
-        <p class="mt-2 text-sm text-gray-500">Use your work Google account.</p>
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-white/35">
+        <span class="inline-flex items-center gap-1.5">
+          <svg class="h-3.5 w-3.5 text-brand-light" viewBox="0 0 20 20" fill="none"
+               stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M10 2.5 4 5v4.5c0 3.4 2.4 6.5 6 8 3.6-1.5 6-4.6 6-8V5l-6-2.5Z"
+                  stroke-linejoin="round" />
+          </svg>
+          Read-only. MAICA never writes to a client NetSuite account.
+        </span>
+        <span class="lg:ml-auto">&copy; 2026 MAICA</span>
+      </div>
+    </section>
+
+    <!-- Sign in -->
+    <section class="flex items-center justify-center bg-white px-6 py-14">
+      <div class="w-full max-w-[21rem]">
+        <h1 class="text-center text-[1.65rem] font-semibold tracking-tight">Welcome back</h1>
+        <p class="mt-1.5 text-center text-sm text-gray-500">
+          Sign in with your work Google account to continue.
+        </p>
 
         {% if error %}
-        <p class="mt-5 rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700">{{ error }}</p>
+        <p role="alert"
+           class="mt-6 rounded-md border border-red-100 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+          {{ error }}
+        </p>
         {% endif %}
 
         {% if google_configured %}
         <a href="/auth/google/login"
-           class="mt-6 flex w-full items-center justify-center gap-2.5 rounded-full border
-                  border-gray-200 px-4 py-3 text-sm font-medium hover:border-ink hover:bg-gray-50">
+           class="mt-7 flex w-full items-center justify-center gap-2.5 rounded-full border
+                  border-gray-200 bg-white px-4 py-3 text-sm font-medium shadow-sm
+                  transition hover:border-ink hover:bg-gray-50
+                  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+                  focus-visible:outline-brand">
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
             <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.61z"/>
             <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.19l-2.92-2.26c-.81.54-1.85.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.98v2.33A9 9 0 0 0 9 18z"/>
@@ -66,13 +100,101 @@
           </svg>
           Continue with Google
         </a>
+
+        <p class="mt-6 text-center text-xs leading-relaxed text-gray-400">
+          Google is the only way in — MAICA never asks for, stores, or sees a
+          NetSuite password.
+        </p>
         {% else %}
-        <p class="mt-6 rounded-md bg-gray-50 px-3 py-2.5 text-sm text-gray-500">
+        <p class="mt-7 rounded-md border border-gray-100 bg-gray-50 px-3 py-3 text-sm text-gray-500">
           Google Sign-In is not configured on this server yet.
         </p>
         {% endif %}
       </div>
-    </div>
+    </section>
   </div>
+
+  <script nonce="{{ request.state.csp_nonce }}">
+    (function () {
+      const canvas = document.getElementById("trace-canvas");
+      if (!canvas || !canvas.getContext) return;
+      const ctx = canvas.getContext("2d");
+
+      // Many faint paths resolving on one point: the shape of the product, not
+      // an ornament. Seeded so the panel looks composed rather than different
+      // on every load, and drawn once per size rather than animated.
+      function rng(seed) {
+        return function () {
+          seed = (seed * 1664525 + 1013904223) % 4294967296;
+          return seed / 4294967296;
+        };
+      }
+
+      function draw() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (!w || !h) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+
+        const focusX = w * 0.86;
+        const focusY = h * 0.34;
+
+        const glow = ctx.createRadialGradient(focusX, focusY, 0, focusX, focusY, h * 0.85);
+        glow.addColorStop(0, "rgba(56, 79, 255, 0.20)");
+        glow.addColorStop(1, "rgba(56, 79, 255, 0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, w, h);
+
+        const random = rng(20260906);
+        const count = w < 640 ? 26 : 44;
+
+        for (let i = 0; i < count; i++) {
+          const t = i / (count - 1);
+          const startY = h * (-0.15 + 1.3 * t) + (random() - 0.5) * h * 0.06;
+          const bend = 0.35 + random() * 0.45;
+          const ctrlX = w * bend;
+          const ctrlY = startY + (focusY - startY) * (0.1 + random() * 0.25);
+
+          ctx.beginPath();
+          ctx.moveTo(-w * 0.05, startY);
+          ctx.quadraticCurveTo(ctrlX, ctrlY, focusX, focusY);
+
+          // Nearer paths read stronger, so the eye follows them inward.
+          const strength = 0.05 + 0.16 * (1 - Math.abs(t - 0.5) * 2);
+          ctx.strokeStyle = "rgba(157, 176, 255, " + strength.toFixed(3) + ")";
+          ctx.lineWidth = 0.6 + random() * 0.7;
+          ctx.stroke();
+        }
+
+        // A handful of the paths carry a marker: the factors that ranked.
+        const marks = rng(775);
+        for (let i = 0; i < 7; i++) {
+          const d = 0.18 + marks() * 0.62;
+          const x = focusX - (focusX + w * 0.05) * d;
+          const y = focusY + (marks() - 0.5) * h * 0.5 * d;
+          ctx.beginPath();
+          ctx.arc(x, y, 1.6 + marks() * 1.4, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(157, 176, 255, " + (0.5 - d * 0.4).toFixed(3) + ")";
+          ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.arc(focusX, focusY, 3.4, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(230, 233, 255, 0.9)";
+        ctx.fill();
+      }
+
+      draw();
+      let pending;
+      window.addEventListener("resize", function () {
+        clearTimeout(pending);
+        pending = setTimeout(draw, 120);
+      });
+    })();
+  </script>
 </body>
 </html>
