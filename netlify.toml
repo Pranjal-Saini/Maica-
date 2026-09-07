@@ -1,0 +1,8 @@
+# Netlify picks this up automatically. It exists because a deploy configured by
+# hand published only index.html, so the logo and README 404'd — stating the
+# publish directory here removes the guesswork.
+
+[build]
+  publish = "site"
+  # No build step. The site is one static file; there is nothing to compile.
+  command = ""
