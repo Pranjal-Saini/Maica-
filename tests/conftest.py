@@ -2,6 +2,12 @@ import os
 from collections.abc import AsyncGenerator
 
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://maica:maica@localhost:5432/maica_test")
+# Declared here rather than left to a .env file, because CI has no .env: the
+# settings default is `production`, which makes create_app() refuse to start on
+# the published session key. That guard is correct — the suite simply has to say
+# which environment it is. setdefault, so a test that needs otherwise can still
+# monkeypatch it.
+os.environ.setdefault("ENVIRONMENT", "development")
 
 import re
 

@@ -274,7 +274,9 @@ async def test_an_overlong_client_account_name_is_refused(
     assert response.status_code == 422
 
 
-async def test_the_session_cookie_survives_the_return_trip_from_google(client: AsyncClient) -> None:
+async def test_the_session_cookie_survives_the_return_trip_from_google(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """SameSite=strict looks like the safer choice and is not: it withholds the
     cookie on every cross-site top-level navigation, including Google's
     redirect back to /auth/callback. That leaves oauth_state unreadable and
@@ -285,7 +287,16 @@ async def test_the_session_cookie_survives_the_return_trip_from_google(client: A
     rather than resting on it alone. httpx does not enforce SameSite, so this
     asserts the configured value; the browser is what enforces it.
     """
-    response = await client.get("/auth/google/login")
+    # The route only redirects when Google is configured, and the credentials
+    # live in .env — which CI does not have. Supplying them here keeps the test
+    # about the cookie rather than about the machine it runs on.
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "test-client-secret")
+    get_settings.cache_clear()
+    try:
+        response = await client.get("/auth/google/login")
+    finally:
+        get_settings.cache_clear()
 
     assert response.status_code in (302, 307), response.text[:300]
     set_cookie = response.headers["set-cookie"]
