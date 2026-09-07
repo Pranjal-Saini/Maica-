@@ -277,7 +277,6 @@
       <a class="nav-hide" href="#gap">Why it exists</a>
       <a class="nav-hide" href="#how">How it works</a>
       <a class="nav-hide" href="#labels">What it claims</a>
-      <a class="js-app nav-hide" href="#">Sign in</a>
       <a class="js-app btn btn-primary btn-sm" href="#">Get started</a>
     </nav>
   </div>
@@ -529,7 +528,6 @@
     </p>
     <div class="hero-cta">
       <a class="js-app btn btn-primary" href="#">Get started</a>
-      <a class="js-app btn btn-ghost-dark" href="#">Sign in</a>
     </div>
   </div>
 </section>
@@ -542,7 +540,6 @@
     </a>
     <span>&copy; 2026 MAICA</span>
     <span class="right">
-      <a class="js-app" href="#">Sign in</a>
       <a href="mailto:hello@maica.in">hello@maica.in</a>
     </span>
   </div>
@@ -555,7 +552,12 @@
   var APP_URL = "https://app.maica.in";
 
   (function () {
-    var target = APP_URL.replace(/\/+$/, "") + "/login";
+    // The app root already sends you to /dashboard when you have a session and
+    // /login when you do not, so one link serves both. This page cannot tell
+    // the difference itself: the session cookie belongs to app.maica.in and is
+    // HttpOnly, so script here can neither see it nor ask across origins
+    // without opening CORS — new attack surface for a cosmetic gain.
+    var target = APP_URL.replace(/\/+$/, "") + "/";
     var links = document.querySelectorAll("a.js-app");
     for (var i = 0; i < links.length; i++) links[i].href = target;
   })();
