@@ -30,6 +30,12 @@
   --confirmed: #6fd7ab;
   --likely: #e5a34a;
 
+  /* The hero carries the brand hue. Everything below it stays neutral, so
+     the tint reads as emphasis rather than as the site's base colour. */
+  --hero-bg: #0b0e1a;
+  --hero-line: rgba(157, 176, 255, .16);
+  --hero-border: rgba(157, 176, 255, .26);
+
   --measure: 72rem;
   --narrow: 52rem;
   --radius: 10px;
@@ -138,8 +144,8 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 /* ── hero: bordered panel, text left, grid right ─────────── */
 .hero { padding: 1.25rem 0 4.5rem; }
 .hero-panel {
-  border: 1px solid var(--line-dark-strong); border-radius: 14px;
-  background: var(--surface); overflow: hidden;
+  border: 1px solid var(--hero-border); border-radius: 14px;
+  background: var(--hero-bg); overflow: hidden;
   display: grid;
 }
 @media (min-width: 960px) { .hero-panel { grid-template-columns: 1fr 1fr; } }
@@ -154,6 +160,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   font-size: .8rem; color: var(--on-ink-muted); background: rgba(245,246,241,.03);
 }
 .hero-chip .plus { color: var(--brand-light); }
+.hero-chip { border-color: var(--hero-border); }
 
 /* Monospace headline — the terms of art in this product are field names and
    record ids, and the face that suits them can carry the headline too. */
@@ -183,26 +190,25 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 /* Right half: a ruled grid, mostly empty, holding a few real artefacts. */
 .hero-visual {
-  border-top: 1px solid var(--line-dark);
-  display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(8.5rem, auto);
-  /* The trailing rules run under the panel's own border rather than doubling. */
+  border-top: 1px solid var(--hero-line);
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(9.5rem, 1fr);
+  /* Trailing rules run under the panel border rather than doubling on it. */
   margin: 0 -1px -1px 0;
 }
 @media (min-width: 960px) {
-  .hero-visual { border-top: 0; border-left: 1px solid var(--line-dark); }
+  .hero-visual { border-top: 0; border-left: 1px solid var(--hero-line); }
 }
 .cell {
-  border-right: 1px solid var(--line-dark); border-bottom: 1px solid var(--line-dark);
-  padding: 1rem; display: grid; place-items: center;
+  border-right: 1px solid var(--hero-line); border-bottom: 1px solid var(--hero-line);
+  padding: 1.15rem; display: grid; place-items: center;
 }
-.cell.wide { grid-column: span 2; place-items: stretch; }
-.cell.tall { grid-row: span 2; }
-.cell .ghost { color: var(--line-dark-strong); }
+.cell .ghost { color: rgba(157, 176, 255, .38); }
 .cell .ghost svg { width: 26px; height: 26px; }
 
 .mini-row {
-  width: 100%; border: 1px solid var(--line-dark-strong); border-radius: 8px;
-  background: var(--ink); padding: .8rem .9rem;
+  width: 100%; border: 1px solid var(--hero-border); border-radius: 8px;
+  background: rgba(0, 0, 0, .3); padding: .8rem .9rem;
   font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .7rem;
   color: var(--on-ink-muted); line-height: 1.7; overflow: hidden;
 }
@@ -219,19 +225,19 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .pixel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; }
 .pixel i {
   display: block; aspect-ratio: 1; border-radius: 2px;
-  background: var(--line-dark);
+  background: rgba(157, 176, 255, .1);
   animation: pixelRead 5.5s var(--d, 0s) infinite;
 }
 .pixel i.slow { animation-duration: 8s; }
 @keyframes pixelRead {
-  0%, 82%, 100% { background: var(--line-dark); }
+  0%, 82%, 100% { background: rgba(157, 176, 255, .1); }
   86%           { background: rgba(56, 79, 255, .55); }
   92%           { background: var(--brand); }
   97%           { background: rgba(56, 79, 255, .3); }
 }
 
 /* The cell holding it keeps a little air around the field. */
-.cell .pixel { max-width: 8.5rem; }
+.cell .pixel { max-width: 9.5rem; }
 
 @media (prefers-reduced-motion: reduce) {
   /* Static, and still legible: a handful stay lit rather than everything
