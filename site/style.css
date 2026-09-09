@@ -128,20 +128,89 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .btn-ghost:hover { border-color: var(--text); }
 .btn-sm { padding: .55rem 1.15rem; font-size: .86rem; }
 
-/* ── hero: centred column, product shot underneath ───────── */
-.hero { padding: 6rem 0 4rem; text-align: center; }
-.hero h1 { max-width: 20ch; margin: 0 auto; }
+/* ── hero: bordered panel, text left, grid right ─────────── */
+.hero { padding: 1.25rem 0 4.5rem; }
+.hero-panel {
+  border: 1px solid var(--line-dark-strong); border-radius: 14px;
+  background: var(--surface); overflow: hidden;
+  display: grid;
+}
+@media (min-width: 960px) { .hero-panel { grid-template-columns: 1fr 1fr; } }
+
+.hero-copy { padding: clamp(2.2rem, 4vw, 3.6rem); }
+
+/* A mono chip above the headline, naming what you bring. */
+.hero-chip {
+  display: inline-flex; align-items: center; gap: .6rem;
+  border: 1px solid var(--line-dark-strong); border-radius: 8px;
+  padding: .5rem .8rem; font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: .8rem; color: var(--on-ink-muted); background: rgba(245,246,241,.03);
+}
+.hero-chip .plus { color: var(--brand-light); }
+
+/* Monospace headline — the terms of art in this product are field names and
+   record ids, and the face that suits them can carry the headline too. */
+.hero h1 {
+  margin-top: 1.9rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: clamp(1.9rem, 3.4vw, 3rem);
+  font-weight: 500; line-height: 1.15; letter-spacing: -.035em;
+  max-width: 16ch;
+}
 .hero h1 em { font-style: normal; color: var(--brand-light); }
 .hero-sub {
-  margin: 1.7rem auto 0; max-width: 54ch;
-  font-size: 1.15rem; line-height: 1.6; color: var(--on-ink-muted);
+  margin-top: 1.7rem; max-width: 44ch;
+  font-size: 1.02rem; line-height: 1.65; color: var(--on-ink-muted);
 }
-.hero-cta { margin-top: 2.4rem; display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
-.cta-note { margin-top: 1.1rem; font-size: .85rem; color: var(--on-ink-faint); }
+.hero-cta { margin-top: 2.2rem; display: flex; flex-wrap: wrap; gap: .7rem; }
+.cta-note { margin-top: 1.2rem; font-size: .84rem; color: var(--on-ink-faint); }
+
+/* Badges name a real shortcut; app.js binds them. */
+.kbd {
+  display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem;
+  padding: 0 .3rem; border-radius: 5px; font-size: .72rem; font-weight: 600;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+.btn-primary .kbd { background: rgba(255,255,255,.22); color: #fff; }
+.btn-ghost-dark .kbd { background: rgba(245,246,241,.12); color: var(--on-ink-muted); }
+
+/* Right half: a ruled grid, mostly empty, holding a few real artefacts. */
+.hero-visual {
+  border-top: 1px solid var(--line-dark);
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(8.5rem, auto);
+  /* The trailing rules run under the panel's own border rather than doubling. */
+  margin: 0 -1px -1px 0;
+}
+@media (min-width: 960px) {
+  .hero-visual { border-top: 0; border-left: 1px solid var(--line-dark); }
+}
+.cell {
+  border-right: 1px solid var(--line-dark); border-bottom: 1px solid var(--line-dark);
+  padding: 1rem; display: grid; place-items: center;
+}
+.cell.wide { grid-column: span 2; place-items: stretch; }
+.cell.tall { grid-row: span 2; }
+.cell .ghost { color: var(--line-dark-strong); }
+.cell .ghost svg { width: 26px; height: 26px; }
+
+.mini-row {
+  width: 100%; border: 1px solid var(--line-dark-strong); border-radius: 8px;
+  background: var(--ink); padding: .8rem .9rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .7rem;
+  color: var(--on-ink-muted); line-height: 1.7; overflow: hidden;
+}
+.mini-row b { color: var(--on-ink); font-weight: 500; }
+.mini-row .hi { color: var(--brand-light); }
+
+.chip-stack { display: grid; gap: .5rem; justify-items: center; }
+.pixel { display: grid; grid-template-columns: repeat(4, 12px); gap: 3px; }
+.pixel i { display: block; width: 12px; height: 12px; border-radius: 2px; background: var(--line-dark); }
+.pixel i.on { background: var(--brand); }
+.pixel i.mid { background: rgba(56,79,255,.42); }
 
 /* ── product shot ────────────────────────────────────────── */
 .shot {
-  margin-top: 3.5rem; text-align: left;
+  text-align: left;
   background: var(--surface); border: 1px solid var(--line-dark);
   border-radius: 14px; overflow: hidden;
 }

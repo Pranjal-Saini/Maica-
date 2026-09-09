@@ -89,6 +89,35 @@
     }
   }
 
+  /* ── keyboard shortcuts ─────────────────────────────────────
+     The badges on the hero buttons name a key that actually works.
+     A badge that decorated nothing would be a lie told in a corner
+     of the page nobody would think to check.
+
+     Ignored while typing in a field, and while a modifier is held,
+     so browser and assistive-tech shortcuts keep working.        */
+  function wireShortcuts() {
+    var targets = document.querySelectorAll("[data-key]");
+    if (!targets.length) return;
+
+    var byKey = {};
+    for (var i = 0; i < targets.length; i++) {
+      byKey[targets[i].getAttribute("data-key").toLowerCase()] = targets[i];
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var el = document.activeElement;
+      if (el && (el.isContentEditable || /^(input|textarea|select)$/i.test(el.tagName))) return;
+
+      var hit = byKey[(e.key || "").toLowerCase()];
+      if (!hit) return;
+      e.preventDefault();
+      hit.click();
+    });
+  }
+
   wireAppLinks();
   setUpConsent();
+  wireShortcuts();
 })();
