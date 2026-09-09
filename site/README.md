@@ -70,10 +70,14 @@ such restriction.
 
 ## Checking it
 
-`audit_site.py` (kept in the scratchpad, rerun as needed) checks every internal
-link and anchor, alt attributes, width/height on images, and the length of each
-title and description. There are no forms on this site, so there is nothing to
-test there.
+```
+uv run python site/audit.py
+```
+
+Checks every internal link and in-page anchor, alt attributes, width/height on
+images, and the length of each title and description. Exits non-zero on a
+finding, so it can be wired into CI. There are no forms on this site, so there
+is nothing to test there.
 
 ## What this page deliberately does not have
 

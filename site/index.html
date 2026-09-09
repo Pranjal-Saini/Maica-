@@ -22,7 +22,7 @@
 
 <link rel="icon" href="/favicon.png" sizes="any" />
 <link rel="apple-touch-icon" href="/favicon.png" />
-<meta name="theme-color" content="#111310" />
+<meta name="theme-color" content="#0e100c" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -52,8 +52,8 @@
       <span class="maica-wordmark">Maica</span>
     </a>
     <nav class="nav-links" aria-label="Main">
-      <a href="#gap">Why it exists</a>
-      <a href="#how">How it works</a>
+      <a href="#features">How it works</a>
+      <a href="#versus">Why not by hand</a>
       <a href="#labels">What it claims</a>
       <a href="#faq">FAQ</a>
       <a class="js-app btn btn-primary btn-sm" href="https://app.maica.in/">Get started</a>
@@ -66,16 +66,15 @@
 <section class="hero">
   <canvas id="traces" aria-hidden="true"></canvas>
   <div class="wrap">
-    <span class="eyebrow on-dark">Read-only diagnostics for NetSuite</span>
+    <span class="eyebrow">Read-only diagnostics for NetSuite</span>
     <h1>When a transaction posts wrong, see <em>where to look</em>.</h1>
     <p class="hero-sub">
-      MAICA reads the evidence you already export and returns a ranked map of
-      contributing factors — configuration and code in one place, with the gaps
-      named rather than hidden.
+      Upload the exports you already have. Get a ranked map of contributing
+      factors across configuration and code, with the gaps named.
     </p>
     <div class="hero-cta">
       <a class="js-app btn btn-primary" href="https://app.maica.in/">Upload an export and start</a>
-      <a class="btn btn-ghost-dark" href="#how">See how it works</a>
+      <a class="btn btn-ghost-dark" href="#features">See how it works</a>
     </div>
     <p class="cta-note">Free while in beta. Sign in with Google — no card, no NetSuite credentials.</p>
     <p class="hero-note">
@@ -134,96 +133,122 @@
   </div>
 </section>
 
-<section class="section" id="gap">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Why it exists</span>
-      <h2>The expensive bugs live between two people.</h2>
-      <p>
-        A script fires on a record whose configuration changed months ago. Neither
-        specialist can see the other half, so the investigation becomes two people
-        taking turns being certain it isn't their side.
-      </p>
-    </div>
-
-    <div class="split" style="margin-top:3.25rem">
-      <div class="pane">
-        <span class="role">Functional consultant</span>
-        <h3>Sees configuration, not code</h3>
-        <p>
-          Knows the account, the forms, the approval routing and what finance
-          expects. Cannot read the SuiteScript that ran at 09:15.
-        </p>
-      </div>
-      <div class="pane">
-        <span class="role">Technical consultant</span>
-        <h3>Sees code, not configuration</h3>
-        <p>
-          Knows exactly what the script does. Doesn't know the posting account was
-          reassigned three months ago, or by whom.
-        </p>
-      </div>
-    </div>
-
-    <div class="pane pane-between" style="margin-top:1.25rem">
-      <span class="role">MAICA</span>
-      <h3>Reads both halves and ranks what it finds</h3>
-      <p>
-        One timeline across configuration changes, scripts, workflows and users —
-        ordered by strength of evidence, with every factor traceable to the exact
-        row it came from.
-      </p>
-    </div>
-  </div>
-</section>
-
-<section class="section section-alt" id="how">
+<section class="section" id="features">
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">How it works</span>
-      <h2>Start with what you can already export.</h2>
+      <h2>Four steps. No admin required.</h2>
       <p>
-        No administrator, no integration record, no IT ticket. If you can run a
-        saved search, you can start in five minutes.
+        The point is that you can try it on a real problem this afternoon, without
+        asking anyone for permission first.
       </p>
     </div>
 
-    <div class="steps">
-      <div class="step">
-        <span class="n">01</span>
-        <h3>Export</h3>
+    <div class="feature">
+      <span class="num">01</span>
+      <div class="body">
+        <h3>Export what you already see.</h3>
         <p>
-          A saved-search CSV and a System Notes export — the things already on your
-          screen. Messy exports are fine; MAICA reports what it understood and what
-          it skipped.
+          A saved-search CSV and a System Notes export. Both are things a consultant
+          can produce today, with no integration record and no IT ticket.
         </p>
       </div>
-      <div class="step">
-        <span class="n">02</span>
-        <h3>Upload</h3>
+      <div class="aside">
+        <span class="k">Handles</span>
+        <p>Extra columns. Renamed headers. Partial date ranges. Different formats in one upload.</p>
+        <p>Each file's type is read from its own column headers, so you can drop several in together.</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <span class="num">02</span>
+      <div class="body">
+        <h3>Upload it. Keep the evidence.</h3>
         <p>
-          Drop the files in together. Each one's type is read from its own column
-          headers, normalised into a single shape and stored with its provenance
-          intact.
+          Files are normalised into one shape and stored with their provenance intact,
+          so every later claim can point back at the exact row it came from.
         </p>
       </div>
-      <div class="step">
-        <span class="n">03</span>
-        <h3>Ask about a transaction</h3>
+      <div class="aside">
+        <span class="k">Reported back</span>
+        <p><code>rows_understood</code> and <code>rows_skipped</code>, with a reason for every skip.</p>
+        <p>A file it cannot read is named as unreadable, not silently dropped.</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <span class="num">03</span>
+      <div class="body">
+        <h3>Name the transaction that went wrong.</h3>
         <p>
-          Give it the transaction that posted wrong. You get contributing factors
-          ranked by support, the evidence behind each, and what could not be checked.
+          You almost always arrive holding it. Type the ID and the tool gets out of
+          the way — no dashboard to configure, no query to write.
         </p>
+      </div>
+      <div class="aside">
+        <span class="k">If you have no ID</span>
+        <p>A shortlist ranks records by how unlike the rest of the account they are, scored on that account's own distribution rather than on assumptions about NetSuite.</p>
+      </div>
+    </div>
+
+    <div class="feature">
+      <span class="num">04</span>
+      <div class="body">
+        <h3>Read the factors. And the gaps.</h3>
+        <p>
+          Contributing factors ranked by strength of support, each with the evidence
+          behind it — and an explicit list of what could not be checked.
+        </p>
+      </div>
+      <div class="aside">
+        <span class="k">Why the gaps matter</span>
+        <p>A diagnostic that names its blind spots is more trustworthy, not less. Silence about a missing source is the failure worth avoiding.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section section-dark" id="labels">
+<section class="section" id="versus">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow on-dark">What it claims</span>
-      <h2>It never hands you a single verdict.</h2>
+      <span class="eyebrow">Why not by hand</span>
+      <h2>You can already do this. That's the problem.</h2>
+      <p>
+        Every answer is somewhere in the exports already. Finding it is the part
+        that costs an afternoon and two people.
+      </p>
+    </div>
+
+    <div class="versus">
+      <div class="vs-card vs-them">
+        <span class="head">Reading system notes by hand</span>
+        <ul>
+          <li><span class="mark" aria-hidden="true">&times;</span><span>Scroll a change log one record at a time</span></li>
+          <li><span class="mark" aria-hidden="true">&times;</span><span>Configuration and code live in two different heads</span></li>
+          <li><span class="mark" aria-hidden="true">&times;</span><span>Whatever you did not export stays invisible</span></li>
+          <li><span class="mark" aria-hidden="true">&times;</span><span>The answer is a hunch you then have to defend</span></li>
+          <li><span class="mark" aria-hidden="true">&times;</span><span>Start again from scratch on the next transaction</span></li>
+        </ul>
+      </div>
+      <div class="vs-card vs-us">
+        <span class="head">MAICA</span>
+        <ul>
+          <li><span class="mark" aria-hidden="true">&check;</span><span>One timeline across every record you uploaded</span></li>
+          <li><span class="mark" aria-hidden="true">&check;</span><span>Configuration changes and scripts ranked side by side</span></li>
+          <li><span class="mark" aria-hidden="true">&check;</span><span>Missing sources listed by name in the report</span></li>
+          <li><span class="mark" aria-hidden="true">&check;</span><span>Every factor cites the row it came from</span></li>
+          <li><span class="mark" aria-hidden="true">&check;</span><span>Ask about the next transaction in seconds</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="labels">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">What it claims</span>
+      <h2>Never a single verdict.</h2>
       <p>
         A component touching a field does not prove it caused the outcome. Every
         factor carries the strength of its own evidence, in four words that always
@@ -233,19 +258,19 @@
 
     <div class="labels">
       <div class="lrow">
-        <span class="label l-dark-confirmed">Confirmed</span>
+        <span class="label l-confirmed">Confirmed</span>
         <p>The change itself is documented in the evidence. Not a claim about cause.</p>
       </div>
       <div class="lrow">
-        <span class="label l-dark-likely">Likely</span>
+        <span class="label l-likely">Likely</span>
         <p>Strongly supported by chronology and direct record relationships, but not proven.</p>
       </div>
       <div class="lrow">
-        <span class="label l-dark-uncertain">Uncertain</span>
+        <span class="label l-uncertain">Uncertain</span>
         <p>Evidence exists and important gaps remain. The gaps are stated, not glossed.</p>
       </div>
       <div class="lrow">
-        <span class="label l-dark-none">Insufficient evidence</span>
+        <span class="label l-uncertain">Insufficient evidence</span>
         <p>No reliable conclusion available from what was uploaded. Said plainly.</p>
       </div>
     </div>
@@ -254,49 +279,46 @@
 
 <section class="section">
   <div class="wrap">
-    <div class="split">
-      <div class="section-head">
-        <span class="eyebrow">Access and safety</span>
-        <h2>We cannot modify anything in your account.</h2>
-        <p>
-          That sentence is true by construction, not by policy. It is the strongest
-          thing available in a security conversation with a client running
-          production finance, so the product is built to keep it true.
-        </p>
+    <div class="section-head">
+      <span class="eyebrow">Access and safety</span>
+      <h2>We cannot modify anything in your account.</h2>
+      <p>
+        True by construction, not by policy. It is the strongest sentence available
+        in a security conversation with a client running production finance, so the
+        product is built to keep it true.
+      </p>
+    </div>
+
+    <div class="trust">
+      <div>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Read-only, always. Nothing is ever written to a client ledger.</span>
       </div>
       <div>
-        <div class="trust">
-          <div>
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Read-only, always. Nothing is ever written to a client ledger.</span>
-          </div>
-          <div>
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Start with file upload — nothing connects to your NetSuite account.</span>
-          </div>
-          <div>
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Sign in with Google. We never ask for a NetSuite password or token.</span>
-          </div>
-          <div>
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Each client account is isolated, and every read is authorised.</span>
-          </div>
-          <div>
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Every factor traces back to the stored row it came from.</span>
-          </div>
-          <div>
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>When a source is missing, the report says so instead of guessing.</span>
-          </div>
-        </div>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Start with file upload — nothing connects to your NetSuite account.</span>
+      </div>
+      <div>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Sign in with Google. We never ask for a NetSuite password or token.</span>
+      </div>
+      <div>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Each client account is isolated, and every read is authorised.</span>
+      </div>
+      <div>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Every factor traces back to the stored row it came from.</span>
+      </div>
+      <div>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m4 10.5 4 4 8-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>When a source is missing, the report says so instead of guessing.</span>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section section-alt" id="faq">
+<section class="section section-light on-light" id="faq">
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Questions</span>
@@ -408,12 +430,12 @@
   </div>
 </section>
 
-<section class="section section-dark cta">
+<section class="cta">
   <div class="wrap">
-    <h2>Bring it the transaction that posted wrong.</h2>
+    <h2>Bring it the one that posted wrong.</h2>
     <p>
-      Upload a saved search and a System Notes export, and see what the account
-      has to say about it.
+      Upload a saved search and a System Notes export, and see what the account has
+      to say about it.
     </p>
     <div class="hero-cta">
       <a class="js-app btn btn-primary" href="https://app.maica.in/">Upload an export and start</a>
