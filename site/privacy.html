@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Privacy policy — MAICA</title>
+<meta name="description" content="What MAICA collects, why, where it is stored, who can see it, and how to have it deleted. Written plainly, for a tool that handles client accounting evidence." />
+<link rel="canonical" href="https://maica.in/privacy.html" />
+
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://maica.in/privacy.html" />
+<meta property="og:site_name" content="MAICA" />
+<meta property="og:title" content="Privacy policy — MAICA" />
+<meta property="og:description" content="What MAICA collects, why, where it is stored, who can see it, and how to have it deleted." />
+<meta property="og:image" content="https://maica.in/social-card.png" />
+<meta property="og:image:alt" content="MAICA — read-only diagnostics for NetSuite." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Privacy policy — MAICA" />
+<meta name="twitter:description" content="What MAICA collects, why, where it is stored, who can see it, and how to have it deleted." />
+<meta name="twitter:image" content="https://maica.in/social-card.png" />
+
+<link rel="icon" href="/favicon.png" sizes="any" />
+<link rel="apple-touch-icon" href="/favicon.png" />
+<meta name="theme-color" content="#111310" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Questrial&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/style.css" />
+<script defer src="/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="/" aria-label="MAICA home">
+      <img class="maica-mark" src="/maica-logo.png" alt="" width="30" height="30" aria-hidden="true" />
+      <span class="maica-wordmark">Maica</span>
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="/#how">How it works</a>
+      <a href="/#faq">FAQ</a>
+      <a href="/terms.html">Terms</a>
+      <a class="js-app btn btn-primary btn-sm" href="https://app.maica.in/">Get started</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap">
+  <article class="prose">
+    <h1>Privacy policy</h1>
+    <p class="updated">Last updated 9 September 2026</p>
+
+    <p class="lead">
+      MAICA handles a client's accounting evidence. That deserves a policy someone
+      can actually read, so this one says what is collected, why, where it goes and
+      how to get rid of it — without the usual hedging.
+    </p>
+
+    <h2>Who runs this</h2>
+    <p>
+      MAICA is operated by an independent developer based in India. It is
+      pre-launch software in beta.
+    </p>
+    <!-- TODO before launch: replace with a real contact address and, if you
+         trade under a registered entity, its name and registered address. A
+         privacy policy without a working contact route is incomplete, and in
+         several jurisdictions it is a compliance gap rather than a nicety. -->
+    <p>
+      <strong>Contact:</strong> add a working address here before inviting anyone
+      outside your own testing.
+    </p>
+
+    <h2>What is collected</h2>
+
+    <h3>Your account</h3>
+    <p>
+      Sign-in is Google only. When you sign in, Google gives us a stable account
+      identifier, your email address and your display name. We store those three
+      things to identify you on return visits.
+    </p>
+    <p>
+      <strong>We never receive or store your Google password</strong>, and we never
+      ask for a NetSuite password, token or integration secret.
+    </p>
+
+    <h3>What you upload</h3>
+    <p>
+      The CSV exports you provide, and the normalised records derived from them.
+      Depending on what you export, these may contain transaction identifiers,
+      amounts, account names, dates, field-level change history and the names of
+      NetSuite users who made changes.
+    </p>
+    <p>
+      Both the original file contents and the normalised records are retained, so
+      every ranked factor can be traced back to the exact row it came from. That
+      traceability is the point of the product; discarding the source would make
+      the output unverifiable.
+    </p>
+
+    <h3>Your session</h3>
+    <p>
+      A single cookie on the application, holding a signed session identifier. It is
+      marked <code>HttpOnly</code>, <code>Secure</code> and <code>SameSite=Lax</code>,
+      and it exists only to keep you signed in. It is not used for advertising or
+      cross-site tracking.
+    </p>
+
+    <h3>This website</h3>
+    <p>
+      The marketing site at <strong>maica.in</strong> sets no cookies. If you allow
+      it, it counts page views using Cloudflare Web Analytics, which is cookieless
+      and does not track you across other sites. Decline and nothing is loaded. Your
+      choice is remembered in your browser's local storage, not in a cookie.
+    </p>
+
+    <h2>Why we hold it</h2>
+    <div class="scroll-x">
+      <table>
+        <thead>
+          <tr><th scope="col">Data</th><th scope="col">Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Google account identifier, email, name</td><td>To sign you in and show whose account is whose</td></tr>
+          <tr><td>Uploaded exports and derived records</td><td>To run the analysis and cite the evidence behind every factor</td></tr>
+          <tr><td>Session cookie</td><td>To keep you signed in between requests</td></tr>
+          <tr><td>Page views, if allowed</td><td>To know whether anyone is finding the site</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Who can see it</h2>
+    <p>
+      Client accounts are isolated. Every read is checked against the account you
+      have been granted access to, so one client's evidence is never served under
+      another's.
+    </p>
+    <p>
+      The operator can technically access stored data in order to run and debug the
+      service. Nothing is sold, rented, or shared for advertising, and nothing is
+      handed to a third party except the infrastructure providers listed below.
+    </p>
+
+    <h2>Where it goes</h2>
+    <ul>
+      <li><strong>Render</strong> — hosts the application and its PostgreSQL database.</li>
+      <li><strong>Netlify</strong> — serves this marketing site. It receives no uploaded evidence.</li>
+      <li><strong>Google</strong> — handles sign-in. Google learns that you signed in to MAICA; it receives none of your uploaded data.</li>
+      <li><strong>Cloudflare</strong> — page-view counts for this site only, and only if you allow it.</li>
+    </ul>
+    <p>
+      These providers operate outside India, so data is processed abroad.
+    </p>
+
+    <h3>Language models</h3>
+    <p>
+      MAICA can generate a plain-English narration of a finding. That runs against a
+      self-hosted model, and <strong>no uploaded evidence is sent to a third-party
+      model provider</strong>. If that ever changes, this policy will say so before
+      it does, and the ranked factors themselves are computed without a model either
+      way.
+    </p>
+
+    <h2>How long it is kept</h2>
+    <p>
+      Uploaded evidence is kept until you delete it. Deleting a client account
+      removes its analyses and uploaded records with it. Account details are kept
+      while your account exists.
+    </p>
+    <p>
+      Because this is beta software running on trial infrastructure, treat nothing
+      here as a system of record. Keep your own copy of anything that matters.
+    </p>
+
+    <h2>Your choices</h2>
+    <ul>
+      <li>Delete any client account, and its evidence goes with it.</li>
+      <li>Ask for your account and everything under it to be erased.</li>
+      <li>Ask what is held about you, and get a copy.</li>
+      <li>Decline analytics on this site, or change your mind by clearing your browser's site data for maica.in.</li>
+      <li>Revoke MAICA's access to your Google account at any time, from your Google account settings.</li>
+    </ul>
+
+    <h2>Security</h2>
+    <p>
+      Traffic is encrypted in transit. Sign-in is delegated to Google, so no password
+      is stored. Access to client evidence is authorised on every request, and state
+      -changing actions carry a token to prevent them being triggered from another
+      site.
+    </p>
+    <p>
+      Being plain about a limitation: uploaded evidence is <strong>not currently
+      encrypted at the column level</strong> in the database, beyond the encryption
+      the hosting provider applies to its disks. That is on the list before the
+      product handles a real client's data in earnest.
+    </p>
+
+    <h2>Children</h2>
+    <p>
+      MAICA is a tool for accounting professionals. It is not intended for anyone
+      under 18 and we do not knowingly collect their data.
+    </p>
+
+    <h2>Changes</h2>
+    <p>
+      If this policy changes materially, the date at the top changes and the change
+      will be described here rather than quietly folded in.
+    </p>
+  </article>
+</div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a class="brand" href="/" style="gap:3px" aria-label="MAICA home">
+      <img class="maica-mark" src="/maica-logo.png" alt="" width="22" height="22" aria-hidden="true" style="width:22px;height:22px" />
+      <span class="maica-wordmark" style="font-size:.95rem">Maica</span>
+    </a>
+    <span>&copy; 2026 MAICA</span>
+    <span class="right">
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </span>
+  </div>
+</footer>
+
+<div id="consent" role="dialog" aria-live="polite" aria-label="Analytics choice">
+  <p>
+    We would like to count visits to this page so we know whether anyone is
+    finding it. No cookies, no personal data, no tracking across other sites.
+  </p>
+  <div class="row">
+    <button id="consent-accept" class="btn btn-primary btn-sm" type="button">Allow</button>
+    <button id="consent-decline" class="btn btn-ghost btn-sm" type="button">No thanks</button>
+  </div>
+</div>
+
+</body>
+</html>

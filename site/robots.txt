@@ -1,0 +1,10 @@
+# maica.in — marketing site
+#
+# The application lives on app.maica.in and is behind a login. Nothing there is
+# useful to a crawler, and its own robots rules govern it.
+
+User-agent: *
+Allow: /
+Disallow: /404.html
+
+Sitemap: https://maica.in/sitemap.xml
