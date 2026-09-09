@@ -148,7 +148,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   background: var(--hero-bg); overflow: hidden;
   display: grid;
 }
-@media (min-width: 960px) { .hero-panel { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 960px) { .hero-panel { grid-template-columns: 1.18fr 1fr; } }
 
 .hero-copy { padding: clamp(2.2rem, 4vw, 3.6rem); }
 
@@ -165,18 +165,21 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 /* Monospace headline — the terms of art in this product are field names and
    record ids, and the face that suits them can carry the headline too. */
 .hero h1 {
-  margin-top: 1.9rem;
+  margin-top: 2.1rem;
   font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: clamp(1.9rem, 3.4vw, 3rem);
-  font-weight: 500; line-height: 1.15; letter-spacing: -.035em;
-  max-width: 16ch;
+  font-size: clamp(2.1rem, 4.1vw, 3.6rem);
+  font-weight: 500; line-height: 1.12; letter-spacing: -.04em;
+  max-width: 15ch;
 }
 .hero h1 em { font-style: normal; color: var(--brand-light); }
 .hero-sub {
   margin-top: 1.7rem; max-width: 44ch;
   font-size: 1.02rem; line-height: 1.65; color: var(--on-ink-muted);
 }
-.hero-cta { margin-top: 2.2rem; display: flex; flex-wrap: wrap; gap: .7rem; }
+.hero-cta { margin-top: 2.4rem; display: flex; flex-wrap: wrap; gap: .7rem; }
+/* Side by side, not stacked. The labels are short enough to hold the line at
+   the narrowest column this panel produces. */
+.hero .hero-cta .btn { flex: 0 0 auto; }
 .cta-note { margin-top: 1.2rem; font-size: .84rem; color: var(--on-ink-faint); }
 
 /* Badges name a real shortcut; app.js binds them. */
@@ -192,7 +195,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .hero-visual {
   border-top: 1px solid var(--hero-line);
   display: grid; grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: minmax(9.5rem, 1fr);
+  grid-auto-rows: minmax(8rem, 1fr);
   /* Trailing rules run under the panel border rather than doubling on it. */
   margin: 0 -1px -1px 0;
 }
@@ -208,14 +211,15 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 .mini-row {
   width: 100%; border: 1px solid var(--hero-border); border-radius: 8px;
-  background: rgba(0, 0, 0, .3); padding: .8rem .9rem;
-  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .7rem;
+  background: rgba(0, 0, 0, .3); padding: .75rem .85rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .67rem;
   color: var(--on-ink-muted); line-height: 1.7; overflow: hidden;
 }
 .mini-row b { color: var(--on-ink); font-weight: 500; }
 .mini-row .hi { color: var(--brand-light); }
 
-.chip-stack { display: grid; gap: .5rem; justify-items: center; }
+.chip-stack { display: grid; gap: .45rem; justify-items: center; }
+.dash { width: 2.2rem; height: .4rem; border-radius: 2px; background: rgba(157, 176, 255, .3); }
 /* A field of records, a few lighting at a time as they are read. Each square
    carries its own delay, so the pattern never repeats visibly and there is no
    script driving it — twenty staggered opacity cycles cost nothing.
@@ -237,7 +241,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 
 /* The cell holding it keeps a little air around the field. */
-.cell .pixel { max-width: 9.5rem; }
+.cell .pixel { max-width: 8rem; }
 
 @media (prefers-reduced-motion: reduce) {
   /* Static, and still legible: a handful stay lit rather than everything
