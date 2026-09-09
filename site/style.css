@@ -34,11 +34,11 @@
      the tint reads as emphasis rather than as the site's base colour. */
   --hero-bg: #0a1030;          /* saturated navy, not a grey with a hint */
   --hero-inner: #0c1440;       /* the panel sits a shade above the frame */
-  --hero-line: rgba(170, 188, 255, .3);
-  --hero-border: rgba(140, 162, 255, .42);
+  --hero-line: rgba(255, 255, 255, .5);
+  --hero-border: rgba(255, 255, 255, .34);
   --hero-glow: rgba(56, 79, 255, .5);
 
-  --measure: 72rem;
+  --measure: 82rem;
   --narrow: 52rem;
   --radius: 10px;
 }
