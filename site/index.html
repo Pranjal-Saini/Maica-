@@ -22,7 +22,7 @@
 
 <link rel="icon" href="/favicon.png" sizes="any" />
 <link rel="apple-touch-icon" href="/favicon.png" />
-<meta name="theme-color" content="#0e100c" />
+<meta name="theme-color" content="#0b0d0a" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -52,48 +52,43 @@
       <span class="maica-wordmark">Maica</span>
     </a>
     <nav class="nav-links" aria-label="Main">
-      <a href="#features">How it works</a>
-      <a href="#capabilities">What it does</a>
-      <a href="#versus">Why not by hand</a>
-      <a href="#labels">What it claims</a>
+      <a href="#steps">How it works</a>
+      <a href="#capabilities">Features</a>
+      <a href="#versus">Compare</a>
       <a href="#faq">FAQ</a>
-      <a class="js-app btn btn-primary btn-sm" href="https://app.maica.in/">Get started</a>
     </nav>
+    <div class="nav-action">
+      <a class="js-app btn btn-primary btn-sm" href="https://app.maica.in/">Get started</a>
+    </div>
   </div>
 </header>
 
 <main id="main">
 
 <section class="hero">
-  <canvas id="traces" aria-hidden="true"></canvas>
   <div class="wrap">
-    <span class="eyebrow">Read-only diagnostics for NetSuite</span>
-    <h1>When a transaction posts wrong, see <em>where to look</em>.</h1>
+    <h1>Find what changed when a transaction posts <em>wrong</em>.</h1>
     <p class="hero-sub">
-      Upload the exports you already have. Get a ranked map of contributing
-      factors across configuration and code, with the gaps named.
+      MAICA reads the NetSuite exports you already have and returns a ranked map
+      of contributing factors across configuration and code — with the gaps named
+      rather than hidden.
     </p>
     <div class="hero-cta">
       <a class="js-app btn btn-primary" href="https://app.maica.in/">Upload an export and start</a>
-      <a class="btn btn-ghost-dark" href="#features">See how it works</a>
+      <a class="btn btn-ghost-dark" href="#steps">See how it works</a>
     </div>
-    <p class="cta-note">Free while in beta. Sign in with Google — no card, no NetSuite credentials.</p>
-    <p class="hero-note">
-      <span>No admin rights needed</span>
-      <span>No integration record</span>
-      <span>Never writes to your account</span>
-    </p>
+    <p class="cta-note">Free while in beta · Sign in with Google · No card, no NetSuite credentials</p>
 
-    <div class="demo">
-      <div class="demo-bar">
+    <div class="shot">
+      <div class="shot-bar">
         <span class="dot" aria-hidden="true"></span>
         <span class="dot" aria-hidden="true"></span>
         <span class="dot" aria-hidden="true"></span>
-        <span class="where">/analyses/&hellip;/records/INV-10432/report</span>
+        <span class="where">app.maica.in/analyses/&hellip;/records/INV-10432/report</span>
         <span class="tag">Example output</span>
       </div>
-      <div class="demo-body">
-        <div class="demo-head">
+      <div class="shot-body">
+        <div class="shot-head">
           <h3>Invoice INV-10432 posted to 4010, not 4000</h3>
           <span class="sub">3 contributing factors &middot; 1,284 records read</span>
         </div>
@@ -134,76 +129,78 @@
   </div>
 </section>
 
-<section class="section" id="features">
+<section class="claim">
+  <div class="wrap">
+    <blockquote>
+      A script fires on a record whose configuration changed months ago. Neither
+      specialist can see the other half.
+    </blockquote>
+    <p class="who">The gap this exists to close</p>
+  </div>
+</section>
+
+<section class="section" id="steps">
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">How it works</span>
-      <h2>Four steps. No admin required.</h2>
+      <h2>Four steps, no admin required.</h2>
       <p>
-        The point is that you can try it on a real problem this afternoon, without
-        asking anyone for permission first.
+        You can try it on a real problem this afternoon, without asking anyone for
+        permission first.
       </p>
     </div>
 
-    <div class="feature">
-      <span class="num">01</span>
-      <div class="body">
-        <h3>Export what you already see.</h3>
+    <div class="steps">
+      <div class="step">
+        <span class="n">01</span>
+        <h3>Export what you already see</h3>
         <p>
           A saved-search CSV and a System Notes export. Both are things a consultant
-          can produce today, with no integration record and no IT ticket.
+          can produce today — no integration record, no IT ticket, no administrator
+          in the loop.
+        </p>
+        <p class="meta">
+          Handles extra columns, renamed headers, partial date ranges, and different
+          formats in a single upload.
         </p>
       </div>
-      <div class="aside">
-        <span class="k">Handles</span>
-        <p>Extra columns. Renamed headers. Partial date ranges. Different formats in one upload.</p>
-        <p>Each file's type is read from its own column headers, so you can drop several in together.</p>
-      </div>
-    </div>
 
-    <div class="feature">
-      <span class="num">02</span>
-      <div class="body">
-        <h3>Upload it. Keep the evidence.</h3>
+      <div class="step">
+        <span class="n">02</span>
+        <h3>Upload it, and keep the evidence</h3>
         <p>
           Files are normalised into one shape and stored with their provenance intact,
           so every later claim can point back at the exact row it came from.
         </p>
+        <p class="meta">
+          Reports <code>rows_understood</code> and <code>rows_skipped</code>, with a
+          reason for every skip. A file it cannot read is named, not silently dropped.
+        </p>
       </div>
-      <div class="aside">
-        <span class="k">Reported back</span>
-        <p><code>rows_understood</code> and <code>rows_skipped</code>, with a reason for every skip.</p>
-        <p>A file it cannot read is named as unreadable, not silently dropped.</p>
-      </div>
-    </div>
 
-    <div class="feature">
-      <span class="num">03</span>
-      <div class="body">
-        <h3>Name the transaction that went wrong.</h3>
+      <div class="step">
+        <span class="n">03</span>
+        <h3>Name the transaction that went wrong</h3>
         <p>
           You almost always arrive holding it. Type the ID and the tool gets out of
           the way — no dashboard to configure, no query to write.
         </p>
-      </div>
-      <div class="aside">
-        <span class="k">If you have no ID</span>
-        <p>A shortlist ranks records by how unlike the rest of the account they are, scored on that account's own distribution rather than on assumptions about NetSuite.</p>
-      </div>
-    </div>
-
-    <div class="feature">
-      <span class="num">04</span>
-      <div class="body">
-        <h3>Read the factors. And the gaps.</h3>
-        <p>
-          Contributing factors ranked by strength of support, each with the evidence
-          behind it — and an explicit list of what could not be checked.
+        <p class="meta">
+          No ID? A shortlist ranks records by how unlike the rest of the account they
+          are, scored on that account's own distribution.
         </p>
       </div>
-      <div class="aside">
-        <span class="k">Why the gaps matter</span>
-        <p>A diagnostic that names its blind spots is more trustworthy, not less. Silence about a missing source is the failure worth avoiding.</p>
+
+      <div class="step">
+        <span class="n">04</span>
+        <h3>Read the factors, and the gaps</h3>
+        <p>
+          Contributing factors ranked by strength of support, each with the evidence
+          behind it, and an explicit list of what could not be checked.
+        </p>
+        <p class="meta">
+          A diagnostic that names its blind spots is more trustworthy, not less.
+        </p>
       </div>
     </div>
   </div>
@@ -212,53 +209,74 @@
 <section class="section" id="capabilities">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">What it does</span>
+      <span class="eyebrow">Features</span>
       <h2>Built for evidence you did not choose.</h2>
       <p>
         Real exports are partial and inconsistent. The engine is designed around
-        that rather than around a tidy sample.
+        that, rather than around a tidy sample.
       </p>
     </div>
 
-    <div class="cards">
-      <div class="card">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">M3 5h14M3 10h14M3 15h9</svg></span>
-        <h3>Reads messy exports</h3>
-        <p>Extra columns, renamed headers, partial ranges. It reports what it understood and what it skipped, with a reason for each.</p>
-      </div>
-      <div class="card">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">M10 3v14M3 10h14</svg></span>
+    <div class="blocks">
+      <div class="block">
         <h3>Two evidence types, one timeline</h3>
-        <p>Saved searches and System Notes normalise into a single shape, so configuration and code sit on the same clock.</p>
+        <p>
+          Saved searches and System Notes normalise into a single record shape, so a
+          configuration change and the script that ran afterwards sit on the same
+          clock. Nothing in the reasoning layer knows which file a row arrived in.
+        </p>
       </div>
-      <div class="card">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">M4 16V8m6 8V4m6 12v-5</svg></span>
+      <div class="block">
         <h3>Ranked, not listed</h3>
-        <p>Factors are ordered by strength of support, so the top of the page is the place to start rather than the first row alphabetically.</p>
+        <p>
+          Factors are ordered by strength of support, so the top of the page is where
+          to start rather than whatever sorted first. Ranking uses the account's own
+          distribution, which is what lets it work on accounts customised differently
+          from each other.
+        </p>
       </div>
-      <div class="card">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">M10 2.5 4 5v4.5c0 3.4 2.4 6.5 6 8 3.6-1.5 6-4.6 6-8V5l-6-2.5Z</svg></span>
+      <div class="block">
+        <h3>Every claim cites its row</h3>
+        <p>
+          Each factor traces back to the exact stored record behind it, so a finding
+          can be checked instead of trusted. The original upload is kept for the same
+          reason — discarding it would make the output unverifiable.
+        </p>
+      </div>
+      <div class="block">
         <h3>Read-only by construction</h3>
-        <p>No code in MAICA writes to NetSuite. Uploads never touch your account at all.</p>
-      </div>
-      <div class="card">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">M7 10h6M10 7v6M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z</svg></span>
-        <h3>Names its blind spots</h3>
-        <p>Every report lists the sources that were not part of the upload, so an incomplete answer never reads as a complete one.</p>
-      </div>
-      <div class="card">
-        <span class="ico" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">M6 10h8M6 6h8M6 14h5M3 3h14v14H3z</svg></span>
-        <h3>Cites the row</h3>
-        <p>Each factor traces back to the exact stored record it came from, so a claim can be checked rather than trusted.</p>
+        <p>
+          There is no code in MAICA that writes to NetSuite. Uploads never touch your
+          account at all, and the planned live connection requests read access only.
+        </p>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="sources">
+  <div class="wrap">
+    <p class="lead">Evidence it reads</p>
+    <div class="source-row">
+      <span class="source on">Saved search CSV</span>
+      <span class="source on">System Notes export</span>
+      <span class="source off">Script deployment list</span>
+      <span class="source off">Workflow definitions</span>
+      <span class="source off">Script execution log</span>
+      <span class="source off">Live connection</span>
+    </div>
+    <p class="foot">
+      Dimmed sources are not ingested yet. Their real column names have not been
+      verified against a genuine export, and guessing them would be worse than
+      waiting.
+    </p>
   </div>
 </section>
 
 <section class="section" id="versus">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Why not by hand</span>
+      <span class="eyebrow">Compare</span>
       <h2>You can already do this. That's the problem.</h2>
       <p>
         Every answer is somewhere in the exports already. Finding it is the part
@@ -268,17 +286,17 @@
 
     <div class="versus">
       <div class="vs-card vs-them">
-        <span class="head">Reading system notes by hand</span>
+        <span class="head">By hand</span>
         <ul>
           <li><span class="mark" aria-hidden="true">&times;</span><span>Scroll a change log one record at a time</span></li>
           <li><span class="mark" aria-hidden="true">&times;</span><span>Configuration and code live in two different heads</span></li>
           <li><span class="mark" aria-hidden="true">&times;</span><span>Whatever you did not export stays invisible</span></li>
           <li><span class="mark" aria-hidden="true">&times;</span><span>The answer is a hunch you then have to defend</span></li>
-          <li><span class="mark" aria-hidden="true">&times;</span><span>Start again from scratch on the next transaction</span></li>
+          <li><span class="mark" aria-hidden="true">&times;</span><span>Start from scratch on the next transaction</span></li>
         </ul>
       </div>
       <div class="vs-card vs-us">
-        <span class="head">MAICA</span>
+        <span class="head">With MAICA</span>
         <ul>
           <li><span class="mark" aria-hidden="true">&check;</span><span>One timeline across every record you uploaded</span></li>
           <li><span class="mark" aria-hidden="true">&check;</span><span>Configuration changes and scripts ranked side by side</span></li>
@@ -477,7 +495,7 @@
   </div>
 </section>
 
-<section class="cta">
+<section class="close-cta">
   <div class="wrap">
     <h2>Bring it the one that posted wrong.</h2>
     <p>
@@ -486,8 +504,9 @@
     </p>
     <div class="hero-cta">
       <a class="js-app btn btn-primary" href="https://app.maica.in/">Upload an export and start</a>
+      <a class="btn btn-ghost-dark" href="#faq">Read the FAQ</a>
     </div>
-    <p class="cta-note">Free while in beta. Takes about five minutes.</p>
+    <p class="cta-note">Free while in beta · About five minutes end to end</p>
   </div>
 </section>
 
@@ -509,11 +528,19 @@
       <div class="foot-col">
         <h4>Product</h4>
         <ul>
-          <li><a href="/#features">How it works</a></li>
-          <li><a href="/#capabilities">What it does</a></li>
-          <li><a href="/#versus">Why not by hand</a></li>
+          <li><a href="/#steps">How it works</a></li>
+          <li><a href="/#capabilities">Features</a></li>
+          <li><a href="/#versus">Compare</a></li>
           <li><a href="/#labels">What it claims</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h4>Resources</h4>
+        <ul>
           <li><a href="/#faq">FAQ</a></li>
+          <li><a class="js-app" href="https://app.maica.in/">Sign in</a></li>
+          <li><span class="soon">Docs &mdash; soon</span></li>
+          <li><span class="soon">Changelog &mdash; soon</span></li>
         </ul>
       </div>
       <div class="foot-col">
