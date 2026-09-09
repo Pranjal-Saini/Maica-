@@ -32,9 +32,11 @@
 
   /* The hero carries the brand hue. Everything below it stays neutral, so
      the tint reads as emphasis rather than as the site's base colour. */
-  --hero-bg: #0b0e1a;
-  --hero-line: rgba(157, 176, 255, .16);
-  --hero-border: rgba(157, 176, 255, .26);
+  --hero-bg: #0a1030;          /* saturated navy, not a grey with a hint */
+  --hero-inner: #0c1440;       /* the panel sits a shade above the frame */
+  --hero-line: rgba(170, 188, 255, .3);
+  --hero-border: rgba(140, 162, 255, .42);
+  --hero-glow: rgba(56, 79, 255, .5);
 
   --measure: 72rem;
   --narrow: 52rem;
@@ -143,9 +145,25 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 /* ── hero: bordered panel, text left, grid right ─────────── */
 .hero { padding: 1.25rem 0 4.5rem; }
+/* Two frames. The outer one carries the ground and a little air, so the panel
+   inside it stops short of the edge and the colour shows around the grid
+   rather than the rules running into the border. */
+.hero-frame {
+  position: relative; isolation: isolate; overflow: hidden;
+  border: 1px solid var(--hero-border); border-radius: 18px;
+  background: var(--hero-bg);
+  padding: clamp(.7rem, 1.4vw, 1.15rem);
+}
+/* A soft light behind the panel, so the blue reads as lit rather than flat. */
+.hero-frame::before {
+  content: ""; position: absolute; z-index: -1;
+  top: -30%; right: -12%; width: 70%; aspect-ratio: 1;
+  background: radial-gradient(circle, var(--hero-glow) 0%, transparent 68%);
+  opacity: .5; pointer-events: none;
+}
 .hero-panel {
-  border: 1px solid var(--hero-border); border-radius: 14px;
-  background: var(--hero-bg); overflow: hidden;
+  border: 1px solid var(--hero-line); border-radius: 12px;
+  background: var(--hero-inner); overflow: hidden;
   display: grid;
 }
 @media (min-width: 960px) { .hero-panel { grid-template-columns: 1.18fr 1fr; } }
@@ -160,7 +178,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   font-size: .8rem; color: var(--on-ink-muted); background: rgba(245,246,241,.03);
 }
 .hero-chip .plus { color: var(--brand-light); }
-.hero-chip { border-color: var(--hero-border); }
+.hero-chip { border-color: var(--hero-border); background: rgba(10, 16, 48, .6); }
 
 /* Monospace headline — the terms of art in this product are field names and
    record ids, and the face that suits them can carry the headline too. */
@@ -206,12 +224,12 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   border-right: 1px solid var(--hero-line); border-bottom: 1px solid var(--hero-line);
   padding: 1.15rem; display: grid; place-items: center;
 }
-.cell .ghost { color: rgba(157, 176, 255, .38); }
+.cell .ghost { color: rgba(170, 188, 255, .5); }
 .cell .ghost svg { width: 26px; height: 26px; }
 
 .mini-row {
   width: 100%; border: 1px solid var(--hero-border); border-radius: 8px;
-  background: rgba(0, 0, 0, .3); padding: .75rem .85rem;
+  background: rgba(6, 10, 32, .72); padding: .75rem .85rem;
   font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .67rem;
   color: var(--on-ink-muted); line-height: 1.7; overflow: hidden;
 }
@@ -219,7 +237,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .mini-row .hi { color: var(--brand-light); }
 
 .chip-stack { display: grid; gap: .45rem; justify-items: center; }
-.dash { width: 2.2rem; height: .4rem; border-radius: 2px; background: rgba(157, 176, 255, .3); }
+.dash { width: 2.2rem; height: .4rem; border-radius: 2px; background: rgba(170, 188, 255, .5); }
 /* A field of records, a few lighting at a time as they are read. Each square
    carries its own delay, so the pattern never repeats visibly and there is no
    script driving it — twenty staggered opacity cycles cost nothing.
@@ -229,15 +247,15 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .pixel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; }
 .pixel i {
   display: block; aspect-ratio: 1; border-radius: 2px;
-  background: rgba(157, 176, 255, .1);
+  background: rgba(170, 188, 255, .14);
   animation: pixelRead 5.5s var(--d, 0s) infinite;
 }
 .pixel i.slow { animation-duration: 8s; }
 @keyframes pixelRead {
-  0%, 82%, 100% { background: rgba(157, 176, 255, .1); }
-  86%           { background: rgba(56, 79, 255, .55); }
-  92%           { background: var(--brand); }
-  97%           { background: rgba(56, 79, 255, .3); }
+  0%, 82%, 100% { background: rgba(170, 188, 255, .14); box-shadow: none; }
+  86%           { background: rgba(90, 112, 255, .7); box-shadow: 0 0 8px rgba(56, 79, 255, .5); }
+  92%           { background: #5b71ff; box-shadow: 0 0 14px rgba(91, 113, 255, .8); }
+  97%           { background: rgba(90, 112, 255, .4); box-shadow: 0 0 6px rgba(56, 79, 255, .3); }
 }
 
 /* The cell holding it keeps a little air around the field. */
@@ -247,7 +265,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   /* Static, and still legible: a handful stay lit rather than everything
      going dark. */
   .pixel i { animation: none; }
-  .pixel i.lit { background: var(--brand); }
+  .pixel i.lit { background: #5b71ff; box-shadow: 0 0 12px rgba(91, 113, 255, .7); }
   .pixel i.half { background: rgba(56, 79, 255, .4); }
 }
 
