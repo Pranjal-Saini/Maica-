@@ -150,7 +150,9 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
    rather than the rules running into the border. */
 .hero-frame {
   position: relative; isolation: isolate; overflow: hidden;
-  border: 1px solid var(--hero-border); border-radius: 18px;
+  /* No border of its own. It exists to carry the ground and the band of air
+     around the panel; the only drawn edge is the panel's. */
+  border-radius: 18px;
   background: var(--hero-bg);
   padding: clamp(.7rem, 1.4vw, 1.15rem);
 }
