@@ -210,10 +210,36 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .mini-row .hi { color: var(--brand-light); }
 
 .chip-stack { display: grid; gap: .5rem; justify-items: center; }
-.pixel { display: grid; grid-template-columns: repeat(4, 12px); gap: 3px; }
-.pixel i { display: block; width: 12px; height: 12px; border-radius: 2px; background: var(--line-dark); }
-.pixel i.on { background: var(--brand); }
-.pixel i.mid { background: rgba(56,79,255,.42); }
+/* A field of records, a few lighting at a time as they are read. Each square
+   carries its own delay, so the pattern never repeats visibly and there is no
+   script driving it — twenty staggered opacity cycles cost nothing.
+
+   The reference animates squares over a photograph; this animates the same
+   idea over the thing MAICA actually looks at. */
+.pixel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; }
+.pixel i {
+  display: block; aspect-ratio: 1; border-radius: 2px;
+  background: var(--line-dark);
+  animation: pixelRead 5.5s var(--d, 0s) infinite;
+}
+.pixel i.slow { animation-duration: 8s; }
+@keyframes pixelRead {
+  0%, 82%, 100% { background: var(--line-dark); }
+  86%           { background: rgba(56, 79, 255, .55); }
+  92%           { background: var(--brand); }
+  97%           { background: rgba(56, 79, 255, .3); }
+}
+
+/* The cell holding it keeps a little air around the field. */
+.cell .pixel { max-width: 8.5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Static, and still legible: a handful stay lit rather than everything
+     going dark. */
+  .pixel i { animation: none; }
+  .pixel i.lit { background: var(--brand); }
+  .pixel i.half { background: rgba(56, 79, 255, .4); }
+}
 
 /* ── product shot ────────────────────────────────────────── */
 .shot {
