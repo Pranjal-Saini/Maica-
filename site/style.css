@@ -126,21 +126,33 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .btn-sm { padding: .55rem 1.1rem; font-size: .85rem; }
 
 /* ── hero ────────────────────────────────────────────────── */
-.hero { position: relative; isolation: isolate; overflow: hidden; padding: 6.5rem 0 6rem; }
+.hero {
+  position: relative; isolation: isolate; overflow: hidden;
+  padding: 7rem 0 5.5rem; text-align: center;
+}
 #traces { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hero .wrap { position: relative; z-index: 1; }
-.hero h1 { max-width: 15ch; margin-top: 1.4rem; }
+.hero h1 { max-width: 19ch; margin: 1.5rem auto 0; }
 .hero h1 em { font-style: normal; color: var(--brand-light); }
 .hero-sub {
-  margin-top: 1.7rem; max-width: 44ch;
+  margin: 1.8rem auto 0; max-width: 52ch;
   font-size: 1.15rem; line-height: 1.6; color: var(--on-ink-muted);
 }
-.hero-cta { margin-top: 2.5rem; display: flex; flex-wrap: wrap; gap: .75rem; }
-.cta-note { margin-top: 1rem; font-size: .84rem; color: var(--on-ink-faint); }
+.hero-cta { margin-top: 2.5rem; display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+.cta-note { margin-top: 1.1rem; font-size: .84rem; color: var(--on-ink-faint); }
 .hero-note {
-  margin-top: 1.6rem; font-size: .83rem; color: var(--on-ink-faint);
-  display: flex; flex-wrap: wrap; gap: .4rem 1.5rem;
+  margin-top: 1.8rem; font-size: .83rem; color: var(--on-ink-faint);
+  display: flex; flex-wrap: wrap; gap: .5rem 1.6rem; justify-content: center;
 }
+/* A pill above the headline, the way the eyebrow reads at this scale. */
+.hero .eyebrow {
+  display: inline-block; padding: .42rem .95rem;
+  border: 1px solid var(--line-dark-strong); border-radius: 999px;
+  background: rgba(244,245,240,.03);
+}
+/* The example card is the one left-aligned thing in a centred hero — it is a
+   screenshot, and screenshots are not centred text. */
+.demo { text-align: left; }
 
 /* ── example output card ─────────────────────────────────── */
 .demo {
@@ -237,6 +249,24 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .8rem;
   color: var(--brand-light);
 }
+
+/* ── capability cards ────────────────────────────────────── */
+.cards { margin-top: 3.25rem; display: grid; gap: 1rem; }
+@media (min-width: 700px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+.card {
+  background: var(--surface); border: 1px solid var(--line-dark);
+  border-radius: var(--radius); padding: 1.6rem 1.5rem;
+  display: flex; flex-direction: column; gap: .6rem;
+}
+.card .ico {
+  width: 34px; height: 34px; border-radius: 8px; flex: none;
+  display: grid; place-items: center; margin-bottom: .35rem;
+  background: rgba(56,79,255,.14); color: var(--brand-light);
+}
+.card .ico svg { width: 17px; height: 17px; }
+.card h3 { font-size: 1.02rem; }
+.card p { font-size: .91rem; color: var(--on-ink-muted); }
 
 /* ── comparison ──────────────────────────────────────────── */
 .versus { margin-top: 3.25rem; display: grid; gap: 1rem; }
@@ -341,15 +371,27 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .oops .links { margin-top: 2.4rem; display: flex; flex-wrap: wrap; gap: .75rem; }
 
 /* ── footer ──────────────────────────────────────────────── */
-footer { padding: 3.5rem 0 4rem; border-top: 1px solid var(--line-dark); }
-.foot {
-  display: flex; flex-wrap: wrap; gap: 1.5rem 2rem; align-items: center;
-  font-size: .84rem; color: var(--on-ink-faint);
+footer { padding: 4.5rem 0 2.5rem; border-top: 1px solid var(--line-dark); }
+.foot-cols { display: grid; gap: 2.5rem; }
+@media (min-width: 760px) { .foot-cols { grid-template-columns: 1.6fr 1fr 1fr; gap: 4rem; } }
+.foot-brand p {
+  margin-top: 1rem; max-width: 30ch; font-size: .89rem; color: var(--on-ink-faint);
 }
-.foot a { text-decoration: none; color: var(--on-ink-faint); }
-.foot a:hover { color: var(--on-ink); }
-.foot .right { margin-left: auto; display: flex; flex-wrap: wrap; gap: 1.6rem; }
-@media (max-width: 640px) { .foot .right { margin-left: 0; } }
+.foot-col h4 {
+  margin: 0 0 1rem; font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: .66rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--on-ink-faint); font-weight: 500;
+}
+.foot-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+.foot-col a { font-size: .9rem; text-decoration: none; color: var(--on-ink-muted); }
+.foot-col a:hover { color: var(--on-ink); }
+.foot-bottom {
+  margin-top: 3.5rem; padding-top: 1.6rem; border-top: 1px solid var(--line-dark);
+  display: flex; flex-wrap: wrap; gap: .6rem 2rem; align-items: center;
+  font-size: .82rem; color: var(--on-ink-faint);
+}
+.foot-bottom .note { margin-left: auto; }
+@media (max-width: 700px) { .foot-bottom .note { margin-left: 0; } }
 
 /* ── consent ─────────────────────────────────────────────── */
 #consent {
