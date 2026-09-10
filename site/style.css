@@ -777,7 +777,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
    contrast that does not depend on where a crest happens to be. */
 .close-cta .panel::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: linear-gradient(100deg, var(--hero-bg) 34%, rgba(10, 16, 48, .55) 62%, transparent 88%);
+  background: linear-gradient(100deg, var(--hero-bg) 30%, rgba(10, 16, 48, .82) 52%, rgba(10, 16, 48, .35) 76%, transparent 92%);
 }
 .close-cta h2 {
   max-width: 46ch; line-height: 1.3;

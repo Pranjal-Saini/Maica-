@@ -119,72 +119,136 @@
 
 
   /* ── the wave field ─────────────────────────────────────────
-     A ray is marched against a height field of summed sines and fogged
-     toward a horizon — the construction the registry component uses, written
-     against WebGL 2 directly so the page needs no React, no ogl and no
-     bundler, and stays inside a CSP that admits same-origin scripts only.
+     The supplied GradientWaves shader, running on plain WebGL 2. ogl's
+     Renderer/Program/Mesh/Triangle are replaced by direct GL calls and the
+     React effects by this function; the GLSL itself is unchanged.
 
-     Three things keep it from being a battery drain in the corner of a
-     landing page: it renders only while it is on screen, it caps device
-     pixel ratio at 1.5 because a soft gradient does not need retina density,
-     and under prefers-reduced-motion it draws a single frame and stops. */
+     Config is the supplied one: speed .4, amplitude 2.5, waveScale .6,
+     waveRatio .9, swell 35, turbulence 20, tilt 1.11, zoom 1, height 5.5,
+     fogDepth 15, detail medium (70 steps), brightness 1, opacity 1, grain on
+     at .05, mouse on with parallax .5.                                     */
   function drawWaves() {
     var canvas = document.getElementById("waves");
     if (!canvas) return;
 
-    var gl = canvas.getContext("webgl2", { antialias: false, alpha: true });
+    var gl = canvas.getContext("webgl2", {
+      alpha: true,
+      premultipliedAlpha: true,
+      antialias: false
+    });
     if (!gl) return;   // No WebGL 2: the panel keeps its own background.
 
-    var VERT =
-      "#version 300 es\n" +
-      "in vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }";
+    var VERT = `#version 300 es
+in vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+`;
 
-    var FRAG =
-      "#version 300 es\n" +
-      "precision highp float;\n" +
-      "uniform vec2 res; uniform float t; uniform vec2 mouse;\n" +
-      "uniform vec3 cHorizon, cWave, cCrest;\n" +
-      "out vec4 frag;\n" +
-      // Height field: a few sines at different scales and angles. The lowest
-      // frequency is the swell; the rest is chop riding on it.
-      "float wave(vec2 q){\n" +
-      "  float h = sin(q.x * 0.42 + t * 0.55) * 1.00;\n" +
-      "  h += sin(q.y * 0.31 - t * 0.41) * 0.85;\n" +
-      "  h += sin((q.x + q.y) * 0.67 + t * 0.83) * 0.42;\n" +
-      "  h += sin((q.x - q.y * 1.7) * 1.13 - t * 1.21) * 0.18;\n" +
-      "  return h * 0.55;\n" +
-      "}\n" +
-      "void main(){\n" +
-      "  vec2 uv = (gl_FragCoord.xy * 2.0 - res) / res.y;\n" +
-      "  uv.x += mouse.x * 0.12; uv.y += mouse.y * 0.05;\n" +
-      // Camera sits above the field, tilted down toward the horizon.
-      "  vec3 ro = vec3(0.0, 2.6, -t * 1.3);\n" +
-      "  vec3 rd = normalize(vec3(uv.x, uv.y * 0.62 - 0.30, 1.0));\n" +
-      "  float d = 0.0; float hit = 0.0; vec3 pos = ro;\n" +
-      "  for (int i = 0; i < 56; i++) {\n" +
-      "    pos = ro + rd * d;\n" +
-      "    float diff = pos.y - wave(pos.xz);\n" +
-      "    if (diff < 0.035) { hit = 1.0; break; }\n" +
-      "    d += max(diff * 0.42, 0.06);\n" +
-      "    if (d > 44.0) break;\n" +
-      "  }\n" +
-      "  vec3 col = cHorizon;\n" +
-      "  if (hit > 0.5) {\n" +
-      // Crest weight from the local slope: steep water catches the light.
-      "    float e = 0.12;\n" +
-      "    float hx = wave(pos.xz + vec2(e, 0.0)) - wave(pos.xz - vec2(e, 0.0));\n" +
-      "    float hz = wave(pos.xz + vec2(0.0, e)) - wave(pos.xz - vec2(0.0, e));\n" +
-      "    float slope = clamp(length(vec2(hx, hz)) * 2.6, 0.0, 1.0);\n" +
-      "    float crest = smoothstep(0.30, 0.95, slope);\n" +
-      "    col = mix(cWave, cCrest, crest * 0.85);\n" +
-      "    col = mix(col, cHorizon, smoothstep(4.0, 30.0, d));\n" +   // fog
-      "  }\n" +
-      // A little grain, so the gradient does not band on wide flat areas.
-      "  float g = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);\n" +
-      "  col += (g - 0.5) * 0.045;\n" +
-      "  float edge = smoothstep(0.0, 0.45, uv.y + 0.75);\n" +
-      "  frag = vec4(col, edge);\n" +
-      "}";
+    var FRAG = `#version 300 es
+precision highp float;
+uniform vec2 iResolution;
+uniform float iTime;
+uniform float uSpeed;
+uniform float uAmplitude;
+uniform float uWaveScale;
+uniform float uWaveRatio;
+uniform float uSwell;
+uniform float uTurbulence;
+uniform float uTilt;
+uniform float uZoom;
+uniform float uHeight;
+uniform float uFogDepth;
+uniform float uSteps;
+uniform float uBrightness;
+uniform float uOpacity;
+uniform float uGrain;
+uniform float uGrainIntensity;
+uniform vec2 uMouse;
+uniform float uParallax;
+uniform bool uEnableMouse;
+uniform vec3 uHorizonColor;
+uniform vec3 uWaveColor;
+uniform vec3 uCrestColor;
+out vec4 fragColor;
+
+const float MAX_DIST = 20000.0;
+
+float hash21(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
+float plasma(vec3 r, vec2 freq, vec4 tc) {
+  float mx = r.x + tc.x;
+  mx += uSwell * sin((r.y + mx) / 20.0 + tc.y);
+  float my = r.y - tc.z;
+  my += uTurbulence * cos(r.x / 23.0 + tc.w);
+  return r.z - (sin(mx * freq.x) * uAmplitude + sin(my * freq.y) * uAmplitude + uHeight);
+}
+
+float raymarch(vec3 pos, vec3 dir, vec2 freq, vec4 tc) {
+  float dist = 0.0;
+  for (int i = 0; i < 128; i++) {
+    if (float(i) >= uSteps) break;
+    float dscene = plasma(pos + dist * dir, freq, tc);
+    if (abs(dscene) < 0.1) break;
+    dist += 0.9 * dscene;
+    if (!(abs(dist) < MAX_DIST)) return MAX_DIST;
+  }
+  return dist;
+}
+
+void main() {
+  float T = iTime * uSpeed;
+  vec2 freq = vec2(uWaveScale / 7.0, (uWaveScale * uWaveRatio) / 3.0);
+  vec4 tc = vec4(T / 0.130, T / 0.810, T / 0.200, T / 0.710);
+  float c, s;
+  float vfov = (3.14159 / 2.3) / max(uZoom, 0.05);
+  vec3 cam = vec3(0.0, 0.0, 30.0);
+  vec2 uv = (gl_FragCoord.xy / iResolution.xy) - 0.5;
+  uv.x *= iResolution.x / iResolution.y;
+  uv.y *= -1.0;
+
+  vec3 dir = vec3(0.0, 0.0, -1.0);
+  float ulen = length(uv);
+  float xrot = vfov * ulen;
+  c = cos(xrot); s = sin(xrot);
+  dir = mat3(1.0, 0.0, 0.0, 0.0, c, -s, 0.0, s, c) * dir;
+  vec2 nuv = ulen > 1e-5 ? uv / ulen : vec2(1.0, 0.0);
+  c = nuv.x; s = nuv.y;
+  dir = mat3(c, -s, 0.0, s, c, 0.0, 0.0, 0.0, 1.0) * dir;
+  c = cos(uTilt); s = sin(uTilt);
+  dir = mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c) * dir;
+
+  if (uEnableMouse) {
+    float yaw = (uMouse.x - 0.5) * uParallax * 0.4;
+    float pitch = (uMouse.y - 0.5) * uParallax * 0.4;
+    c = cos(yaw); s = sin(yaw);
+    dir = mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c) * dir;
+    c = cos(pitch); s = sin(pitch);
+    dir = mat3(1.0, 0.0, 0.0, 0.0, c, -s, 0.0, s, c) * dir;
+  }
+
+  float dist = raymarch(cam, dir, freq, tc);
+  vec3 pos = cam + dist * dir;
+
+  float t = clamp(uFogDepth / max(dist, 0.001), 0.0, 1.0);
+  vec3 body = mix(uWaveColor, uCrestColor, clamp(pos.z * 0.08 + 0.5, 0.0, 1.0));
+  vec3 col = mix(uHorizonColor, body, t);
+  col *= uBrightness;
+  col = clamp(col, 0.0, 1.0);
+
+  float alpha = clamp(t, 0.0, 1.0) * uOpacity;
+  if (uGrain > 0.5) {
+    float g = hash21(gl_FragCoord.xy + mod(iTime, 64.0) * 11.0);
+    alpha += (g - 0.5) * uGrainIntensity;
+  }
+  alpha = clamp(alpha, 0.0, 1.0);
+  fragColor = vec4(col * alpha, alpha);
+}
+`;
 
     function compile(type, src) {
       var sh = gl.createShader(type);
@@ -192,7 +256,6 @@
       gl.compileShader(sh);
       return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null;
     }
-
     var vs = compile(gl.VERTEX_SHADER, VERT);
     var fs = compile(gl.FRAGMENT_SHADER, FRAG);
     if (!vs || !fs) return;
@@ -204,69 +267,109 @@
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
     gl.useProgram(prog);
 
-    // One triangle covering the viewport — cheaper than two, and no seam.
+    // ogl's Triangle: one oversized triangle covering the viewport.
     var buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    var loc = gl.getAttribLocation(prog, "p");
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    var aPos = gl.getAttribLocation(prog, "position");
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-    var uRes = gl.getUniformLocation(prog, "res");
-    var uT = gl.getUniformLocation(prog, "t");
-    var uMouse = gl.getUniformLocation(prog, "mouse");
-    gl.uniform3f(gl.getUniformLocation(prog, "cHorizon"), 0.039, 0.063, 0.188);
-    gl.uniform3f(gl.getUniformLocation(prog, "cWave"), 0.220, 0.310, 1.000);
-    gl.uniform3f(gl.getUniformLocation(prog, "cCrest"), 0.855, 0.890, 1.000);
+    function u(name) { return gl.getUniformLocation(prog, name); }
 
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-    var mx = 0, my = 0, tx = 0, ty = 0;
-    var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    function size() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      var w = Math.max(1, Math.round(canvas.clientWidth * dpr));
-      var hh = Math.max(1, Math.round(canvas.clientHeight * dpr));
-      if (canvas.width !== w || canvas.height !== hh) {
-        canvas.width = w; canvas.height = hh;
-        gl.viewport(0, 0, w, hh);
-      }
-      gl.uniform2f(uRes, canvas.width, canvas.height);
+    function hexToRgb(hex) {
+      var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      if (!m) return [1, 1, 1];
+      return [parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255];
     }
 
-    function render(time) {
-      size();
-      tx += (mx - tx) * 0.06;
-      ty += (my - ty) * 0.06;
-      gl.uniform2f(uMouse, tx, ty);
-      gl.uniform1f(uT, (time || 0) * 0.0004);
+    // The supplied configuration.
+    gl.uniform1f(u("uSpeed"), 0.4);
+    gl.uniform1f(u("uAmplitude"), 2.5);
+    gl.uniform1f(u("uWaveScale"), 0.6);
+    gl.uniform1f(u("uWaveRatio"), 0.9);
+    gl.uniform1f(u("uSwell"), 35.0);
+    gl.uniform1f(u("uTurbulence"), 20.0);
+    gl.uniform1f(u("uTilt"), 1.11);
+    gl.uniform1f(u("uZoom"), 1.0);
+    gl.uniform1f(u("uHeight"), 5.5);
+    gl.uniform1f(u("uFogDepth"), 15.0);
+    gl.uniform1f(u("uSteps"), 70.0);          // detail: medium
+    gl.uniform1f(u("uBrightness"), 1.0);
+    gl.uniform1f(u("uOpacity"), 1.0);
+    gl.uniform1f(u("uGrain"), 1.0);
+    gl.uniform1f(u("uGrainIntensity"), 0.05);
+    gl.uniform1f(u("uParallax"), 0.5);
+    gl.uniform1i(u("uEnableMouse"), 1);
+    gl.uniform3fv(u("uHorizonColor"), hexToRgb("#5227FF"));
+    gl.uniform3fv(u("uWaveColor"), hexToRgb("#FF9FFC"));
+    gl.uniform3fv(u("uCrestColor"), hexToRgb("#FFFFFF"));
+
+    var uRes = u("iResolution"), uTime = u("iTime"), uMouse = u("uMouse");
+
+    // premultipliedAlpha: the shader already multiplies colour by alpha.
+    gl.clearColor(0, 0, 0, 0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+    function setSize() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+      var h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w; canvas.height = h;
+        gl.viewport(0, 0, w, h);
+      }
+      gl.uniform2f(uRes, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    }
+
+    if (window.ResizeObserver) new ResizeObserver(setSize).observe(canvas);
+    else window.addEventListener("resize", setSize);
+    setSize();
+
+    var cur = [0.5, 0.5], tgt = [0.5, 0.5];
+    canvas.parentNode.addEventListener("pointermove", function (e) {
+      var r = canvas.getBoundingClientRect();
+      tgt[0] = (e.clientX - r.left) / r.width;
+      tgt[1] = 1.0 - (e.clientY - r.top) / r.height;
+    }, { passive: true });
+    canvas.parentNode.addEventListener("pointerleave", function () {
+      tgt[0] = 0.5; tgt[1] = 0.5;
+    }, { passive: true });
+
+    var t0 = performance.now();
+    function frame(now) {
+      setSize();
+      cur[0] += 0.05 * (tgt[0] - cur[0]);
+      cur[1] += 0.05 * (tgt[1] - cur[1]);
+      gl.uniform2f(uMouse, cur[0], cur[1]);
+      gl.uniform1f(uTime, (now - t0) * 0.001);
+      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       canvas.setAttribute("data-ready", "true");
     }
 
-    if (reduced) { render(3000); return; }   // One frame, then stop.
-
-    var running = false, raf = 0;
-    function loop(time) { render(time); raf = requestAnimationFrame(loop); }
-
-    // Only while it is on screen. A shader running behind a scrolled-past
-    // section is pure battery.
-    if (window.IntersectionObserver) {
-      new IntersectionObserver(function (entries) {
-        var visible = entries[0].isIntersecting;
-        if (visible && !running) { running = true; raf = requestAnimationFrame(loop); }
-        else if (!visible && running) { running = false; cancelAnimationFrame(raf); }
-      }, { threshold: 0.01 }).observe(canvas);
-    } else {
-      running = true; raf = requestAnimationFrame(loop);
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      frame(t0 + 3000);   // One frame, held.
+      return;
     }
 
-    document.addEventListener("mousemove", function (e) {
-      mx = (e.clientX / window.innerWidth) * 2 - 1;
-      my = (e.clientY / window.innerHeight) * 2 - 1;
-    }, { passive: true });
+    var raf = 0, onScreen = true, pageOn = !document.hidden;
+    function loop(now) { frame(now); raf = requestAnimationFrame(loop); }
+    function start() { if (onScreen && pageOn && !raf) raf = requestAnimationFrame(loop); }
+    function stop() { if (raf) { cancelAnimationFrame(raf); raf = 0; } }
+
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (e) {
+        onScreen = e[0].isIntersecting;
+        onScreen ? start() : stop();
+      }, { threshold: 0 }).observe(canvas);
+    }
+    document.addEventListener("visibilitychange", function () {
+      pageOn = !document.hidden;
+      pageOn ? start() : stop();
+    });
+    start();
   }
 
   wireAppLinks();
