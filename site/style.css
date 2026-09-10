@@ -764,10 +764,20 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 /* The mound sits behind the copy, anchored to the bottom-right corner. It is
    a field of records — the pile you are handing over — with the few that rank
    picked out brighter. */
-#mound {
-  position: absolute; z-index: -1; right: 0; bottom: 0;
-  width: min(58%, 30rem); height: 78%;
+#waves {
+  position: absolute; z-index: -1; inset: 0;
+  width: 100%; height: 100%;
   pointer-events: none;
+  /* Shown only once the first frame is drawn, so a failed context leaves the
+     panel's own background rather than a black rectangle. */
+  opacity: 0; transition: opacity .6s ease;
+}
+#waves[data-ready="true"] { opacity: 1; }
+/* The copy sits over the right-hand end of the field, so it needs a floor of
+   contrast that does not depend on where a crest happens to be. */
+.close-cta .panel::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(100deg, var(--hero-bg) 34%, rgba(10, 16, 48, .55) 62%, transparent 88%);
 }
 .close-cta h2 {
   max-width: 46ch; line-height: 1.3;
