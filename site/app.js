@@ -372,7 +372,48 @@ void main() {
     start();
   }
 
+  /* ── border glow ────────────────────────────────────────────
+     All React did for this component was set two custom properties from a
+     pointermove: how close the cursor is to an edge, and its angle from the
+     centre. The stylesheet does everything else.
+
+     Edge proximity is the component's own measure — the ratio of the cursor's
+     offset to the half-extent it would need to reach the boundary along
+     whichever axis it reaches first — so it hits 100 exactly at the border
+     and falls to 0 dead centre.                                            */
+  function wireBorderGlow() {
+    var cards = document.querySelectorAll(".border-glow-card");
+    if (!cards.length) return;
+
+    function onMove(card, e) {
+      var rect = card.getBoundingClientRect();
+      var cx = rect.width / 2, cy = rect.height / 2;
+      var dx = (e.clientX - rect.left) - cx;
+      var dy = (e.clientY - rect.top) - cy;
+
+      var kx = dx !== 0 ? cx / Math.abs(dx) : Infinity;
+      var ky = dy !== 0 ? cy / Math.abs(dy) : Infinity;
+      var edge = Math.min(Math.max(1 / Math.min(kx, ky), 0), 1);
+
+      var angle = 0;
+      if (dx !== 0 || dy !== 0) {
+        angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+        if (angle < 0) angle += 360;
+      }
+
+      card.style.setProperty("--edge-proximity", (edge * 100).toFixed(3));
+      card.style.setProperty("--cursor-angle", angle.toFixed(3) + "deg");
+    }
+
+    for (var i = 0; i < cards.length; i++) {
+      (function (card) {
+        card.addEventListener("pointermove", function (e) { onMove(card, e); }, { passive: true });
+      })(cards[i]);
+    }
+  }
+
   wireAppLinks();
+  wireBorderGlow();
   setUpConsent();
   drawWaves();
   wireShortcuts();
