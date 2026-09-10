@@ -220,7 +220,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .hero-visual {
   border-top: 1px solid var(--hero-line);
   display: grid; grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: minmax(8rem, 1fr);
+  grid-auto-rows: minmax(6.5rem, 1fr);
   /* Trailing rules run under the panel border rather than doubling on it. */
   margin: 0 -1px -1px 0;
 }
@@ -574,6 +574,69 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
     stroke-dashoffset: 0; opacity: .8;
   }
   .an-bar i { transform: scaleX(.65); }
+}
+
+
+/* 09 — verified. The first tick strokes on, swelling to 1.2 and settling; the
+   second arrives a beat later, sliding in from the left. Both timings are the
+   supplied ones, mapped onto a 5.2s loop so the pair rests between passes. */
+.an-check { color: var(--confirmed); }
+.an-check path { stroke-dasharray: 1; transform-box: fill-box; transform-origin: center; }
+.an-check .t1 { animation: checkOne 5.2s ease-in-out infinite; }
+@keyframes checkOne {
+  0%          { stroke-dashoffset: 1; opacity: .5; transform: scale(1); }
+  6.7%        { transform: scale(1.2); }
+  13.5%, 86%  { stroke-dashoffset: 0; opacity: 1; transform: scale(1); }
+  100%        { stroke-dashoffset: 1; opacity: .5; transform: scale(1); }
+}
+.an-check .t2 { animation: checkTwo 5.2s ease-out infinite; }
+@keyframes checkTwo {
+  0%, 6.7%    { stroke-dashoffset: 1; opacity: 0; transform: translateX(-6px); }
+  16.3%, 86%  { stroke-dashoffset: 0; opacity: 1; transform: translateX(0); }
+  100%        { stroke-dashoffset: 1; opacity: 0; transform: translateX(-6px); }
+}
+
+/* 10 — a finding surfaced. The bell swings on the supplied rotation track,
+   hinged at the top; the clapper follows the same rhythm slightly behind, and
+   the waves pulse out either side. 1.3s of ring inside a 5.6s loop. */
+.an-bell { color: var(--likely); transform-origin: top center; animation: bellSwing 5.6s ease-in-out infinite; }
+@keyframes bellSwing {
+  0%     { rotate: 0deg; }
+  2.1%   { rotate: 7deg; }
+  6%     { rotate: -18deg; }
+  10.4%  { rotate: 14deg; }
+  14.4%  { rotate: -9deg; }
+  18.1%  { rotate: 5deg; }
+  20.9%  { rotate: -2deg; }
+  23.2%, 100% { rotate: 0deg; }
+}
+.an-bell .clapper { transform-box: fill-box; transform-origin: center; animation: bellClapper 5.6s ease-in-out infinite; }
+@keyframes bellClapper {
+  0%, 1.4% { transform: translateX(0); }
+  3.5%     { transform: translateX(1.5px); }
+  7.4%     { transform: translateX(-5px); }
+  11.8%    { transform: translateX(4px); }
+  15.8%    { transform: translateX(-2.5px); }
+  19.5%    { transform: translateX(1.5px); }
+  22.3%    { transform: translateX(-1px); }
+  24.6%, 100% { transform: translateX(0); }
+}
+.an-bell .wave { transform-box: fill-box; animation: bellWave 5.6s ease-out infinite; }
+.an-bell .wave.left  { transform-origin: 100% 100%; }
+.an-bell .wave.right { transform-origin: 0% 100%; }
+@keyframes bellWave {
+  0%, 1.4%    { opacity: 0;   scale: .5; }
+  7.2%        { opacity: 1;   scale: 1.15; }
+  13%         { opacity: .25; scale: .7; }
+  18.8%       { opacity: 1;   scale: 1.15; }
+  24.6%, 100% { opacity: 1;   scale: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .an-check path, .an-bell, .an-bell .clapper, .an-bell .wave { animation: none; }
+  /* Left in the state each one ends on, so both still read. */
+  .an-check path { stroke-dashoffset: 0; opacity: 1; transform: none; }
+  .an-bell .wave { opacity: 1; scale: 1; }
 }
 
 /* ── panels: the hero's frame, reused down the page ──────── */
