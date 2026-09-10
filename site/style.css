@@ -442,25 +442,28 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   92%, 100% { stroke-dashoffset: -1; opacity: .25; }
 }
 
-/* 01 — upload. The arrow lifts once the outline has drawn. */
-.an-upload { --dur: 3.7s; }
-.an-upload .arrow { animation: drawOn 3.7s ease-in-out infinite, upLift 3.7s ease-in-out infinite; }
-@keyframes upLift {
-  0%, 30%, 100% { transform: translateY(0); }
-  50%           { transform: translateY(-2.5px); }
+/* 01 — upload. The plane leaves top-right, vanishes, and comes back in from
+   bottom-left. Keyframe values are the supplied variant's, mapped onto a
+   4.8 s loop so the 1.4 s flight is followed by a rest: the action occupies
+   the first 29%. */
+.an-send { animation: sendOff 4.8s ease-in-out infinite; }
+@keyframes sendOff {
+  0%     { transform: translate(0, 0) scale(1);        opacity: 1; }
+  5.8%   { transform: translate(6px, -4px) scale(.85); opacity: 1; }
+  11.7%  { transform: translate(16px, -16px) scale(0); opacity: 0; }
+  17.5%  { transform: translate(-16px, 16px) scale(0); opacity: 0; }
+  29.2%  { transform: translate(0, 0) scale(1);        opacity: 1; }
+  100%   { transform: translate(0, 0) scale(1);        opacity: 1; }
 }
 
-/* 02 — scan. A ring opens out of the magnifier as it draws. */
-.an-scan { --dur: 4.3s; position: relative; display: grid; place-items: center; }
-.an-scan .ring {
-  position: absolute; width: 15px; height: 15px; border-radius: 50%;
-  border: 1px solid currentColor;
-  animation: scanRing 4.3s ease-out infinite;
-}
-@keyframes scanRing {
-  0%, 20%   { transform: scale(.55); opacity: 0; }
-  35%       { opacity: .75; }
-  75%, 100% { transform: scale(2.5); opacity: 0; }
+/* 02 — the dependency graph. Two crossed orbits turning around one nucleus,
+   which is what the graph is: everything circling a single record. Rotation
+   is linear and never rests; the scale pulse rides on top of it. */
+.an-atom { animation: atomSpin 2s linear infinite, atomPulse 4s ease-in-out infinite; }
+@keyframes atomSpin  { to { transform: rotate(360deg); } }
+@keyframes atomPulse {
+  0%, 100% { scale: 1; }
+  50%      { scale: 1.1; }
 }
 
 /* 03 — the record field keeps its own staggered squares (see .pixel). */
@@ -517,12 +520,18 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 
 /* 07 — ranking. The labels resolve one after another. */
-.chip-stack .label { animation: chipIn 6.1s ease-out infinite; }
+/* 07 — ranking. Each label squashes, overshoots and settles, so it lands
+   rather than sliding in. The curve is the supplied one. */
+.chip-stack .label {
+  animation: chipPop 6.1s cubic-bezier(.34, 1.56, .64, 1) infinite;
+}
 .chip-stack .label:nth-child(2) { animation-delay: .55s; }
-@keyframes chipIn {
-  0%, 8%    { opacity: 0; transform: translateY(4px); }
-  20%, 80%  { opacity: 1; transform: none; }
-  95%, 100% { opacity: 0; transform: translateY(-3px); }
+@keyframes chipPop {
+  0%, 8%    { opacity: 0;   transform: scale(.7); }
+  12%       { opacity: .85; transform: scale(.9); }
+  16%       { opacity: 1;   transform: scale(1.08); }
+  20%, 80%  { opacity: 1;   transform: scale(1); }
+  95%, 100% { opacity: 0;   transform: scale(.9); }
 }
 
 /* 08 — cannot edit. The tool dims and settles back while a slash draws
@@ -552,7 +561,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .draw path, .draw circle, .draw rect, .draw line, .draw polyline,
-  .an-upload .arrow, .an-scan .ring, .an-bar i,
+  .an-send, .an-atom, .an-bar i,
   .an-radio .ring, .an-radio .dot,
   .an-noedit .tool, .an-noedit .slash,
   .chip-stack .label, .mini-row .hi { animation: none; }
@@ -564,7 +573,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   .draw path, .draw circle, .draw rect, .draw line, .draw polyline {
     stroke-dashoffset: 0; opacity: .8;
   }
-  .an-scan .ring { opacity: .3; transform: scale(1.5); }
   .an-bar i { transform: scaleX(.65); }
 }
 
