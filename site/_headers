@@ -9,11 +9,18 @@
   Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
   Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; form-action 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'
 
-# Fingerprint-free filenames, so cache conservatively but let the CDN help.
+# The filenames carry no fingerprint, so a cached style.css can outlive the
+# HTML that came with it — the page is served fresh while the stylesheet is up
+# to ten minutes old, and the site renders as a mix of two deploys. Revalidate
+# these on every request like the HTML: a conditional GET costs one round trip
+# and usually returns 304, and 28 KB of CSS is not worth a broken page.
+#
+# If these ever need real caching, the answer is fingerprinted filenames, which
+# needs a build step this site deliberately does not have.
 /style.css
-  Cache-Control: public, max-age=600, must-revalidate
+  Cache-Control: public, max-age=0, must-revalidate
 /app.js
-  Cache-Control: public, max-age=600, must-revalidate
+  Cache-Control: public, max-age=0, must-revalidate
 /maica-logo.png
   Cache-Control: public, max-age=604800
 /favicon.png
