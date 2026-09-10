@@ -26,22 +26,22 @@ import { Camera, Mesh, Plane, Program, Renderer, Texture, Transform } from "./ve
 const FEATURES = [
   {
     k: "Ingestion",
-    t: "Two evidence types,\none timeline",
+    t: ["Two evidence types,", "one timeline"],
     b: "Saved searches and System Notes normalise into a single record shape, so a configuration change and the script that ran afterwards sit on the same clock. Nothing in the reasoning layer knows which file a row arrived in.",
   },
   {
     k: "Reasoning",
-    t: "Ranked,\nnot listed",
+    t: ["Ranked,", "not listed"],
     b: "Factors are ordered by strength of support, so the top of the page is where to start. Ranking uses the account's own distribution, which is what lets it work on accounts customised differently from each other.",
   },
   {
     k: "Provenance",
-    t: "Every claim\ncites its row",
+    t: ["Every claim", "cites its row"],
     b: "Each factor traces back to the exact stored record behind it, so a finding can be checked instead of trusted. The original upload is kept for the same reason.",
   },
   {
     k: "Access",
-    t: "Read-only\nby construction",
+    t: ["Read-only", "by construction"],
     b: "There is no code in MAICA that writes to NetSuite. Uploads never touch your account at all, and the planned live connection requests read access only.",
   },
 ];
@@ -51,11 +51,13 @@ const FEATURES = [
 const VISIBLE = 4;
 
 const LABEL_FONT = 'bold 30px "IBM Plex Mono", ui-monospace, monospace';
-/* Portrait, matching the plane's 700x900 proportion. The fragment shader
-   cover-fits the texture, so a landscape card gets trimmed at both sides —
-   which is what cut the titles in half. */
-const CARD_W = 760;
-const CARD_H = 980;
+/* Portrait, and drawn at roughly twice the size it is displayed at. The
+   card was previously about one texel per screen pixel, which leaves the
+   sampler no headroom and reads as soft. Every measurement below is a
+   fraction of the card, so this resolution can change without retouching
+   the layout. */
+const CARD_W = 1520;
+const CARD_H = 1960;
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -95,8 +97,12 @@ function drawCard(feature) {
   c.width = CARD_W;
   c.height = CARD_H;
   const x = c.getContext("2d");
-  const pad = 58;
+
+  const pad = CARD_W * 0.085;
   const inner = CARD_W - pad * 2;
+  const labelSize = Math.round(CARD_W * 0.040);
+  const titleSize = Math.round(CARD_W * 0.082);
+  const bodySize = Math.round(CARD_W * 0.044);
 
   x.fillStyle = "#12162e";
   x.fillRect(0, 0, CARD_W, CARD_H);
@@ -108,36 +114,36 @@ function drawCard(feature) {
   x.fillRect(0, 0, CARD_W, CARD_H);
 
   x.strokeStyle = "rgba(255, 255, 255, 0.20)";
-  x.lineWidth = 2;
-  x.strokeRect(1, 1, CARD_W - 2, CARD_H - 2);
+  x.lineWidth = CARD_W * 0.0026;
+  x.strokeRect(x.lineWidth / 2, x.lineWidth / 2, CARD_W - x.lineWidth, CARD_H - x.lineWidth);
 
   x.textBaseline = "top";
 
   x.fillStyle = "#9db0ff";
-  x.font = '500 24px "IBM Plex Mono", ui-monospace, monospace';
-  x.fillText(feature.k.toUpperCase(), pad, 62);
+  x.font = `500 ${labelSize}px "IBM Plex Mono", ui-monospace, monospace`;
+  x.fillText(feature.k.toUpperCase(), pad, CARD_H * 0.062);
 
   x.strokeStyle = "rgba(157, 176, 255, 0.30)";
-  x.lineWidth = 1;
+  x.lineWidth = CARD_W * 0.0013;
   x.beginPath();
-  x.moveTo(pad, 108);
-  x.lineTo(CARD_W - pad, 108);
+  x.moveTo(pad, CARD_H * 0.115);
+  x.lineTo(CARD_W - pad, CARD_H * 0.115);
   x.stroke();
 
   x.fillStyle = "#f5f6f1";
-  x.font = '500 46px "IBM Plex Mono", ui-monospace, monospace';
-  let y = 162;
-  for (const line of feature.t.split("\n")) {
+  x.font = `500 ${titleSize}px "IBM Plex Mono", ui-monospace, monospace`;
+  let y = CARD_H * 0.168;
+  for (const line of feature.t) {
     x.fillText(line, pad, y);
-    y += 60;
+    y += titleSize * 1.22;
   }
 
-  x.fillStyle = "rgba(245, 246, 241, 0.66)";
-  x.font = '400 26px "Schibsted Grotesk", system-ui, sans-serif';
-  y += 34;
+  x.fillStyle = "rgba(245, 246, 241, 0.72)";
+  x.font = `400 ${bodySize}px "Schibsted Grotesk", system-ui, sans-serif`;
+  y += bodySize * 1.3;
   for (const line of wrap(x, feature.b, inner)) {
     x.fillText(line, pad, y);
-    y += 40;
+    y += bodySize * 1.5;
   }
 
   return c;
@@ -226,7 +232,17 @@ class Media {
   }
 
   createShader() {
-    const texture = new Texture(this.gl, { generateMipmaps: true });
+    /* ogl defaults minFilter to NEAREST_MIPMAP_LINEAR whenever mipmaps are
+       generated, which picks the nearest texel inside each level — that is
+       what makes small type look chewed. Trilinear plus anisotropy keeps
+       the card legible as it turns away from the camera. */
+    const gl = this.gl;
+    const texture = new Texture(gl, {
+      generateMipmaps: true,
+      minFilter: gl.LINEAR_MIPMAP_LINEAR,
+      magFilter: gl.LINEAR,
+      anisotropy: 8,
+    });
     this.program = new Program(this.gl, {
       depthTest: false,
       depthWrite: false,
