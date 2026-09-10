@@ -46,6 +46,10 @@ const FEATURES = [
   },
 ];
 
+/* Exactly this many cards span the viewport, so the card size follows from
+   the container rather than from a fixed pixel scale. */
+const VISIBLE = 4;
+
 const LABEL_FONT = 'bold 30px "IBM Plex Mono", ui-monospace, monospace';
 /* Portrait, matching the plane's 700x900 proportion. The fragment shader
    cover-fits the texture, so a landscape card gets trimmed at both sides —
@@ -190,11 +194,18 @@ class Title {
       transparent: true,
     });
     this.mesh = new Mesh(gl, { geometry: new Plane(gl), program });
-    const th = plane.scale.y * 0.15;
-    const tw = th * (width / height);
-    this.mesh.scale.set(tw, th, 1);
-    this.mesh.position.y = -plane.scale.y * 0.5 - th * 0.5 - 0.05;
+    this.plane = plane;
+    this.aspect = width / height;
     this.mesh.setParent(plane);
+    this.layout();
+  }
+
+  /* The original's own placement, lifted into a method so it can re-run: the
+     plane's height is no longer fixed, so the label has to follow it. */
+  layout() {
+    const th = this.plane.scale.y * 0.15;
+    this.mesh.scale.set(th * this.aspect, th, 1);
+    this.mesh.position.y = -this.plane.scale.y * 0.5 - th * 0.5 - 0.05;
   }
 }
 
@@ -328,14 +339,33 @@ class Media {
   onResize({ screen, viewport } = {}) {
     if (screen) this.screen = screen;
     if (viewport) this.viewport = viewport;
-    this.scale = this.screen.height / 1500;
-    this.plane.scale.y = (this.viewport.height * (900 * this.scale)) / this.screen.height;
-    this.plane.scale.x = (this.viewport.width * (700 * this.scale)) / this.screen.width;
-    this.plane.program.uniforms.uPlaneSizes.value = [this.plane.scale.x, this.plane.scale.y];
-    this.padding = 2;
-    this.width = this.plane.scale.x + this.padding;
+
+    /* Four slots across the viewport. The card takes the slot less a gap, and
+       its height follows the card artwork's own proportion so the shader's
+       cover-fit has nothing to trim.
+
+       Height is then capped, because a quarter-width portrait card can be
+       taller than the viewport once its label is allowed for — and the label
+       hangs below the plane. */
+    this.width = this.viewport.width / VISIBLE;
+    this.padding = this.width * 0.14;
+
+    let w = this.width - this.padding;
+    let h = w * (CARD_H / CARD_W);
+    const maxH = this.viewport.height * 0.72;
+    if (h > maxH) {
+      h = maxH;
+      w = h * (CARD_W / CARD_H);
+    }
+
+    this.plane.scale.x = w;
+    this.plane.scale.y = h;
+    this.plane.program.uniforms.uPlaneSizes.value = [w, h];
+
     this.widthTotal = this.width * this.length;
     this.x = this.width * this.index;
+
+    if (this.title) this.title.layout();
   }
 }
 

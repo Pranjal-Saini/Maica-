@@ -812,6 +812,11 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   .an-bell .wave { opacity: 1; scale: 1; }
 }
 
+.section-head.centred {
+  margin-left: auto; margin-right: auto; text-align: center;
+}
+.section-head.centred h2 + p { margin-left: auto; margin-right: auto; }
+
 /* ── feature gallery ─────────────────────────────────────────
    The WebGL canvas is decorative: the same four features are written out
    underneath in the panel, which is what a screen reader and a crawler
@@ -819,7 +824,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
    leaves a gap rather than a black band. */
 #feature-gallery {
   position: relative;
-  height: clamp(20rem, 42vw, 30rem);
+  height: clamp(24rem, 46vw, 36rem);
   margin-top: 2.75rem;
   overflow: hidden;
   cursor: grab;
