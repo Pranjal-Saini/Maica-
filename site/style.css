@@ -399,6 +399,95 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   margin-top: 1.6rem; text-align: center; font-size: .84rem; color: var(--on-ink-faint);
 }
 
+
+/* ── one animation per cell ──────────────────────────────────
+   Each cell animates the stage it stands for, so the panel reads as a pass
+   through the pipeline rather than a set of decorated boxes. All of it is
+   transform and opacity, which the compositor handles without touching
+   layout, and all of it stops under prefers-reduced-motion at the foot of
+   this block.
+
+   Durations are deliberately unequal and prime-ish, so the cells drift out
+   of phase instead of pulsing together like a heartbeat. */
+
+/* 01 — upload: the arrow lifts and repeats. */
+.an-upload { animation: upLift 3.1s ease-in-out infinite; }
+@keyframes upLift {
+  0%, 68%, 100% { transform: translateY(2px); opacity: .45; }
+  80%           { transform: translateY(-3px); opacity: 1; }
+}
+
+/* 02 — scan: a ring opens out of the magnifier and fades. */
+.an-scan { position: relative; display: grid; place-items: center; }
+.an-scan .ring {
+  position: absolute; width: 16px; height: 16px; border-radius: 50%;
+  border: 1px solid var(--brand-light);
+  animation: scanRing 3.7s ease-out infinite;
+}
+@keyframes scanRing {
+  0%        { transform: scale(.5); opacity: .8; }
+  60%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* 03 — the record field keeps its own staggered squares (see .pixel). */
+
+/* 04 — the change: the arrow between old and new value pulses. */
+.mini-row .hi { animation: arrowPulse 2.9s ease-in-out infinite; }
+@keyframes arrowPulse {
+  0%, 70%, 100% { opacity: .45; }
+  82%           { opacity: 1; }
+}
+
+/* 05 — parsing: a rule fills, holds, and resets. */
+.an-bar {
+  width: 2.6rem; height: .4rem; border-radius: 2px;
+  background: rgba(170, 188, 255, .18); overflow: hidden;
+}
+.an-bar i {
+  display: block; height: 100%; width: 100%; border-radius: 2px;
+  background: var(--brand-light); transform-origin: left center;
+  animation: barFill 4.3s ease-in-out infinite;
+}
+@keyframes barFill {
+  0%        { transform: scaleX(0); }
+  55%, 78%  { transform: scaleX(1); }
+  100%      { transform: scaleX(1); opacity: 0; }
+}
+
+/* 06 — working: an arc turns. */
+.an-arc {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1.5px solid rgba(170, 188, 255, .2);
+  border-top-color: var(--brand-light);
+  animation: arcSpin 2.3s linear infinite;
+}
+@keyframes arcSpin { to { transform: rotate(360deg); } }
+
+/* 07 — ranking: the labels resolve one after another. */
+.chip-stack .label { animation: chipIn 5.9s ease-out infinite; }
+.chip-stack .label:nth-child(2) { animation-delay: .5s; }
+@keyframes chipIn {
+  0%, 8%    { opacity: 0; transform: translateY(4px); }
+  18%, 82%  { opacity: 1; transform: none; }
+  95%, 100% { opacity: 0; transform: translateY(-3px); }
+}
+
+/* 08 — read-only: the shield breathes, slowly. */
+.an-shield { animation: shieldBreathe 5.3s ease-in-out infinite; }
+@keyframes shieldBreathe {
+  0%, 100% { opacity: .38; }
+  50%      { opacity: .85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .an-upload, .an-scan .ring, .an-bar i, .an-arc,
+  .chip-stack .label, .mini-row .hi, .an-shield { animation: none; }
+  /* Left in a readable resting state rather than mid-cycle. */
+  .an-scan .ring { opacity: .3; transform: scale(1.6); }
+  .an-bar i { transform: scaleX(.65); }
+  .an-shield { opacity: .6; }
+}
+
 /* ── panels: the hero's frame, reused down the page ──────── */
 .panel {
   margin-top: 2.75rem;
