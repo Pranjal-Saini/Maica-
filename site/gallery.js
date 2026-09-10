@@ -24,15 +24,34 @@
 import { Camera, Mesh, Plane, Program, Renderer, Texture, Transform } from "./vendor/ogl/index.js";
 
 const FEATURES = [
-  { k: "Ingestion", t: "Two evidence types,\none timeline" },
-  { k: "Reasoning", t: "Ranked,\nnot listed" },
-  { k: "Provenance", t: "Every claim\ncites its row" },
-  { k: "Access", t: "Read-only\nby construction" },
+  {
+    k: "Ingestion",
+    t: "Two evidence types,\none timeline",
+    b: "Saved searches and System Notes normalise into a single record shape, so a configuration change and the script that ran afterwards sit on the same clock. Nothing in the reasoning layer knows which file a row arrived in.",
+  },
+  {
+    k: "Reasoning",
+    t: "Ranked,\nnot listed",
+    b: "Factors are ordered by strength of support, so the top of the page is where to start. Ranking uses the account's own distribution, which is what lets it work on accounts customised differently from each other.",
+  },
+  {
+    k: "Provenance",
+    t: "Every claim\ncites its row",
+    b: "Each factor traces back to the exact stored record behind it, so a finding can be checked instead of trusted. The original upload is kept for the same reason.",
+  },
+  {
+    k: "Access",
+    t: "Read-only\nby construction",
+    b: "There is no code in MAICA that writes to NetSuite. Uploads never touch your account at all, and the planned live connection requests read access only.",
+  },
 ];
 
 const LABEL_FONT = 'bold 30px "IBM Plex Mono", ui-monospace, monospace';
-const CARD_W = 800;
-const CARD_H = 600;
+/* Portrait, matching the plane's 700x900 proportion. The fragment shader
+   cover-fits the texture, so a landscape card gets trimmed at both sides —
+   which is what cut the titles in half. */
+const CARD_W = 760;
+const CARD_H = 980;
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -46,44 +65,76 @@ function debounce(fn, wait) {
   };
 }
 
-/* Each card is drawn rather than photographed: the mono key, a rule, and the
-   feature's title, on the panel colour the rest of the site uses. */
+/* Each card is drawn rather than photographed: the mono key, a rule, the
+   title, and the feature's own explanation — so the card says the whole thing
+   rather than pointing at it. Text is wrapped by measurement, since canvas has
+   no notion of a text box. */
+function wrap(ctx, text, maxWidth) {
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
+  for (const w of words) {
+    const next = line ? line + " " + w : w;
+    if (ctx.measureText(next).width > maxWidth && line) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
 function drawCard(feature) {
   const c = document.createElement("canvas");
   c.width = CARD_W;
   c.height = CARD_H;
   const x = c.getContext("2d");
+  const pad = 58;
+  const inner = CARD_W - pad * 2;
 
   x.fillStyle = "#12162e";
   x.fillRect(0, 0, CARD_W, CARD_H);
 
-  const glow = x.createRadialGradient(CARD_W * 0.75, CARD_H * 0.2, 0, CARD_W * 0.75, CARD_H * 0.2, CARD_W * 0.8);
-  glow.addColorStop(0, "rgba(56, 79, 255, 0.42)");
+  const glow = x.createRadialGradient(CARD_W * 0.8, CARD_H * 0.12, 0, CARD_W * 0.8, CARD_H * 0.12, CARD_W * 1.1);
+  glow.addColorStop(0, "rgba(56, 79, 255, 0.40)");
   glow.addColorStop(1, "rgba(56, 79, 255, 0)");
   x.fillStyle = glow;
   x.fillRect(0, 0, CARD_W, CARD_H);
 
-  x.strokeStyle = "rgba(255, 255, 255, 0.22)";
+  x.strokeStyle = "rgba(255, 255, 255, 0.20)";
   x.lineWidth = 2;
   x.strokeRect(1, 1, CARD_W - 2, CARD_H - 2);
 
-  x.fillStyle = "#9db0ff";
-  x.font = '500 30px "IBM Plex Mono", ui-monospace, monospace';
   x.textBaseline = "top";
-  x.fillText(feature.k.toUpperCase(), 64, 72);
 
-  x.strokeStyle = "rgba(157, 176, 255, 0.35)";
+  x.fillStyle = "#9db0ff";
+  x.font = '500 24px "IBM Plex Mono", ui-monospace, monospace';
+  x.fillText(feature.k.toUpperCase(), pad, 62);
+
+  x.strokeStyle = "rgba(157, 176, 255, 0.30)";
   x.lineWidth = 1;
   x.beginPath();
-  x.moveTo(64, 132);
-  x.lineTo(CARD_W - 64, 132);
+  x.moveTo(pad, 108);
+  x.lineTo(CARD_W - pad, 108);
   x.stroke();
 
   x.fillStyle = "#f5f6f1";
-  x.font = '500 62px "IBM Plex Mono", ui-monospace, monospace';
-  feature.t.split("\n").forEach((line, i) => {
-    x.fillText(line, 64, 208 + i * 82);
-  });
+  x.font = '500 46px "IBM Plex Mono", ui-monospace, monospace';
+  let y = 162;
+  for (const line of feature.t.split("\n")) {
+    x.fillText(line, pad, y);
+    y += 60;
+  }
+
+  x.fillStyle = "rgba(245, 246, 241, 0.66)";
+  x.font = '400 26px "Schibsted Grotesk", system-ui, sans-serif';
+  y += 34;
+  for (const line of wrap(x, feature.b, inner)) {
+    x.fillText(line, pad, y);
+    y += 40;
+  }
 
   return c;
 }
