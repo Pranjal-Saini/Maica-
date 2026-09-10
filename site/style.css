@@ -220,7 +220,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .hero-visual {
   border-top: 1px solid var(--hero-line);
   display: grid; grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: minmax(6.5rem, 1fr);
+  grid-auto-rows: minmax(7.1rem, 1fr);
   /* Trailing rules run under the panel border rather than doubling on it. */
   margin: 0 -1px -1px 0;
 }
@@ -232,7 +232,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   padding: 1.15rem; display: grid; place-items: center;
 }
 .cell .ghost { color: rgba(170, 188, 255, .5); }
-.cell .ghost svg { width: 32px; height: 32px; }
+.cell .ghost svg { width: 42px; height: 42px; }
 
 .mini-row {
   width: 100%; border: 1px solid var(--hero-border); border-radius: 8px;
@@ -266,7 +266,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 
 /* The cell holding it keeps a little air around the field. */
-.cell .pixel { max-width: 9.25rem; }
+.cell .pixel { max-width: 9.9rem; }
 
 @media (prefers-reduced-motion: reduce) {
   /* Static, and still legible: a handful stay lit rather than everything
@@ -436,10 +436,14 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .draw :nth-child(3) { animation-delay: calc(var(--delay, 0s) + .36s); }
 
 @keyframes drawOn {
-  0%        { stroke-dashoffset: 1; opacity: .25; }
-  28%       { stroke-dashoffset: 0; opacity: 1; }
-  72%       { stroke-dashoffset: 0; opacity: 1; }
-  92%, 100% { stroke-dashoffset: -1; opacity: .25; }
+  0%    { stroke-dashoffset: 1; opacity: 0; }
+  6%    { stroke-dashoffset: 1; opacity: .25; }
+  28%   { stroke-dashoffset: 0; opacity: 1; }
+  72%   { stroke-dashoffset: 0; opacity: 1; }
+  90%   { stroke-dashoffset: -1; opacity: .25; }
+  /* Hidden from here, so the offset can snap back unseen. */
+  95%   { stroke-dashoffset: -1; opacity: 0; }
+  100%  { stroke-dashoffset: 1; opacity: 0; }
 }
 
 /* 01 — upload. The plane leaves top-right, vanishes, and comes back in from
@@ -477,7 +481,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 /* 05 — parsing. A rule fills, holds, and clears from the same edge. */
 .an-bar {
-  width: 3.2rem; height: .45rem; border-radius: 2px;
+  width: 3.85rem; height: .5rem; border-radius: 3px;
   background: rgba(170, 188, 255, .18); overflow: hidden;
 }
 .an-bar i {
@@ -486,15 +490,18 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   animation: barFill 4.9s ease-in-out infinite;
 }
 @keyframes barFill {
-  0%       { transform: scaleX(0); }
-  40%, 72% { transform: scaleX(1); }
-  100%     { transform: scaleX(1); opacity: 0; }
+  0%       { transform: scaleX(0); opacity: 1; }
+  40%, 72% { transform: scaleX(1); opacity: 1; }
+  88%      { transform: scaleX(1); opacity: 0; }
+  /* Empty again while invisible, so the reset is not seen. */
+  89%      { transform: scaleX(0); opacity: 0; }
+  100%     { transform: scaleX(0); opacity: 1; }
 }
 
 /* 06 — selection. A ring sweeps on, a dot lands inside it, both clear.
    Timing carried over from the supplied Lottie: 1.42 s of action inside a
    3.6 s loop, so the mark rests rather than pulsing without pause. */
-.an-radio { display: block; width: 38px; height: 38px; color: var(--accent-orange); }
+.an-radio { display: block; width: 48px; height: 48px; color: var(--accent-orange); }
 .an-radio .ring {
   stroke-dasharray: 1; stroke-dashoffset: 1;
   transform: rotate(-90deg); transform-origin: 50% 50%;
@@ -507,10 +514,11 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 /* Sweeps on over the first 16% (0.58 s), holds, then clears from the same
    edge it started at. */
 @keyframes radioRing {
-  0%        { stroke-dashoffset: 1; }
-  16%, 30%  { stroke-dashoffset: 0; }
-  39%       { stroke-dashoffset: -1; }
-  100%      { stroke-dashoffset: -1; }
+  0%       { stroke-dashoffset: 1; }
+  22%, 66% { stroke-dashoffset: 0; }
+  88%      { stroke-dashoffset: -1; }
+  88.1%    { stroke-dashoffset: 1; }
+  100%     { stroke-dashoffset: 1; }
 }
 /* Lands at 11%, holds to 30%, gone by 38%. */
 @keyframes radioDot {
@@ -531,7 +539,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   12%       { opacity: .85; transform: scale(.9); }
   16%       { opacity: 1;   transform: scale(1.08); }
   20%, 80%  { opacity: 1;   transform: scale(1); }
-  95%, 100% { opacity: 0;   transform: scale(.9); }
+  95%, 100% { opacity: 0;   transform: scale(.7); }
 }
 
 /* 08 — cannot edit. The tool dims and settles back while a slash draws
@@ -625,7 +633,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .an-bell .wave.left  { transform-origin: 100% 100%; }
 .an-bell .wave.right { transform-origin: 0% 100%; }
 @keyframes bellWave {
-  0%, 1.4%    { opacity: 0;   scale: .5; }
+  0%, 1.4%    { opacity: 1;   scale: 1; }
   7.2%        { opacity: 1;   scale: 1.15; }
   13%         { opacity: .25; scale: .7; }
   18.8%       { opacity: 1;   scale: 1.15; }
