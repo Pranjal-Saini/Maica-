@@ -232,7 +232,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   padding: 1.15rem; display: grid; place-items: center;
 }
 .cell .ghost { color: rgba(170, 188, 255, .5); }
-.cell .ghost svg { width: 26px; height: 26px; }
+.cell .ghost svg { width: 32px; height: 32px; }
 
 .mini-row {
   width: 100%; border: 1px solid var(--hero-border); border-radius: 8px;
@@ -251,7 +251,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
    The reference animates squares over a photograph; this animates the same
    idea over the thing MAICA actually looks at. */
-.pixel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; }
+.pixel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 100%; }
 .pixel i {
   display: block; aspect-ratio: 1; border-radius: 2px;
   background: rgba(170, 188, 255, .14);
@@ -266,7 +266,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 
 /* The cell holding it keeps a little air around the field. */
-.cell .pixel { max-width: 8rem; }
+.cell .pixel { max-width: 9.25rem; }
 
 @media (prefers-reduced-motion: reduce) {
   /* Static, and still legible: a handful stay lit rather than everything
@@ -474,7 +474,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 /* 05 — parsing. A rule fills, holds, and clears from the same edge. */
 .an-bar {
-  width: 2.6rem; height: .4rem; border-radius: 2px;
+  width: 3.2rem; height: .45rem; border-radius: 2px;
   background: rgba(170, 188, 255, .18); overflow: hidden;
 }
 .an-bar i {
@@ -491,7 +491,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 /* 06 — selection. A ring sweeps on, a dot lands inside it, both clear.
    Timing carried over from the supplied Lottie: 1.42 s of action inside a
    3.6 s loop, so the mark rests rather than pulsing without pause. */
-.an-radio { display: block; width: 30px; height: 30px; color: var(--accent-orange); }
+.an-radio { display: block; width: 38px; height: 38px; color: var(--accent-orange); }
 .an-radio .ring {
   stroke-dasharray: 1; stroke-dashoffset: 1;
   transform: rotate(-90deg); transform-origin: 50% 50%;
@@ -525,16 +525,41 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   95%, 100% { opacity: 0; transform: translateY(-3px); }
 }
 
-/* 08 — read-only. The shield draws slowly and holds longest. */
-.an-shield { --dur: 6.7s; }
+/* 08 — cannot edit. The tool dims and settles back while a slash draws
+   across it, then both release. Motion taken from the supplied icon: the
+   group fades to 0.4 and scales to 0.92 while the slash strokes on from
+   nothing. Read-only is a claim about writing, so a struck-through pencil
+   states it more directly than a shield. */
+.an-noedit { color: var(--confirmed); }
+.an-noedit .tool {
+  transform-box: fill-box; transform-origin: center;
+  animation: noEditTool 4.6s ease-out infinite;
+}
+@keyframes noEditTool {
+  0%, 20%   { opacity: 1; transform: scale(1); }
+  32%, 76%  { opacity: .4; transform: scale(.92); }
+  90%, 100% { opacity: 1; transform: scale(1); }
+}
+.an-noedit .slash {
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  animation: noEditSlash 4.6s ease-out infinite;
+}
+@keyframes noEditSlash {
+  0%, 20%   { stroke-dashoffset: 1; opacity: .6; }
+  34%, 76%  { stroke-dashoffset: 0; opacity: 1; }
+  88%, 100% { stroke-dashoffset: 1; opacity: .6; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .draw path, .draw circle, .draw rect, .draw line, .draw polyline,
   .an-upload .arrow, .an-scan .ring, .an-bar i,
   .an-radio .ring, .an-radio .dot,
+  .an-noedit .tool, .an-noedit .slash,
   .chip-stack .label, .mini-row .hi { animation: none; }
   .an-radio .ring { stroke-dashoffset: 0; }
   .an-radio .dot { transform: scale(1); }
+  .an-noedit .tool { opacity: .4; transform: scale(.92); }
+  .an-noedit .slash { stroke-dashoffset: 0; }
   /* Left drawn and readable rather than frozen part-way through. */
   .draw path, .draw circle, .draw rect, .draw line, .draw polyline {
     stroke-dashoffset: 0; opacity: .8;
@@ -708,6 +733,29 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .oops h1 { margin-top: 1.2rem; max-width: 14ch; }
 .oops p { margin-top: 1.4rem; max-width: 44ch; color: var(--on-ink-muted); font-size: 1.05rem; }
 .oops .links { margin-top: 2.4rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+
+/* The numerals stretch downward and retract, staggered across the three
+   glyphs — timing from the supplied Lottie: 2.75 s a cycle, roughly a quarter
+   of a second between one glyph and the next. transform-origin sits at the top
+   so they extend rather than grow from the middle. */
+.oops-digits {
+  display: flex; gap: .1em; margin-bottom: 1.6rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: clamp(4.5rem, 14vw, 9rem); font-weight: 500;
+  line-height: 1; letter-spacing: -.04em; color: var(--accent-orange);
+}
+.oops-digits span {
+  display: block; transform-origin: top center;
+  animation: digitStretch 2.75s cubic-bezier(.45, 0, .2, 1) infinite;
+  animation-delay: calc(var(--i) * .25s);
+}
+@keyframes digitStretch {
+  0%, 100% { transform: scaleY(1); }
+  45%      { transform: scaleY(1.42); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oops-digits span { animation: none; }
+}
 
 /* ── footer: wide, many columns ──────────────────────────── */
 footer { padding: 4.5rem 0 2.5rem; border-top: 1px solid var(--line-dark); }
