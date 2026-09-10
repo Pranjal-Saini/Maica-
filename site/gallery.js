@@ -100,9 +100,6 @@ function drawCard(feature) {
 
   const pad = CARD_W * 0.085;
   const inner = CARD_W - pad * 2;
-  const labelSize = Math.round(CARD_W * 0.040);
-  const titleSize = Math.round(CARD_W * 0.082);
-  const bodySize = Math.round(CARD_W * 0.044);
 
   x.fillStyle = "#12162e";
   x.fillRect(0, 0, CARD_W, CARD_H);
@@ -119,31 +116,60 @@ function drawCard(feature) {
 
   x.textBaseline = "top";
 
+  /* Header: the key and a rule, pinned to the top. */
+  const labelSize = Math.round(CARD_W * 0.040);
   x.fillStyle = "#9db0ff";
   x.font = `500 ${labelSize}px "IBM Plex Mono", ui-monospace, monospace`;
   x.fillText(feature.k.toUpperCase(), pad, CARD_H * 0.062);
 
+  const ruleY = CARD_H * 0.115;
   x.strokeStyle = "rgba(157, 176, 255, 0.30)";
   x.lineWidth = CARD_W * 0.0013;
   x.beginPath();
-  x.moveTo(pad, CARD_H * 0.115);
-  x.lineTo(CARD_W - pad, CARD_H * 0.115);
+  x.moveTo(pad, ruleY);
+  x.lineTo(CARD_W - pad, ruleY);
   x.stroke();
 
+  /* The title is set to fit rather than hoped to fit. Mono at a fixed size
+     overflowed on the longest line — "Two evidence types," ran past the edge —
+     so measure the widest line and scale the whole title down if it does not
+     fit the column. */
+  const titleFont = size => `500 ${size}px "IBM Plex Mono", ui-monospace, monospace`;
+  let titleSize = Math.round(CARD_W * 0.082);
+  x.font = titleFont(titleSize);
+  const widest = Math.max(...feature.t.map(line => x.measureText(line).width));
+  if (widest > inner) {
+    titleSize = Math.floor(titleSize * (inner / widest));
+    x.font = titleFont(titleSize);
+  }
+  const titleLead = titleSize * 1.24;
+
+  const bodySize = Math.round(CARD_W * 0.044);
+  const bodyLead = bodySize * 1.5;
+  x.font = `400 ${bodySize}px "Schibsted Grotesk", system-ui, sans-serif`;
+  const bodyLines = wrap(x, feature.b, inner);
+
+  /* Centre the title and body together in the space under the rule, so a card
+     with a short body is not left with a large empty foot. */
+  const gap = bodySize * 1.5;
+  const blockH = feature.t.length * titleLead + gap + bodyLines.length * bodyLead;
+  const top = ruleY + pad * 0.75;
+  const bottom = CARD_H - pad;
+  let y = top + Math.max((bottom - top - blockH) / 2, 0);
+
   x.fillStyle = "#f5f6f1";
-  x.font = `500 ${titleSize}px "IBM Plex Mono", ui-monospace, monospace`;
-  let y = CARD_H * 0.168;
+  x.font = titleFont(titleSize);
   for (const line of feature.t) {
     x.fillText(line, pad, y);
-    y += titleSize * 1.22;
+    y += titleLead;
   }
 
+  y += gap;
   x.fillStyle = "rgba(245, 246, 241, 0.72)";
   x.font = `400 ${bodySize}px "Schibsted Grotesk", system-ui, sans-serif`;
-  y += bodySize * 1.3;
-  for (const line of wrap(x, feature.b, inner)) {
+  for (const line of bodyLines) {
     x.fillText(line, pad, y);
-    y += bodySize * 1.5;
+    y += bodyLead;
   }
 
   return c;
