@@ -506,11 +506,27 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 /* ── closing CTA ─────────────────────────────────────────── */
 .close-cta { padding: 5rem 0 6rem; }
-.close-cta .panel { margin-top: 0; padding: clamp(2.6rem, 5vw, 4.2rem); text-align: center; }
-.close-cta h2 { max-width: 22ch; margin: 0 auto; }
-.close-cta p { margin: 1.3rem auto 0; max-width: 48ch; color: var(--on-ink-muted); font-size: 1.06rem; }
-.close-cta .hero-cta { justify-content: center; }
-.close-cta .cta-note { text-align: center; }
+.close-cta .panel {
+  margin-top: 0; position: relative; isolation: isolate; overflow: hidden;
+  padding: clamp(2.4rem, 4.5vw, 3.6rem);
+  background: var(--hero-bg); border-color: var(--hero-border);
+}
+/* The mound sits behind the copy, anchored to the bottom-right corner. It is
+   a field of records — the pile you are handing over — with the few that rank
+   picked out brighter. */
+#mound {
+  position: absolute; z-index: -1; right: 0; bottom: 0;
+  width: min(58%, 30rem); height: 78%;
+  pointer-events: none;
+}
+.close-cta h2 {
+  max-width: 46ch; line-height: 1.3;
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+}
+/* The sentence continues in the same line, dropped back so the claim leads. */
+.close-cta h2 .rest { color: var(--on-ink-muted); }
+.close-cta .hero-cta { margin-top: 2.2rem; justify-content: flex-start; }
+.close-cta .cta-note { text-align: left; }
 
 /* ── prose (privacy, terms) ──────────────────────────────── */
 .prose { max-width: 46rem; padding: 4.5rem 0 5.5rem; }
