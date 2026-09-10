@@ -410,6 +410,16 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
    Durations are deliberately unequal and prime-ish, so the cells drift out
    of phase instead of pulsing together like a heartbeat. */
 
+/* Each mark takes a hue from the product's own vocabulary rather than all
+   eight sharing one blue: green where the claim is confirmed or guaranteed,
+   amber where something changed, blue for the work in progress. The palette
+   is the label set, so the colours already mean something by the time a
+   reader reaches the report. */
+.cell .ghost.c-brand  { color: var(--brand-light); }
+.cell .ghost.c-good   { color: var(--confirmed); }
+.cell .ghost.c-warm   { color: var(--likely); }
+.an-scan .ring        { border-color: currentColor; }
+
 /* 01 — upload: the arrow lifts and repeats. */
 .an-upload { animation: upLift 3.1s ease-in-out infinite; }
 @keyframes upLift {
@@ -432,7 +442,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 /* 03 — the record field keeps its own staggered squares (see .pixel). */
 
 /* 04 — the change: the arrow between old and new value pulses. */
-.mini-row .hi { animation: arrowPulse 2.9s ease-in-out infinite; }
+.mini-row .hi { color: var(--likely); animation: arrowPulse 2.9s ease-in-out infinite; }
 @keyframes arrowPulse {
   0%, 70%, 100% { opacity: .45; }
   82%           { opacity: 1; }
@@ -445,7 +455,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 .an-bar i {
   display: block; height: 100%; width: 100%; border-radius: 2px;
-  background: var(--brand-light); transform-origin: left center;
+  background: var(--confirmed); transform-origin: left center;
   animation: barFill 4.3s ease-in-out infinite;
 }
 @keyframes barFill {
@@ -457,8 +467,8 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 /* 06 — working: an arc turns. */
 .an-arc {
   width: 22px; height: 22px; border-radius: 50%;
-  border: 1.5px solid rgba(170, 188, 255, .2);
-  border-top-color: var(--brand-light);
+  border: 1.5px solid rgba(170, 188, 255, .18);
+  border-top-color: var(--likely);
   animation: arcSpin 2.3s linear infinite;
 }
 @keyframes arcSpin { to { transform: rotate(360deg); } }
