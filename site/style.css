@@ -30,7 +30,15 @@
   --confirmed: #6fd7ab;
   --likely: #e5a34a;
 
-  --measure: 72rem;
+  /* The hero carries the brand hue. Everything below it stays neutral, so
+     the tint reads as emphasis rather than as the site's base colour. */
+  --hero-bg: #0a1030;          /* saturated navy, not a grey with a hint */
+  --hero-inner: #0c1440;       /* the panel sits a shade above the frame */
+  --hero-line: rgba(255, 255, 255, .5);
+  --hero-border: rgba(255, 255, 255, .34);
+  --hero-glow: rgba(56, 79, 255, .5);
+
+  --measure: 82rem;
   --narrow: 52rem;
   --radius: 10px;
 }
@@ -137,12 +145,30 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 /* ── hero: bordered panel, text left, grid right ─────────── */
 .hero { padding: 1.25rem 0 4.5rem; }
+/* Two frames. The outer one carries the ground and a little air, so the panel
+   inside it stops short of the edge and the colour shows around the grid
+   rather than the rules running into the border. */
+.hero-frame {
+  position: relative; isolation: isolate; overflow: hidden;
+  /* No border of its own. It exists to carry the ground and the band of air
+     around the panel; the only drawn edge is the panel's. */
+  border-radius: 18px;
+  background: var(--hero-bg);
+  padding: clamp(.7rem, 1.4vw, 1.15rem);
+}
+/* A soft light behind the panel, so the blue reads as lit rather than flat. */
+.hero-frame::before {
+  content: ""; position: absolute; z-index: -1;
+  top: -30%; right: -12%; width: 70%; aspect-ratio: 1;
+  background: radial-gradient(circle, var(--hero-glow) 0%, transparent 68%);
+  opacity: .5; pointer-events: none;
+}
 .hero-panel {
-  border: 1px solid var(--line-dark-strong); border-radius: 14px;
-  background: var(--surface); overflow: hidden;
+  border: 1px solid var(--hero-line); border-radius: 12px;
+  background: var(--hero-inner); overflow: hidden;
   display: grid;
 }
-@media (min-width: 960px) { .hero-panel { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 960px) { .hero-panel { grid-template-columns: 1.18fr 1fr; } }
 
 .hero-copy { padding: clamp(2.2rem, 4vw, 3.6rem); }
 
@@ -154,25 +180,30 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   font-size: .8rem; color: var(--on-ink-muted); background: rgba(245,246,241,.03);
 }
 .hero-chip .plus { color: var(--brand-light); }
+.hero-chip { border-color: var(--hero-border); background: rgba(10, 16, 48, .6); }
 
 /* Monospace headline — the terms of art in this product are field names and
    record ids, and the face that suits them can carry the headline too. */
 .hero h1 {
-  margin-top: 1.9rem;
+  margin-top: 2.1rem;
   font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: clamp(1.9rem, 3.4vw, 3rem);
-  font-weight: 500; line-height: 1.15; letter-spacing: -.035em;
-  max-width: 16ch;
+  font-size: clamp(2.1rem, 4.1vw, 3.6rem);
+  font-weight: 500; line-height: 1.12; letter-spacing: -.04em;
+  max-width: 15ch;
 }
 .hero h1 em { font-style: normal; color: var(--brand-light); }
 .hero-sub {
   margin-top: 1.7rem; max-width: 44ch;
   font-size: 1.02rem; line-height: 1.65; color: var(--on-ink-muted);
 }
-.hero-cta { margin-top: 2.2rem; display: flex; flex-wrap: wrap; gap: .7rem; }
+.hero-cta { margin-top: 2.4rem; display: flex; flex-wrap: wrap; gap: .7rem; }
+/* Side by side, not stacked. The labels are short enough to hold the line at
+   the narrowest column this panel produces. */
+.hero .hero-cta .btn { flex: 0 0 auto; }
 .cta-note { margin-top: 1.2rem; font-size: .84rem; color: var(--on-ink-faint); }
 
-/* Badges name a real shortcut; app.js binds them. */
+/* One badge, on the nav's Get started. It names a key that actually works —
+   a badge decorating nothing would be a lie told where nobody would check. */
 .kbd {
   display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem;
   padding: 0 .3rem; border-radius: 5px; font-size: .72rem; font-weight: 600;
@@ -180,36 +211,37 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 .btn-primary .kbd { background: rgba(255,255,255,.22); color: #fff; }
 .btn-ghost-dark .kbd { background: rgba(245,246,241,.12); color: var(--on-ink-muted); }
+.btn-sm .kbd { min-width: 1.15rem; height: 1.15rem; font-size: .66rem; }
 
 /* Right half: a ruled grid, mostly empty, holding a few real artefacts. */
 .hero-visual {
-  border-top: 1px solid var(--line-dark);
-  display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(8.5rem, auto);
-  /* The trailing rules run under the panel's own border rather than doubling. */
+  border-top: 1px solid var(--hero-line);
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(8rem, 1fr);
+  /* Trailing rules run under the panel border rather than doubling on it. */
   margin: 0 -1px -1px 0;
 }
 @media (min-width: 960px) {
-  .hero-visual { border-top: 0; border-left: 1px solid var(--line-dark); }
+  .hero-visual { border-top: 0; border-left: 1px solid var(--hero-line); }
 }
 .cell {
-  border-right: 1px solid var(--line-dark); border-bottom: 1px solid var(--line-dark);
-  padding: 1rem; display: grid; place-items: center;
+  border-right: 1px solid var(--hero-line); border-bottom: 1px solid var(--hero-line);
+  padding: 1.15rem; display: grid; place-items: center;
 }
-.cell.wide { grid-column: span 2; place-items: stretch; }
-.cell.tall { grid-row: span 2; }
-.cell .ghost { color: var(--line-dark-strong); }
+.cell .ghost { color: rgba(170, 188, 255, .5); }
 .cell .ghost svg { width: 26px; height: 26px; }
 
 .mini-row {
-  width: 100%; border: 1px solid var(--line-dark-strong); border-radius: 8px;
-  background: var(--ink); padding: .8rem .9rem;
-  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .7rem;
+  width: 100%; border: 1px solid var(--hero-border); border-radius: 8px;
+  background: rgba(6, 10, 32, .72); padding: .75rem .85rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .67rem;
   color: var(--on-ink-muted); line-height: 1.7; overflow: hidden;
 }
 .mini-row b { color: var(--on-ink); font-weight: 500; }
 .mini-row .hi { color: var(--brand-light); }
 
-.chip-stack { display: grid; gap: .5rem; justify-items: center; }
+.chip-stack { display: grid; gap: .45rem; justify-items: center; }
+.dash { width: 2.2rem; height: .4rem; border-radius: 2px; background: rgba(170, 188, 255, .5); }
 /* A field of records, a few lighting at a time as they are read. Each square
    carries its own delay, so the pattern never repeats visibly and there is no
    script driving it — twenty staggered opacity cycles cost nothing.
@@ -219,25 +251,25 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .pixel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; }
 .pixel i {
   display: block; aspect-ratio: 1; border-radius: 2px;
-  background: var(--line-dark);
+  background: rgba(170, 188, 255, .14);
   animation: pixelRead 5.5s var(--d, 0s) infinite;
 }
 .pixel i.slow { animation-duration: 8s; }
 @keyframes pixelRead {
-  0%, 82%, 100% { background: var(--line-dark); }
-  86%           { background: rgba(56, 79, 255, .55); }
-  92%           { background: var(--brand); }
-  97%           { background: rgba(56, 79, 255, .3); }
+  0%, 82%, 100% { background: rgba(170, 188, 255, .14); box-shadow: none; }
+  86%           { background: rgba(90, 112, 255, .7); box-shadow: 0 0 8px rgba(56, 79, 255, .5); }
+  92%           { background: #5b71ff; box-shadow: 0 0 14px rgba(91, 113, 255, .8); }
+  97%           { background: rgba(90, 112, 255, .4); box-shadow: 0 0 6px rgba(56, 79, 255, .3); }
 }
 
 /* The cell holding it keeps a little air around the field. */
-.cell .pixel { max-width: 8.5rem; }
+.cell .pixel { max-width: 8rem; }
 
 @media (prefers-reduced-motion: reduce) {
   /* Static, and still legible: a handful stay lit rather than everything
      going dark. */
   .pixel i { animation: none; }
-  .pixel i.lit { background: var(--brand); }
+  .pixel i.lit { background: #5b71ff; box-shadow: 0 0 12px rgba(91, 113, 255, .7); }
   .pixel i.half { background: rgba(56, 79, 255, .4); }
 }
 
@@ -476,11 +508,27 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 /* ── closing CTA ─────────────────────────────────────────── */
 .close-cta { padding: 5rem 0 6rem; }
-.close-cta .panel { margin-top: 0; padding: clamp(2.6rem, 5vw, 4.2rem); text-align: center; }
-.close-cta h2 { max-width: 22ch; margin: 0 auto; }
-.close-cta p { margin: 1.3rem auto 0; max-width: 48ch; color: var(--on-ink-muted); font-size: 1.06rem; }
-.close-cta .hero-cta { justify-content: center; }
-.close-cta .cta-note { text-align: center; }
+.close-cta .panel {
+  margin-top: 0; position: relative; isolation: isolate; overflow: hidden;
+  padding: clamp(2.4rem, 4.5vw, 3.6rem);
+  background: var(--hero-bg); border-color: var(--hero-border);
+}
+/* The mound sits behind the copy, anchored to the bottom-right corner. It is
+   a field of records — the pile you are handing over — with the few that rank
+   picked out brighter. */
+#mound {
+  position: absolute; z-index: -1; right: 0; bottom: 0;
+  width: min(58%, 30rem); height: 78%;
+  pointer-events: none;
+}
+.close-cta h2 {
+  max-width: 46ch; line-height: 1.3;
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+}
+/* The sentence continues in the same line, dropped back so the claim leads. */
+.close-cta h2 .rest { color: var(--on-ink-muted); }
+.close-cta .hero-cta { margin-top: 2.2rem; justify-content: flex-start; }
+.close-cta .cta-note { text-align: left; }
 
 /* ── prose (privacy, terms) ──────────────────────────────── */
 .prose { max-width: 46rem; padding: 4.5rem 0 5.5rem; }

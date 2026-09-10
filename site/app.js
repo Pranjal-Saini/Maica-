@@ -89,10 +89,10 @@
     }
   }
 
-  /* ── keyboard shortcuts ─────────────────────────────────────
-     The badges on the hero buttons name a key that actually works.
-     A badge that decorated nothing would be a lie told in a corner
-     of the page nobody would think to check.
+  /* ── keyboard shortcut ──────────────────────────────────────
+     One binding: M opens the app, matching the badge on the nav's
+     Get started. Kept generic over [data-key] so the binding lives
+     next to the button it belongs to rather than in a list here.
 
      Ignored while typing in a field, and while a modifier is held,
      so browser and assistive-tech shortcuts keep working.        */
@@ -117,7 +117,71 @@
     });
   }
 
+
+  /* ── the mound ──────────────────────────────────────────────
+     A heap of records under the closing call to action. Density
+     falls off away from the peak and upward from the base, so the
+     shape reads as a pile rather than a rectangle of noise. A few
+     squares are brighter: the ones that ranked.
+
+     Seeded, so the heap is the same on every load, and drawn once
+     per size rather than animated.                              */
+  function drawMound() {
+    var canvas = document.getElementById("mound");
+    if (!canvas || !canvas.getContext) return;
+    var ctx = canvas.getContext("2d");
+
+    function rng(seed) {
+      return function () {
+        seed = (seed * 1664525 + 1013904223) % 4294967296;
+        return seed / 4294967296;
+      };
+    }
+
+    function draw() {
+      var w = canvas.clientWidth, h = canvas.clientHeight;
+      if (!w || !h) return;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      var box = 5, gap = 3, step = box + gap;
+      var cols = Math.floor(w / step), rows = Math.floor(h / step);
+      var random = rng(20260910);
+      var peak = 0.62;   // where the heap is tallest, across the width
+
+      for (var cx = 0; cx < cols; cx++) {
+        var fx = cx / (cols - 1);
+        // A smooth bump, taller at the peak and tailing off either side.
+        var height = Math.exp(-Math.pow((fx - peak) / 0.34, 2));
+        for (var cy = 0; cy < rows; cy++) {
+          var fromBase = (rows - 1 - cy) / rows;   // 0 at the base, 1 at the top
+          if (fromBase > height) continue;
+          // Solid near the base, thinning towards the surface.
+          var density = 1 - fromBase / Math.max(height, 0.001);
+          if (random() > 0.25 + density * 0.75) continue;
+
+          var lit = random() < 0.06;
+          ctx.fillStyle = lit
+            ? "rgba(140, 162, 255, .95)"
+            : "rgba(120, 142, 255, " + (0.16 + density * 0.4).toFixed(2) + ")";
+          ctx.fillRect(cx * step, cy * step, box, box);
+        }
+      }
+    }
+
+    draw();
+    var pending;
+    window.addEventListener("resize", function () {
+      clearTimeout(pending);
+      pending = setTimeout(draw, 150);
+    });
+  }
+
   wireAppLinks();
   setUpConsent();
+  drawMound();
   wireShortcuts();
 })();

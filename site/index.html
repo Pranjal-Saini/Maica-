@@ -59,7 +59,7 @@
       <a href="#faq">FAQ</a>
     </nav>
     <div class="nav-action">
-      <a class="js-app btn btn-primary btn-sm" href="https://app.maica.in/">Get started</a>
+      <a class="js-app btn btn-primary btn-sm" href="https://app.maica.in/" data-key="m">Get started <span class="kbd" aria-hidden="true">M</span></a>
     </div>
   </div>
 </header>
@@ -68,7 +68,8 @@
 
 <section class="hero">
   <div class="wrap">
-    <div class="hero-panel">
+    <div class="hero-frame">
+      <div class="hero-panel">
       <div class="hero-copy">
         <span class="hero-chip">saved_search.csv <span class="plus">+</span> system_notes.csv</span>
         <h1>Find what changed when a transaction posts <em>wrong</em>.</h1>
@@ -78,24 +79,19 @@
           gaps named rather than hidden.
         </p>
         <div class="hero-cta">
-          <a class="js-app btn btn-primary" href="https://app.maica.in/" data-key="u">
-            Upload an export and start <span class="kbd" aria-hidden="true">U</span>
+          <a class="js-app btn btn-primary" href="https://app.maica.in/">
+            Upload an export
           </a>
-          <a class="btn btn-ghost-dark" href="#steps" data-key="h">
-            See how it works <span class="kbd" aria-hidden="true">H</span>
+          <a class="btn btn-ghost-dark" href="#steps">
+            How it works
           </a>
         </div>
         <p class="cta-note">Free while in beta &middot; No card, no NetSuite credentials</p>
       </div>
 
       <div class="hero-visual" aria-hidden="true">
-        <div class="cell"><span class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span></div>
-        <div class="cell wide">
-          <div class="mini-row">
-            <b>Account</b> 4000 <span class="hi">&rarr;</span> 4010<br />
-            SYSTEM &middot; SCHEDULED &middot; 12 Jul 09:15
-          </div>
-        </div>
+        <div class="cell"></div>
+        <div class="cell"><span class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg></span></div>
         <div class="cell">
           <div class="pixel">
             <i class="slow" style="--d:0.49s"></i><i style="--d:5.29s"></i><i class="slow lit" style="--d:2.55s"></i><i class="slow" style="--d:3.81s"></i><i class="half" style="--d:4.57s"></i>
@@ -105,22 +101,23 @@
           </div>
         </div>
         <div class="cell">
+          <div class="mini-row">
+            <b>Account</b> 4000 <span class="hi">&rarr;</span> 4010<br />
+            SYSTEM &middot; SCHEDULED
+          </div>
+        </div>
+        <div class="cell"><span class="dash"></span></div>
+        <div class="cell"></div>
+        <div class="cell">
           <div class="chip-stack">
             <span class="label l-confirmed">Confirmed</span>
             <span class="label l-likely">Likely</span>
-            <span class="label l-uncertain">Uncertain</span>
           </div>
         </div>
-        <div class="cell"><span class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4 2.9 7.7 7 9 4.1-1.3 7-5 7-9V6l-7-3Z"/></svg></span></div>
-        <div class="cell wide">
-          <div class="mini-row">
-            1,284 records read &middot; 3 factors<br />
-            <span class="hi">not checked:</span> workflow definitions
-          </div>
-        </div>
-        <div class="cell"><span class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg></span></div>
+        <div class="cell"></div>
       </div>
-    </div>
+      </div>
+</div>
   </div>
 </section>
 
@@ -516,16 +513,21 @@
 <section class="close-cta">
   <div class="wrap">
     <div class="panel">
-    <h2>Bring it the one that posted wrong.</h2>
-    <p>
-      Upload a saved search and a System Notes export, and see what the account has
-      to say about it.
-    </p>
-    <div class="hero-cta">
-      <a class="js-app btn btn-primary" href="https://app.maica.in/">Upload an export and start</a>
-      <a class="btn btn-ghost-dark" href="#faq">Read the FAQ</a>
-    </div>
-    <p class="cta-note">Free while in beta · About five minutes end to end</p>
+      <canvas id="mound" aria-hidden="true"></canvas>
+      <h2>
+        Bring it the one that posted wrong.
+        <span class="rest">Upload a saved search and a System Notes export, and see
+        what the account has to say about it.</span>
+      </h2>
+      <div class="hero-cta">
+        <a class="js-app btn btn-primary" href="https://app.maica.in/">
+          Upload an export
+        </a>
+        <a class="btn btn-ghost-dark" href="#faq">
+          Read the FAQ
+        </a>
+      </div>
+      <p class="cta-note">Free while in beta &middot; About five minutes end to end</p>
     </div>
   </div>
 </section>
