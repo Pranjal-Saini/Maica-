@@ -89,10 +89,10 @@
     }
   }
 
-  /* ── keyboard shortcuts ─────────────────────────────────────
-     The badges on the hero buttons name a key that actually works.
-     A badge that decorated nothing would be a lie told in a corner
-     of the page nobody would think to check.
+  /* ── keyboard shortcut ──────────────────────────────────────
+     One binding: M opens the app, matching the badge on the nav's
+     Get started. Kept generic over [data-key] so the binding lives
+     next to the button it belongs to rather than in a list here.
 
      Ignored while typing in a field, and while a modifier is held,
      so browser and assistive-tech shortcuts keep working.        */

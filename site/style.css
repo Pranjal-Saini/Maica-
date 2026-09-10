@@ -202,7 +202,8 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .hero .hero-cta .btn { flex: 0 0 auto; }
 .cta-note { margin-top: 1.2rem; font-size: .84rem; color: var(--on-ink-faint); }
 
-/* Badges name a real shortcut; app.js binds them. */
+/* One badge, on the nav's Get started. It names a key that actually works —
+   a badge decorating nothing would be a lie told where nobody would check. */
 .kbd {
   display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem;
   padding: 0 .3rem; border-radius: 5px; font-size: .72rem; font-weight: 600;
@@ -210,6 +211,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 .btn-primary .kbd { background: rgba(255,255,255,.22); color: #fff; }
 .btn-ghost-dark .kbd { background: rgba(245,246,241,.12); color: var(--on-ink-muted); }
+.btn-sm .kbd { min-width: 1.15rem; height: 1.15rem; font-size: .66rem; }
 
 /* Right half: a ruled grid, mostly empty, holding a few real artefacts. */
 .hero-visual {
