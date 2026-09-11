@@ -29,6 +29,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Questrial&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/style.css" />
 <script defer src="/app.js"></script>
+<script type="module" src="/gallery.js"></script>
 
 <script type="application/ld+json">
 {
@@ -90,8 +91,8 @@
       </div>
 
       <div class="hero-visual" aria-hidden="true">
-        <div class="cell"></div>
-        <div class="cell"><span class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg></span></div>
+        <div class="cell"><span class="ghost c-brand"><svg class="an-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 3 10l7 3 3 7 8-17Z"/><path d="M21 3 10 13"/></svg></span></div>
+        <div class="cell"><span class="ghost c-brand"><svg class="an-atom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="10" ry="4.4" transform="rotate(45 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.4" transform="rotate(-45 12 12)"/></svg></span></div>
         <div class="cell">
           <div class="pixel">
             <i class="slow" style="--d:0.49s"></i><i style="--d:5.29s"></i><i class="slow lit" style="--d:2.55s"></i><i class="slow" style="--d:3.81s"></i><i class="half" style="--d:4.57s"></i>
@@ -106,15 +107,23 @@
             SYSTEM &middot; SCHEDULED
           </div>
         </div>
-        <div class="cell"><span class="dash"></span></div>
-        <div class="cell"></div>
+        <div class="cell"><span class="an-bar"><i></i></span></div>
+        <div class="cell">
+          <svg class="an-radio" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+            <circle class="ring" pathLength="1" cx="15" cy="15" r="12"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+            <circle class="dot" cx="15" cy="15" r="6" fill="currentColor" />
+          </svg>
+        </div>
         <div class="cell">
           <div class="chip-stack">
             <span class="label l-confirmed">Confirmed</span>
             <span class="label l-likely">Likely</span>
           </div>
         </div>
-        <div class="cell"></div>
+        <div class="cell"><span class="ghost an-noedit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="tool"><path d="M5 19h4L20 8a2.1 2.1 0 0 0-3-3L6 16v3Z"/><path d="m15 7 2 2"/></g><path class="slash" pathLength="1" d="M4 4 20 20"/></svg></span></div>
+        <div class="cell"><span class="ghost"><svg class="an-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path class="t1" pathLength="1" d="M17 7 8 17l-4-4"/><path class="t2" pathLength="1" d="m21 8-6.5 7L13 13.5"/></svg></span></div>
+        <div class="cell"><span class="ghost"><svg class="an-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path class="wave left" d="M4 3a9 9 0 0 0-2 5.4"/><path d="M5.5 16h13l-1.1-1.5A6 6 0 0 1 16.2 11V9.2a4.2 4.2 0 0 0-8.4 0V11a6 6 0 0 1-1.2 3.5L5.5 16Z"/><path class="clapper" d="M10 19.5a2 2 0 0 0 4 0"/><path class="wave right" d="M20 3a9 9 0 0 1 2 5.4"/></svg></span></div>
       </div>
       </div>
 </div>
@@ -179,11 +188,16 @@
 
 <section class="claim">
   <div class="wrap">
-    <blockquote>
-      A script fires on a record whose configuration changed months ago. Neither
-      specialist can see the other half.
-    </blockquote>
-    <p class="who">The gap this exists to close</p>
+    <div class="border-glow-card" id="claim-card">
+      <span class="edge-light" aria-hidden="true"></span>
+      <div class="border-glow-inner">
+        <blockquote>
+          A script fires on a record whose configuration changed months ago. Neither
+          specialist can see the other half.
+        </blockquote>
+        <p class="who">The gap this exists to close</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -234,11 +248,16 @@
 
 <section class="section" id="capabilities">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head centred">
       <span class="eyebrow">Features</span>
       <h2>Built for evidence you did not choose.</h2>
       <p>Real exports are partial and inconsistent. The engine is designed around that, rather than around a tidy sample.</p>
     </div>
+
+    <div id="feature-gallery" tabindex="0" role="region"
+         aria-label="Feature cards. Drag, or use the left and right arrow keys."></div>
+    <p class="gallery-hint">Drag, scroll or use &larr; &rarr;</p>
+
 
     <div class="panel">
       <div class="p-grid">
@@ -513,7 +532,7 @@
 <section class="close-cta">
   <div class="wrap">
     <div class="panel">
-      <canvas id="mound" aria-hidden="true"></canvas>
+      <canvas id="waves" aria-hidden="true"></canvas>
       <h2>
         Bring it the one that posted wrong.
         <span class="rest">Upload a saved search and a System Notes export, and see

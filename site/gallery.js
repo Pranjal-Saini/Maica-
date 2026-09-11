@@ -1,0 +1,556 @@
+/* Circular gallery for the features section.
+
+   The supplied CircularGallery, with React removed: the App/Media/Title
+   classes are the ones from the source, driven by an init call instead of a
+   useEffect. ogl is vendored under vendor/ogl and loaded as plain modules,
+   because this site has no bundler and its CSP admits same-origin scripts
+   only.
+
+   Three deliberate departures from the original, each noted where it happens:
+
+     - The component is an image carousel and MAICA has no photography, so
+       each card is drawn on a canvas from the feature it stands for. The
+       explanatory copy stays in the DOM underneath, where a screen reader and
+       a crawler can still reach it — a WebGL canvas is opaque to both.
+
+     - Scroll, drag and key listeners bind to the container rather than to
+       window. As written they would capture the page's own scrolling, which
+       on a long marketing page means the reader cannot get past this section.
+
+     - The font loader is dropped. It fetches a Google Fonts stylesheet, which
+       connect-src 'self' blocks, and the page already loads IBM Plex Mono.
+*/
+
+import { Camera, Mesh, Plane, Program, Renderer, Texture, Transform } from "./vendor/ogl/index.js";
+
+const FEATURES = [
+  {
+    k: "Ingestion",
+    t: ["Two evidence types,", "one timeline"],
+    b: "Saved searches and System Notes normalise into a single record shape, so a configuration change and the script that ran afterwards sit on the same clock. Nothing in the reasoning layer knows which file a row arrived in.",
+  },
+  {
+    k: "Reasoning",
+    t: ["Ranked,", "not listed"],
+    b: "Factors are ordered by strength of support, so the top of the page is where to start. Ranking uses the account's own distribution, which is what lets it work on accounts customised differently from each other.",
+  },
+  {
+    k: "Provenance",
+    t: ["Every claim", "cites its row"],
+    b: "Each factor traces back to the exact stored record behind it, so a finding can be checked instead of trusted. The original upload is kept for the same reason.",
+  },
+  {
+    k: "Access",
+    t: ["Read-only", "by construction"],
+    b: "There is no code in MAICA that writes to NetSuite. Uploads never touch your account at all, and the planned live connection requests read access only.",
+  },
+];
+
+/* Exactly this many cards span the viewport, so the card size follows from
+   the container rather than from a fixed pixel scale. */
+const VISIBLE = 4;
+
+const LABEL_FONT = 'bold 30px "IBM Plex Mono", ui-monospace, monospace';
+/* Portrait, and drawn at roughly twice the size it is displayed at. The
+   card was previously about one texel per screen pixel, which leaves the
+   sampler no headroom and reads as soft. Every measurement below is a
+   fraction of the card, so this resolution can change without retouching
+   the layout. */
+const CARD_W = 1520;
+const CARD_H = 1960;
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function debounce(fn, wait) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
+/* Each card is drawn rather than photographed: the mono key, a rule, the
+   title, and the feature's own explanation — so the card says the whole thing
+   rather than pointing at it. Text is wrapped by measurement, since canvas has
+   no notion of a text box. */
+function wrap(ctx, text, maxWidth) {
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
+  for (const w of words) {
+    const next = line ? line + " " + w : w;
+    if (ctx.measureText(next).width > maxWidth && line) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawCard(feature) {
+  const c = document.createElement("canvas");
+  c.width = CARD_W;
+  c.height = CARD_H;
+  const x = c.getContext("2d");
+
+  const pad = CARD_W * 0.085;
+  const inner = CARD_W - pad * 2;
+
+  x.fillStyle = "#12162e";
+  x.fillRect(0, 0, CARD_W, CARD_H);
+
+  const glow = x.createRadialGradient(CARD_W * 0.8, CARD_H * 0.12, 0, CARD_W * 0.8, CARD_H * 0.12, CARD_W * 1.1);
+  glow.addColorStop(0, "rgba(56, 79, 255, 0.40)");
+  glow.addColorStop(1, "rgba(56, 79, 255, 0)");
+  x.fillStyle = glow;
+  x.fillRect(0, 0, CARD_W, CARD_H);
+
+  x.strokeStyle = "rgba(255, 255, 255, 0.20)";
+  x.lineWidth = CARD_W * 0.0026;
+  x.strokeRect(x.lineWidth / 2, x.lineWidth / 2, CARD_W - x.lineWidth, CARD_H - x.lineWidth);
+
+  x.textBaseline = "top";
+
+  /* Header: the key and a rule, pinned to the top. */
+  const labelSize = Math.round(CARD_W * 0.040);
+  x.fillStyle = "#9db0ff";
+  x.font = `500 ${labelSize}px "IBM Plex Mono", ui-monospace, monospace`;
+  x.fillText(feature.k.toUpperCase(), pad, CARD_H * 0.062);
+
+  const ruleY = CARD_H * 0.115;
+  x.strokeStyle = "rgba(157, 176, 255, 0.30)";
+  x.lineWidth = CARD_W * 0.0013;
+  x.beginPath();
+  x.moveTo(pad, ruleY);
+  x.lineTo(CARD_W - pad, ruleY);
+  x.stroke();
+
+  /* The title is set to fit rather than hoped to fit. Mono at a fixed size
+     overflowed on the longest line — "Two evidence types," ran past the edge —
+     so measure the widest line and scale the whole title down if it does not
+     fit the column. */
+  const titleFont = size => `500 ${size}px "IBM Plex Mono", ui-monospace, monospace`;
+  let titleSize = Math.round(CARD_W * 0.082);
+  x.font = titleFont(titleSize);
+  const widest = Math.max(...feature.t.map(line => x.measureText(line).width));
+  if (widest > inner) {
+    titleSize = Math.floor(titleSize * (inner / widest));
+    x.font = titleFont(titleSize);
+  }
+  const titleLead = titleSize * 1.24;
+
+  const bodySize = Math.round(CARD_W * 0.044);
+  const bodyLead = bodySize * 1.5;
+  x.font = `400 ${bodySize}px "Schibsted Grotesk", system-ui, sans-serif`;
+  const bodyLines = wrap(x, feature.b, inner);
+
+  /* Centre the title and body together in the space under the rule, so a card
+     with a short body is not left with a large empty foot. */
+  const gap = bodySize * 1.5;
+  const blockH = feature.t.length * titleLead + gap + bodyLines.length * bodyLead;
+  const top = ruleY + pad * 0.75;
+  const bottom = CARD_H - pad;
+  let y = top + Math.max((bottom - top - blockH) / 2, 0);
+
+  x.fillStyle = "#f5f6f1";
+  x.font = titleFont(titleSize);
+  for (const line of feature.t) {
+    x.fillText(line, pad, y);
+    y += titleLead;
+  }
+
+  y += gap;
+  x.fillStyle = "rgba(245, 246, 241, 0.72)";
+  x.font = `400 ${bodySize}px "Schibsted Grotesk", system-ui, sans-serif`;
+  for (const line of bodyLines) {
+    x.fillText(line, pad, y);
+    y += bodyLead;
+  }
+
+  return c;
+}
+
+function fontSize(font) {
+  const m = font.match(/(\d+)px/);
+  return m ? parseInt(m[1], 10) : 30;
+}
+
+function textTexture(gl, text, font, color) {
+  const c = document.createElement("canvas");
+  const x = c.getContext("2d");
+  x.font = font;
+  const w = Math.ceil(x.measureText(text).width);
+  const h = Math.ceil(fontSize(font) * 1.2);
+  c.width = w + 20;
+  c.height = h + 20;
+  x.font = font;
+  x.fillStyle = color;
+  x.textBaseline = "middle";
+  x.textAlign = "center";
+  x.clearRect(0, 0, c.width, c.height);
+  x.fillText(text, c.width / 2, c.height / 2);
+  const texture = new Texture(gl, { generateMipmaps: false });
+  texture.image = c;
+  return { texture, width: c.width, height: c.height };
+}
+
+class Title {
+  constructor({ gl, plane, text, textColor, font }) {
+    const { texture, width, height } = textTexture(gl, text, font, textColor);
+    const program = new Program(gl, {
+      vertex: `
+        attribute vec3 position;
+        attribute vec2 uv;
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragment: `
+        precision highp float;
+        uniform sampler2D tMap;
+        varying vec2 vUv;
+        void main() {
+          vec4 color = texture2D(tMap, vUv);
+          if (color.a < 0.1) discard;
+          gl_FragColor = color;
+        }`,
+      uniforms: { tMap: { value: texture } },
+      transparent: true,
+    });
+    this.mesh = new Mesh(gl, { geometry: new Plane(gl), program });
+    this.plane = plane;
+    this.aspect = width / height;
+    this.mesh.setParent(plane);
+    this.layout();
+  }
+
+  /* The original's own placement, lifted into a method so it can re-run: the
+     plane's height is no longer fixed, so the label has to follow it. */
+  layout() {
+    const th = this.plane.scale.y * 0.15;
+    this.mesh.scale.set(th * this.aspect, th, 1);
+    this.mesh.position.y = -this.plane.scale.y * 0.5 - th * 0.5 - 0.05;
+  }
+}
+
+class Media {
+  constructor(opts) {
+    Object.assign(this, opts);
+    this.extra = 0;
+    this.createShader();
+    this.createMesh();
+    this.title = new Title({
+      gl: this.gl,
+      plane: this.plane,
+      text: this.text,
+      textColor: this.textColor,
+      font: this.font,
+    });
+    this.onResize();
+  }
+
+  createShader() {
+    /* ogl defaults minFilter to NEAREST_MIPMAP_LINEAR whenever mipmaps are
+       generated, which picks the nearest texel inside each level — that is
+       what makes small type look chewed. Trilinear plus anisotropy keeps
+       the card legible as it turns away from the camera. */
+    const gl = this.gl;
+    const texture = new Texture(gl, {
+      generateMipmaps: true,
+      minFilter: gl.LINEAR_MIPMAP_LINEAR,
+      magFilter: gl.LINEAR,
+      anisotropy: 8,
+    });
+    this.program = new Program(this.gl, {
+      depthTest: false,
+      depthWrite: false,
+      vertex: `
+        precision highp float;
+        attribute vec3 position;
+        attribute vec2 uv;
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+        uniform float uTime;
+        uniform float uSpeed;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vec3 p = position;
+          p.z = (sin(p.x * 4.0 + uTime) * 1.5 + cos(p.y * 2.0 + uTime) * 1.5) * (0.1 + uSpeed * 0.5);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }`,
+      fragment: `
+        precision highp float;
+        uniform vec2 uImageSizes;
+        uniform vec2 uPlaneSizes;
+        uniform sampler2D tMap;
+        uniform float uBorderRadius;
+        varying vec2 vUv;
+
+        float roundedBoxSDF(vec2 p, vec2 b, float r) {
+          vec2 d = abs(p) - b;
+          return length(max(d, vec2(0.0))) + min(max(d.x, d.y), 0.0) - r;
+        }
+
+        void main() {
+          vec2 ratio = vec2(
+            min((uPlaneSizes.x / uPlaneSizes.y) / (uImageSizes.x / uImageSizes.y), 1.0),
+            min((uPlaneSizes.y / uPlaneSizes.x) / (uImageSizes.y / uImageSizes.x), 1.0)
+          );
+          vec2 uv = vec2(
+            vUv.x * ratio.x + (1.0 - ratio.x) * 0.5,
+            vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
+          );
+          vec4 color = texture2D(tMap, uv);
+          float d = roundedBoxSDF(vUv - 0.5, vec2(0.5 - uBorderRadius), uBorderRadius);
+          float edgeSmooth = 0.002;
+          float alpha = 1.0 - smoothstep(-edgeSmooth, edgeSmooth, d);
+          gl_FragColor = vec4(color.rgb, alpha);
+        }`,
+      uniforms: {
+        tMap: { value: texture },
+        uPlaneSizes: { value: [0, 0] },
+        uImageSizes: { value: [0, 0] },
+        uSpeed: { value: 0 },
+        uTime: { value: 100 * Math.random() },
+        uBorderRadius: { value: this.borderRadius },
+      },
+      transparent: true,
+    });
+
+    // The card is a canvas we drew, so there is no network fetch and no
+    // cross-origin dance — it is ready immediately.
+    texture.image = this.canvas;
+    this.program.uniforms.uImageSizes.value = [this.canvas.width, this.canvas.height];
+  }
+
+  createMesh() {
+    this.plane = new Mesh(this.gl, { geometry: this.geometry, program: this.program });
+    this.plane.setParent(this.scene);
+  }
+
+  update(scroll, direction) {
+    this.plane.position.x = this.x - scroll.current - this.extra;
+
+    const x = this.plane.position.x;
+    const H = this.viewport.width / 2;
+
+    if (this.bend === 0) {
+      this.plane.position.y = 0;
+      this.plane.rotation.z = 0;
+    } else {
+      const B = Math.abs(this.bend);
+      const R = (H * H + B * B) / (2 * B);
+      const ex = Math.min(Math.abs(x), H);
+      const arc = R - Math.sqrt(R * R - ex * ex);
+      if (this.bend > 0) {
+        this.plane.position.y = -arc;
+        this.plane.rotation.z = -Math.sign(x) * Math.asin(ex / R);
+      } else {
+        this.plane.position.y = arc;
+        this.plane.rotation.z = Math.sign(x) * Math.asin(ex / R);
+      }
+    }
+
+    this.speed = scroll.current - scroll.last;
+    this.program.uniforms.uTime.value += 0.04;
+    this.program.uniforms.uSpeed.value = this.speed;
+
+    const half = this.plane.scale.x / 2;
+    const edge = this.viewport.width / 2;
+    this.isBefore = this.plane.position.x + half < -edge;
+    this.isAfter = this.plane.position.x - half > edge;
+    if (direction === "right" && this.isBefore) {
+      this.extra -= this.widthTotal;
+      this.isBefore = this.isAfter = false;
+    }
+    if (direction === "left" && this.isAfter) {
+      this.extra += this.widthTotal;
+      this.isBefore = this.isAfter = false;
+    }
+  }
+
+  onResize({ screen, viewport } = {}) {
+    if (screen) this.screen = screen;
+    if (viewport) this.viewport = viewport;
+
+    /* Four slots across the viewport. The card takes the slot less a gap, and
+       its height follows the card artwork's own proportion so the shader's
+       cover-fit has nothing to trim.
+
+       Height is then capped, because a quarter-width portrait card can be
+       taller than the viewport once its label is allowed for — and the label
+       hangs below the plane. */
+    this.width = this.viewport.width / VISIBLE;
+    this.padding = this.width * 0.14;
+
+    let w = this.width - this.padding;
+    let h = w * (CARD_H / CARD_W);
+    const maxH = this.viewport.height * 0.72;
+    if (h > maxH) {
+      h = maxH;
+      w = h * (CARD_W / CARD_H);
+    }
+
+    this.plane.scale.x = w;
+    this.plane.scale.y = h;
+    this.plane.program.uniforms.uPlaneSizes.value = [w, h];
+
+    this.widthTotal = this.width * this.length;
+    this.x = this.width * this.index;
+
+    if (this.title) this.title.layout();
+  }
+}
+
+class Gallery {
+  constructor(container, opts = {}) {
+    this.container = container;
+    this.bend = opts.bend ?? 1;
+    this.textColor = opts.textColor ?? "#ffffff";
+    this.borderRadius = opts.borderRadius ?? 0.05;
+    this.scrollSpeed = opts.scrollSpeed ?? 2;
+    this.scroll = { ease: opts.scrollEase ?? 0.05, current: 0, target: 0, last: 0, position: 0 };
+    this.onCheckDebounce = debounce(() => this.onCheck(), 200);
+
+    this.renderer = new Renderer({ alpha: true, antialias: true, dpr: Math.min(window.devicePixelRatio || 1, 2) });
+    this.gl = this.renderer.gl;
+    this.gl.clearColor(0, 0, 0, 0);
+    container.appendChild(this.gl.canvas);
+
+    this.camera = new Camera(this.gl);
+    this.camera.fov = 45;
+    this.camera.position.z = 20;
+    this.scene = new Transform();
+
+    this.onResize();
+    this.geometry = new Plane(this.gl, { heightSegments: 50, widthSegments: 100 });
+    this.createMedias();
+    this.addListeners();
+    this.running = false;
+  }
+
+  createMedias() {
+    // Doubled, as the original does, so the loop has something to wrap onto.
+    const items = FEATURES.concat(FEATURES);
+    this.medias = items.map((f, index) => new Media({
+      geometry: this.geometry,
+      gl: this.gl,
+      canvas: drawCard(f),
+      index,
+      length: items.length,
+      scene: this.scene,
+      screen: this.screen,
+      text: f.k,
+      viewport: this.viewport,
+      bend: this.bend,
+      textColor: this.textColor,
+      borderRadius: this.borderRadius,
+      font: LABEL_FONT,
+    }));
+  }
+
+  onResize() {
+    this.screen = { width: this.container.clientWidth, height: this.container.clientHeight };
+    this.renderer.setSize(this.screen.width, this.screen.height);
+    this.camera.perspective({ aspect: this.screen.width / this.screen.height });
+    const fov = (this.camera.fov * Math.PI) / 180;
+    const height = 2 * Math.tan(fov / 2) * this.camera.position.z;
+    this.viewport = { width: height * this.camera.aspect, height };
+    if (this.medias) this.medias.forEach(m => m.onResize({ screen: this.screen, viewport: this.viewport }));
+  }
+
+  onCheck() {
+    if (!this.medias || !this.medias[0]) return;
+    const w = this.medias[0].width;
+    const i = Math.round(Math.abs(this.scroll.target) / w);
+    this.scroll.target = this.scroll.target < 0 ? -(w * i) : w * i;
+  }
+
+  /* Bound to the container, not to window. The original listens globally,
+     which on a page like this one swallows the reader's own scrolling. */
+  addListeners() {
+    const el = this.container;
+    const down = e => {
+      this.isDown = true;
+      this.scroll.position = this.scroll.current;
+      this.start = e.touches ? e.touches[0].clientX : e.clientX;
+    };
+    const move = e => {
+      if (!this.isDown) return;
+      const x = e.touches ? e.touches[0].clientX : e.clientX;
+      this.scroll.target = this.scroll.position + (this.start - x) * (this.scrollSpeed * 0.025);
+    };
+    const up = () => { this.isDown = false; this.onCheck(); };
+
+    el.addEventListener("mousedown", down);
+    el.addEventListener("mousemove", move);
+    el.addEventListener("mouseup", up);
+    el.addEventListener("mouseleave", up);
+    el.addEventListener("touchstart", down, { passive: true });
+    el.addEventListener("touchmove", move, { passive: true });
+    el.addEventListener("touchend", up);
+
+    el.addEventListener("keydown", e => {
+      if (e.key === "ArrowRight") { e.preventDefault(); this.scroll.target += this.scrollSpeed * 5; this.onCheckDebounce(); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); this.scroll.target -= this.scrollSpeed * 5; this.onCheckDebounce(); }
+      else if (e.key === "Home") { e.preventDefault(); this.scroll.target = 0; this.onCheckDebounce(); }
+    });
+
+    window.addEventListener("resize", debounce(() => this.onResize(), 150));
+  }
+
+  frame() {
+    this.scroll.current = lerp(this.scroll.current, this.scroll.target, this.scroll.ease);
+    const direction = this.scroll.current > this.scroll.last ? "right" : "left";
+    this.medias.forEach(m => m.update(this.scroll, direction));
+    this.renderer.render({ scene: this.scene, camera: this.camera });
+    this.scroll.last = this.scroll.current;
+  }
+
+  start() {
+    if (this.running) return;
+    this.running = true;
+    const tick = () => {
+      if (!this.running) return;
+      this.frame();
+      this.raf = requestAnimationFrame(tick);
+    };
+    this.raf = requestAnimationFrame(tick);
+  }
+
+  stop() {
+    this.running = false;
+    if (this.raf) cancelAnimationFrame(this.raf);
+  }
+}
+
+const host = document.getElementById("feature-gallery");
+if (host) {
+  const gallery = new Gallery(host, {
+    bend: 1,
+    textColor: "#ffffff",
+    borderRadius: 0.05,
+    scrollEase: 0.05,
+    scrollSpeed: 2,
+  });
+
+  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduced) {
+    gallery.frame();          // One frame, held; still draggable.
+  } else if (window.IntersectionObserver) {
+    new IntersectionObserver(e => (e[0].isIntersecting ? gallery.start() : gallery.stop()), { threshold: 0 })
+      .observe(host);
+  } else {
+    gallery.start();
+  }
+  host.setAttribute("data-ready", "true");
+}
