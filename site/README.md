@@ -83,3 +83,8 @@ is nothing to test there.
 
 No customer logo strip and no testimonials. There are no customers yet, and
 invented social proof is not worth having.
+
+## Credits
+
+Typeface: **Garet** by Type Forward (https://garet.typeforward.com/), free weights Book and Heavy.
+Self-hosted from `site/fonts/`; see `site/fonts/README.md`.

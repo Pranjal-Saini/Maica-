@@ -7,6 +7,27 @@
    feature blocks in one column, and a wide multi-column footer.
    Colour, type and content are MAICA's own.
    ───────────────────────────────────────────────────────────── */
+/* Garet, self-hosted. Type Forward gives two weights away free — Book and
+   Heavy — so each face claims a weight *range*: every weight this sheet asks
+   for lands on a real cut instead of the browser smearing a fake bold over
+   Book. Files live in /fonts (see fonts/README.md for where they come from).
+   Until they are present the stack below falls back to Schibsted Grotesk, so
+   the page never renders in a default serif. */
+@font-face {
+  font-family: "Garet";
+  src: url("/fonts/Garet-Book.woff2") format("woff2");
+  font-weight: 100 599;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Garet";
+  src: url("/fonts/Garet-Heavy.woff2") format("woff2");
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --brand: #384fff;
   --brand-hover: #2a3fe6;
@@ -58,7 +79,7 @@ body {
   margin: 0;
   background: var(--ink);
   color: var(--on-ink);
-  font-family: "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
+  font-family: Garet, "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -67,12 +88,10 @@ body {
 h1, h2, h3, h4 { margin: 0; text-wrap: balance; letter-spacing: -.03em; line-height: 1.08; }
 h1 { font-size: clamp(2.5rem, 6.4vw, 4.2rem); font-weight: 700; }
 h2 {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: clamp(1.5rem, 2.9vw, 2.3rem); font-weight: 500;
   line-height: 1.18; letter-spacing: -.035em;
 }
 h3 {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 1.12rem; font-weight: 500; letter-spacing: -.025em; line-height: 1.3;
 }
 p { margin: 0; }
@@ -101,7 +120,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .on-light .eyebrow { color: var(--brand); }
 
 .maica-wordmark {
-  font-family: Garet, Questrial, "Century Gothic", Futura, sans-serif;
+  font-family: Garet, "Schibsted Grotesk", "Century Gothic", Futura, sans-serif;
   font-weight: 800; letter-spacing: -.005em;
 }
 /* White mark on an OPAQUE black square, no alpha — composites only on a dark

@@ -134,7 +134,7 @@ function drawCard(feature) {
      overflowed on the longest line — "Two evidence types," ran past the edge —
      so measure the widest line and scale the whole title down if it does not
      fit the column. */
-  const titleFont = size => `500 ${size}px "IBM Plex Mono", ui-monospace, monospace`;
+  const titleFont = size => `500 ${size}px Garet, "Schibsted Grotesk", system-ui, sans-serif`;
   let titleSize = Math.round(CARD_W * 0.082);
   x.font = titleFont(titleSize);
   const widest = Math.max(...feature.t.map(line => x.measureText(line).width));
@@ -146,7 +146,7 @@ function drawCard(feature) {
 
   const bodySize = Math.round(CARD_W * 0.044);
   const bodyLead = bodySize * 1.5;
-  x.font = `400 ${bodySize}px "Schibsted Grotesk", system-ui, sans-serif`;
+  x.font = `400 ${bodySize}px Garet, "Schibsted Grotesk", system-ui, sans-serif`;
   const bodyLines = wrap(x, feature.b, inner);
 
   /* Centre the title and body together in the space under the rule, so a card
@@ -166,7 +166,7 @@ function drawCard(feature) {
 
   y += gap;
   x.fillStyle = "rgba(245, 246, 241, 0.72)";
-  x.font = `400 ${bodySize}px "Schibsted Grotesk", system-ui, sans-serif`;
+  x.font = `400 ${bodySize}px Garet, "Schibsted Grotesk", system-ui, sans-serif`;
   for (const line of bodyLines) {
     x.fillText(line, pad, y);
     y += bodyLead;
@@ -533,8 +533,23 @@ class Gallery {
   }
 }
 
+/* The cards are painted onto canvases once, at startup, and a canvas uses
+   whatever face is loaded at that instant — it never re-renders when a web
+   font arrives later. So wait for Garet first, but not for long: a missing or
+   slow font file should cost the reader a fallback face, never the gallery. */
+async function fontsReady() {
+  if (!document.fonts || !document.fonts.load) return;
+  const timeout = new Promise(resolve => setTimeout(resolve, 2500));
+  const load = Promise.all([
+    document.fonts.load('400 40px Garet'),
+    document.fonts.load('600 40px Garet'),
+  ]).catch(() => {});
+  await Promise.race([load, timeout]);
+}
+
 const host = document.getElementById("feature-gallery");
 if (host) {
+  await fontsReady();
   const gallery = new Gallery(host, {
     bend: 1,
     textColor: "#ffffff",
