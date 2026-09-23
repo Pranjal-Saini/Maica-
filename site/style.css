@@ -58,7 +58,7 @@ body {
   margin: 0;
   background: var(--ink);
   color: var(--on-ink);
-  font-family: "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
+  font-family: Poppins, system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -67,12 +67,10 @@ body {
 h1, h2, h3, h4 { margin: 0; text-wrap: balance; letter-spacing: -.03em; line-height: 1.08; }
 h1 { font-size: clamp(2.5rem, 6.4vw, 4.2rem); font-weight: 700; }
 h2 {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: clamp(1.5rem, 2.9vw, 2.3rem); font-weight: 500;
   line-height: 1.18; letter-spacing: -.035em;
 }
 h3 {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 1.12rem; font-weight: 500; letter-spacing: -.025em; line-height: 1.3;
 }
 p { margin: 0; }
@@ -189,7 +187,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
    record ids, and the face that suits them can carry the headline too. */
 .hero h1 {
   margin-top: 2.1rem;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: clamp(2.1rem, 4.1vw, 3.6rem);
   font-weight: 500; line-height: 1.12; letter-spacing: -.04em;
   max-width: 15ch;
@@ -940,7 +937,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .faq details:first-child { border-top: 0; }
 .faq summary {
   cursor: pointer; list-style: none; padding: 1.4rem 3.5rem 1.4rem 1.9rem;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-weight: 500; font-size: 1rem; letter-spacing: -.02em; position: relative;
 }
 .faq summary::-webkit-details-marker { display: none; }

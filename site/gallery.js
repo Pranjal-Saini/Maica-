@@ -134,7 +134,7 @@ function drawCard(feature) {
      overflowed on the longest line — "Two evidence types," ran past the edge —
      so measure the widest line and scale the whole title down if it does not
      fit the column. */
-  const titleFont = size => `500 ${size}px "IBM Plex Mono", ui-monospace, monospace`;
+  const titleFont = size => `500 ${size}px Poppins, system-ui, sans-serif`;
   let titleSize = Math.round(CARD_W * 0.082);
   x.font = titleFont(titleSize);
   const widest = Math.max(...feature.t.map(line => x.measureText(line).width));
@@ -146,7 +146,7 @@ function drawCard(feature) {
 
   const bodySize = Math.round(CARD_W * 0.044);
   const bodyLead = bodySize * 1.5;
-  x.font = `400 ${bodySize}px "Schibsted Grotesk", system-ui, sans-serif`;
+  x.font = `400 ${bodySize}px Poppins, system-ui, sans-serif`;
   const bodyLines = wrap(x, feature.b, inner);
 
   /* Centre the title and body together in the space under the rule, so a card
@@ -166,7 +166,7 @@ function drawCard(feature) {
 
   y += gap;
   x.fillStyle = "rgba(245, 246, 241, 0.72)";
-  x.font = `400 ${bodySize}px "Schibsted Grotesk", system-ui, sans-serif`;
+  x.font = `400 ${bodySize}px Poppins, system-ui, sans-serif`;
   for (const line of bodyLines) {
     x.fillText(line, pad, y);
     y += bodyLead;
@@ -535,6 +535,14 @@ class Gallery {
 
 const host = document.getElementById("feature-gallery");
 if (host) {
+  /* Cards are painted to canvas once and never repaint when a web font lands,
+     so wait for Poppins — briefly; a slow font costs a fallback face, not the gallery. */
+  if (document.fonts) {
+    await Promise.race([
+      Promise.all([document.fonts.load("400 40px Poppins"), document.fonts.load("500 40px Poppins")]).catch(() => {}),
+      new Promise(r => setTimeout(r, 2500)),
+    ]);
+  }
   const gallery = new Gallery(host, {
     bend: 1,
     textColor: "#ffffff",
