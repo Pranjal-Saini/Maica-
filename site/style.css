@@ -30,7 +30,18 @@
   --confirmed: #6fd7ab;
   --likely: #e5a34a;
 
-  --measure: 72rem;
+  /* The hero carries the brand hue. Everything below it stays neutral, so
+     the tint reads as emphasis rather than as the site's base colour. */
+  --hero-bg: #0a1030;          /* saturated navy, not a grey with a hint */
+  --hero-inner: #0c1440;       /* the panel sits a shade above the frame */
+  --hero-line: rgba(255, 255, 255, .5);
+  --hero-border: rgba(255, 255, 255, .34);
+  --hero-glow: rgba(56, 79, 255, .5);
+  /* Bright orange, this mark only. Deliberately outside the label palette:
+     it stands for a control being chosen, not a confidence level. */
+  --accent-orange: #ff7a29;
+
+  --measure: 82rem;
   --narrow: 52rem;
   --radius: 10px;
 }
@@ -47,7 +58,7 @@ body {
   margin: 0;
   background: var(--ink);
   color: var(--on-ink);
-  font-family: "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
+  font-family: Poppins, system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -56,12 +67,10 @@ body {
 h1, h2, h3, h4 { margin: 0; text-wrap: balance; letter-spacing: -.03em; line-height: 1.08; }
 h1 { font-size: clamp(2.5rem, 6.4vw, 4.2rem); font-weight: 700; }
 h2 {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: clamp(1.5rem, 2.9vw, 2.3rem); font-weight: 500;
   line-height: 1.18; letter-spacing: -.035em;
 }
 h3 {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 1.12rem; font-weight: 500; letter-spacing: -.025em; line-height: 1.3;
 }
 p { margin: 0; }
@@ -137,12 +146,30 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 /* ── hero: bordered panel, text left, grid right ─────────── */
 .hero { padding: 1.25rem 0 4.5rem; }
+/* Two frames. The outer one carries the ground and a little air, so the panel
+   inside it stops short of the edge and the colour shows around the grid
+   rather than the rules running into the border. */
+.hero-frame {
+  position: relative; isolation: isolate; overflow: hidden;
+  /* No border of its own. It exists to carry the ground and the band of air
+     around the panel; the only drawn edge is the panel's. */
+  border-radius: 18px;
+  background: var(--hero-bg);
+  padding: clamp(.7rem, 1.4vw, 1.15rem);
+}
+/* A soft light behind the panel, so the blue reads as lit rather than flat. */
+.hero-frame::before {
+  content: ""; position: absolute; z-index: -1;
+  top: -30%; right: -12%; width: 70%; aspect-ratio: 1;
+  background: radial-gradient(circle, var(--hero-glow) 0%, transparent 68%);
+  opacity: .5; pointer-events: none;
+}
 .hero-panel {
-  border: 1px solid var(--line-dark-strong); border-radius: 14px;
-  background: var(--surface); overflow: hidden;
+  border: 1px solid var(--hero-line); border-radius: 12px;
+  background: var(--hero-inner); overflow: hidden;
   display: grid;
 }
-@media (min-width: 960px) { .hero-panel { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 960px) { .hero-panel { grid-template-columns: 1.18fr 1fr; } }
 
 .hero-copy { padding: clamp(2.2rem, 4vw, 3.6rem); }
 
@@ -154,25 +181,29 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   font-size: .8rem; color: var(--on-ink-muted); background: rgba(245,246,241,.03);
 }
 .hero-chip .plus { color: var(--brand-light); }
+.hero-chip { border-color: var(--hero-border); background: rgba(10, 16, 48, .6); }
 
 /* Monospace headline — the terms of art in this product are field names and
    record ids, and the face that suits them can carry the headline too. */
 .hero h1 {
-  margin-top: 1.9rem;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: clamp(1.9rem, 3.4vw, 3rem);
-  font-weight: 500; line-height: 1.15; letter-spacing: -.035em;
-  max-width: 16ch;
+  margin-top: 2.1rem;
+  font-size: clamp(2.1rem, 4.1vw, 3.6rem);
+  font-weight: 500; line-height: 1.12; letter-spacing: -.04em;
+  max-width: 15ch;
 }
 .hero h1 em { font-style: normal; color: var(--brand-light); }
 .hero-sub {
   margin-top: 1.7rem; max-width: 44ch;
   font-size: 1.02rem; line-height: 1.65; color: var(--on-ink-muted);
 }
-.hero-cta { margin-top: 2.2rem; display: flex; flex-wrap: wrap; gap: .7rem; }
+.hero-cta { margin-top: 2.4rem; display: flex; flex-wrap: wrap; gap: .7rem; }
+/* Side by side, not stacked. The labels are short enough to hold the line at
+   the narrowest column this panel produces. */
+.hero .hero-cta .btn { flex: 0 0 auto; }
 .cta-note { margin-top: 1.2rem; font-size: .84rem; color: var(--on-ink-faint); }
 
-/* Badges name a real shortcut; app.js binds them. */
+/* One badge, on the nav's Get started. It names a key that actually works —
+   a badge decorating nothing would be a lie told where nobody would check. */
 .kbd {
   display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem;
   padding: 0 .3rem; border-radius: 5px; font-size: .72rem; font-weight: 600;
@@ -180,64 +211,65 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 .btn-primary .kbd { background: rgba(255,255,255,.22); color: #fff; }
 .btn-ghost-dark .kbd { background: rgba(245,246,241,.12); color: var(--on-ink-muted); }
+.btn-sm .kbd { min-width: 1.15rem; height: 1.15rem; font-size: .66rem; }
 
 /* Right half: a ruled grid, mostly empty, holding a few real artefacts. */
 .hero-visual {
-  border-top: 1px solid var(--line-dark);
-  display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(8.5rem, auto);
-  /* The trailing rules run under the panel's own border rather than doubling. */
+  border-top: 1px solid var(--hero-line);
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(7.1rem, 1fr);
+  /* Trailing rules run under the panel border rather than doubling on it. */
   margin: 0 -1px -1px 0;
 }
 @media (min-width: 960px) {
-  .hero-visual { border-top: 0; border-left: 1px solid var(--line-dark); }
+  .hero-visual { border-top: 0; border-left: 1px solid var(--hero-line); }
 }
 .cell {
-  border-right: 1px solid var(--line-dark); border-bottom: 1px solid var(--line-dark);
-  padding: 1rem; display: grid; place-items: center;
+  border-right: 1px solid var(--hero-line); border-bottom: 1px solid var(--hero-line);
+  padding: 1.15rem; display: grid; place-items: center;
 }
-.cell.wide { grid-column: span 2; place-items: stretch; }
-.cell.tall { grid-row: span 2; }
-.cell .ghost { color: var(--line-dark-strong); }
-.cell .ghost svg { width: 26px; height: 26px; }
+.cell .ghost { color: rgba(170, 188, 255, .5); }
+.cell .ghost svg { width: 42px; height: 42px; }
 
 .mini-row {
-  width: 100%; border: 1px solid var(--line-dark-strong); border-radius: 8px;
-  background: var(--ink); padding: .8rem .9rem;
-  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .7rem;
+  width: 100%; border: 1px solid var(--hero-border); border-radius: 8px;
+  background: rgba(6, 10, 32, .72); padding: .75rem .85rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .67rem;
   color: var(--on-ink-muted); line-height: 1.7; overflow: hidden;
 }
 .mini-row b { color: var(--on-ink); font-weight: 500; }
 .mini-row .hi { color: var(--brand-light); }
 
-.chip-stack { display: grid; gap: .5rem; justify-items: center; }
+.chip-stack { display: grid; gap: .45rem; justify-items: center; }
+.dash { width: 2.2rem; height: .4rem; border-radius: 2px; background: rgba(170, 188, 255, .5); }
 /* A field of records, a few lighting at a time as they are read. Each square
    carries its own delay, so the pattern never repeats visibly and there is no
    script driving it — twenty staggered opacity cycles cost nothing.
 
    The reference animates squares over a photograph; this animates the same
    idea over the thing MAICA actually looks at. */
-.pixel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; }
+.pixel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 100%; }
 .pixel i {
   display: block; aspect-ratio: 1; border-radius: 2px;
-  background: var(--line-dark);
+  background: rgba(170, 188, 255, .14);
   animation: pixelRead 5.5s var(--d, 0s) infinite;
 }
 .pixel i.slow { animation-duration: 8s; }
 @keyframes pixelRead {
-  0%, 82%, 100% { background: var(--line-dark); }
-  86%           { background: rgba(56, 79, 255, .55); }
-  92%           { background: var(--brand); }
-  97%           { background: rgba(56, 79, 255, .3); }
+  0%, 82%, 100% { background: rgba(170, 188, 255, .14); box-shadow: none; }
+  86%           { background: rgba(90, 112, 255, .7); box-shadow: 0 0 8px rgba(56, 79, 255, .5); }
+  92%           { background: #5b71ff; box-shadow: 0 0 14px rgba(91, 113, 255, .8); }
+  97%           { background: rgba(90, 112, 255, .4); box-shadow: 0 0 6px rgba(56, 79, 255, .3); }
 }
 
 /* The cell holding it keeps a little air around the field. */
-.cell .pixel { max-width: 8.5rem; }
+.cell .pixel { max-width: 9.9rem; }
 
 @media (prefers-reduced-motion: reduce) {
   /* Static, and still legible: a handful stay lit rather than everything
      going dark. */
   .pixel i { animation: none; }
-  .pixel i.lit { background: var(--brand); }
+  .pixel i.lit { background: #5b71ff; box-shadow: 0 0 12px rgba(91, 113, 255, .7); }
   .pixel i.half { background: rgba(56, 79, 255, .4); }
 }
 
@@ -302,7 +334,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .gap-note strong { color: var(--on-ink); }
 
 /* ── a single claim, set large ───────────────────────────── */
-.claim { padding: 5rem 0; border-top: 1px solid var(--line-dark); }
+.claim { padding: 5rem 0; }
 .claim blockquote {
   margin: 0; font-size: clamp(1.35rem, 2.7vw, 1.95rem);
   line-height: 1.35; letter-spacing: -.02em; font-weight: 500; max-width: 34ch;
@@ -311,6 +343,171 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   margin-top: 1.4rem; font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
   color: var(--on-ink-faint);
+}
+
+/* ── border glow ─────────────────────────────────────────────
+   The supplied BorderGlow, applied to the claim block. The stylesheet is the
+   supplied one; React contributed only a pointermove handler setting
+   --edge-proximity and --cursor-angle, which app.js now does.
+
+   Config: edgeSensitivity 30, glowColor 40 80% 80%, background #120F17,
+   radius 28, glowRadius 40, intensity 1, coneSpread 25, animated false,
+   colours #c084fc / #f472b6 / #38bdf8. The two JS builders ran on props that
+   never change here, so their output is written out below rather than
+   recomputed at load. */
+.border-glow-card {
+  --edge-proximity: 0;
+  --cursor-angle: 45deg;
+  --edge-sensitivity: 30;
+  --color-sensitivity: calc(var(--edge-sensitivity) + 20);
+  --border-radius: 28px;
+  --glow-padding: 40px;
+  --cone-spread: 25;
+  --fill-opacity: .5;
+  --card-bg: #120F17;
+  --glow-color: hsl(40deg 80% 80% / 100%);
+  --glow-color-60: hsl(40deg 80% 80% / 60%);
+  --glow-color-50: hsl(40deg 80% 80% / 50%);
+  --glow-color-40: hsl(40deg 80% 80% / 40%);
+  --glow-color-30: hsl(40deg 80% 80% / 30%);
+  --glow-color-20: hsl(40deg 80% 80% / 20%);
+  --glow-color-10: hsl(40deg 80% 80% / 10%);
+  --gradient-one: radial-gradient(at 80% 55%, #c084fc 0px, transparent 50%);
+  --gradient-two: radial-gradient(at 69% 34%, #f472b6 0px, transparent 50%);
+  --gradient-three: radial-gradient(at 8% 6%, #38bdf8 0px, transparent 50%);
+  --gradient-four: radial-gradient(at 41% 38%, #c084fc 0px, transparent 50%);
+  --gradient-five: radial-gradient(at 86% 85%, #f472b6 0px, transparent 50%);
+  --gradient-six: radial-gradient(at 82% 18%, #38bdf8 0px, transparent 50%);
+  --gradient-seven: radial-gradient(at 51% 4%, #f472b6 0px, transparent 50%);
+  --gradient-base: linear-gradient(#c084fc 0 100%);
+
+  position: relative;
+  border-radius: var(--border-radius);
+  isolation: isolate;
+  transform: translate3d(0, 0, .01px);
+  display: grid;
+  border: 1px solid rgb(255 255 255 / 15%);
+  background: var(--card-bg);
+  overflow: visible;
+}
+
+.border-glow-card::before,
+.border-glow-card::after,
+.border-glow-card > .edge-light {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transition: opacity .25s ease-out;
+  z-index: -1;
+}
+
+/* Nothing shows until a pointer is inside. */
+.border-glow-card:not(:hover)::before,
+.border-glow-card:not(:hover)::after,
+.border-glow-card:not(:hover) > .edge-light {
+  opacity: 0;
+  transition: opacity .75s ease-in-out;
+}
+
+/* The coloured mesh on the border itself. */
+.border-glow-card::before {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--card-bg) 0 100%) padding-box,
+    linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box,
+    var(--gradient-one) border-box,
+    var(--gradient-two) border-box,
+    var(--gradient-three) border-box,
+    var(--gradient-four) border-box,
+    var(--gradient-five) border-box,
+    var(--gradient-six) border-box,
+    var(--gradient-seven) border-box,
+    var(--gradient-base) border-box;
+  opacity: calc((var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+  -webkit-mask-image: conic-gradient(from var(--cursor-angle) at center,
+    black calc(var(--cone-spread) * 1%),
+    transparent calc((var(--cone-spread) + 15) * 1%),
+    transparent calc((100 - var(--cone-spread) - 15) * 1%),
+    black calc((100 - var(--cone-spread)) * 1%));
+  mask-image: conic-gradient(from var(--cursor-angle) at center,
+    black calc(var(--cone-spread) * 1%),
+    transparent calc((var(--cone-spread) + 15) * 1%),
+    transparent calc((100 - var(--cone-spread) - 15) * 1%),
+    black calc((100 - var(--cone-spread)) * 1%));
+}
+
+/* The same mesh washing into the fill near the edges. */
+.border-glow-card::after {
+  border: 1px solid transparent;
+  background:
+    var(--gradient-one) padding-box,
+    var(--gradient-two) padding-box,
+    var(--gradient-three) padding-box,
+    var(--gradient-four) padding-box,
+    var(--gradient-five) padding-box,
+    var(--gradient-six) padding-box,
+    var(--gradient-seven) padding-box,
+    var(--gradient-base) padding-box;
+  mask-image:
+    linear-gradient(to bottom, black, black),
+    radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%),
+    radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%),
+    radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%),
+    conic-gradient(from var(--cursor-angle) at center, transparent 5%, black 15%, black 85%, transparent 95%);
+  mask-composite: subtract, add, add, add, add, add;
+  opacity: calc(var(--fill-opacity) * (var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+  mix-blend-mode: soft-light;
+}
+
+/* The glow thrown outside the card. */
+.border-glow-card > .edge-light {
+  inset: calc(var(--glow-padding) * -1);
+  pointer-events: none;
+  z-index: 1;
+  -webkit-mask-image: conic-gradient(from var(--cursor-angle) at center,
+    black 2.5%, transparent 10%, transparent 90%, black 97.5%);
+  mask-image: conic-gradient(from var(--cursor-angle) at center,
+    black 2.5%, transparent 10%, transparent 90%, black 97.5%);
+  opacity: calc((var(--edge-proximity) - var(--edge-sensitivity)) / (100 - var(--edge-sensitivity)));
+  mix-blend-mode: plus-lighter;
+}
+
+.border-glow-card > .edge-light::before {
+  content: "";
+  position: absolute;
+  inset: var(--glow-padding);
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px var(--glow-color),
+    inset 0 0 1px 0 var(--glow-color-60),
+    inset 0 0 3px 0 var(--glow-color-50),
+    inset 0 0 6px 0 var(--glow-color-40),
+    inset 0 0 15px 0 var(--glow-color-30),
+    inset 0 0 25px 2px var(--glow-color-20),
+    inset 0 0 50px 2px var(--glow-color-10),
+    0 0 1px 0 var(--glow-color-60),
+    0 0 3px 0 var(--glow-color-50),
+    0 0 6px 0 var(--glow-color-40),
+    0 0 15px 0 var(--glow-color-30),
+    0 0 25px 2px var(--glow-color-20),
+    0 0 50px 2px var(--glow-color-10);
+}
+
+.border-glow-inner {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  padding: clamp(2rem, 4.5vw, 3.4rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .border-glow-card::before,
+  .border-glow-card::after,
+  .border-glow-card > .edge-light { transition: none; }
 }
 
 /* ── sections ────────────────────────────────────────────── */
@@ -365,6 +562,286 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .source.off { opacity: .45; }
 .sources .foot {
   margin-top: 1.6rem; text-align: center; font-size: .84rem; color: var(--on-ink-faint);
+}
+
+
+/* ── one animation per cell ──────────────────────────────────
+   Each mark draws itself on stroke by stroke, holds while it is readable,
+   then clears and begins again — so the panel reads as a pass through the
+   pipeline that keeps running rather than a set of blinking boxes.
+
+   The technique is the standard one: give every path a dash pattern as long
+   as the path itself, then animate the offset from fully-dashed (invisible)
+   to zero (drawn). `pathLength="1"` on each path normalises every stroke to
+   one unit, so a single keyframe set drives icons of completely different
+   real lengths and nothing has to be measured by hand.
+
+   Colours come from the label palette, so they already mean something by the
+   time a reader reaches a report: green where a claim is confirmed or
+   guaranteed, amber where something changed, blue for work in progress.
+
+   Durations are unequal and out of phase, so the cells never pulse together.
+   Everything is stroke, transform and opacity — no layout is touched. */
+
+.cell .ghost.c-brand { color: var(--brand-light); }
+.cell .ghost.c-good  { color: var(--confirmed); }
+.cell .ghost.c-warm  { color: var(--likely); }
+
+/* The shared draw-on. Each icon sets its own duration and delay. */
+.draw path, .draw circle, .draw rect, .draw line, .draw polyline {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: drawOn var(--dur, 4s) var(--delay, 0s) ease-in-out infinite;
+}
+/* Strokes within one icon follow each other rather than arriving together. */
+.draw :nth-child(2) { animation-delay: calc(var(--delay, 0s) + .18s); }
+.draw :nth-child(3) { animation-delay: calc(var(--delay, 0s) + .36s); }
+
+@keyframes drawOn {
+  0%    { stroke-dashoffset: 1; opacity: 0; }
+  6%    { stroke-dashoffset: 1; opacity: .25; }
+  28%   { stroke-dashoffset: 0; opacity: 1; }
+  72%   { stroke-dashoffset: 0; opacity: 1; }
+  90%   { stroke-dashoffset: -1; opacity: .25; }
+  /* Hidden from here, so the offset can snap back unseen. */
+  95%   { stroke-dashoffset: -1; opacity: 0; }
+  100%  { stroke-dashoffset: 1; opacity: 0; }
+}
+
+/* 01 — upload. The plane leaves top-right, vanishes, and comes back in from
+   bottom-left. Keyframe values are the supplied variant's, mapped onto a
+   4.8 s loop so the 1.4 s flight is followed by a rest: the action occupies
+   the first 29%. */
+.an-send { animation: sendOff 4.8s ease-in-out infinite; }
+@keyframes sendOff {
+  0%     { transform: translate(0, 0) scale(1);        opacity: 1; }
+  5.8%   { transform: translate(6px, -4px) scale(.85); opacity: 1; }
+  11.7%  { transform: translate(16px, -16px) scale(0); opacity: 0; }
+  17.5%  { transform: translate(-16px, 16px) scale(0); opacity: 0; }
+  29.2%  { transform: translate(0, 0) scale(1);        opacity: 1; }
+  100%   { transform: translate(0, 0) scale(1);        opacity: 1; }
+}
+
+/* 02 — the dependency graph. Two crossed orbits turning around one nucleus,
+   which is what the graph is: everything circling a single record. Rotation
+   is linear and never rests; the scale pulse rides on top of it. */
+.an-atom { animation: atomSpin 2s linear infinite, atomPulse 4s ease-in-out infinite; }
+@keyframes atomSpin  { to { transform: rotate(360deg); } }
+@keyframes atomPulse {
+  0%, 100% { scale: 1; }
+  50%      { scale: 1.1; }
+}
+
+/* 03 — the record field keeps its own staggered squares (see .pixel). */
+
+/* 04 — the change. The arrow between the values pulses. */
+.mini-row .hi { color: var(--likely); animation: arrowPulse 2.9s ease-in-out infinite; }
+@keyframes arrowPulse {
+  0%, 70%, 100% { opacity: .45; }
+  82%           { opacity: 1; }
+}
+
+/* 05 — parsing. A rule fills, holds, and clears from the same edge. */
+.an-bar {
+  width: 3.85rem; height: .5rem; border-radius: 3px;
+  background: rgba(170, 188, 255, .18); overflow: hidden;
+}
+.an-bar i {
+  display: block; height: 100%; width: 100%; border-radius: 2px;
+  background: var(--confirmed); transform-origin: left center;
+  animation: barFill 4.9s ease-in-out infinite;
+}
+@keyframes barFill {
+  0%       { transform: scaleX(0); opacity: 1; }
+  40%, 72% { transform: scaleX(1); opacity: 1; }
+  88%      { transform: scaleX(1); opacity: 0; }
+  /* Empty again while invisible, so the reset is not seen. */
+  89%      { transform: scaleX(0); opacity: 0; }
+  100%     { transform: scaleX(0); opacity: 1; }
+}
+
+/* 06 — selection. A ring sweeps on, a dot lands inside it, both clear.
+   Timing carried over from the supplied Lottie: 1.42 s of action inside a
+   3.6 s loop, so the mark rests rather than pulsing without pause. */
+.an-radio { display: block; width: 48px; height: 48px; color: var(--accent-orange); }
+.an-radio .ring {
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  transform: rotate(-90deg); transform-origin: 50% 50%;
+  animation: radioRing 3.6s ease-in-out infinite;
+}
+.an-radio .dot {
+  transform: scale(0); transform-origin: 50% 50%;
+  animation: radioDot 3.6s ease-in-out infinite;
+}
+/* Sweeps on over the first 16% (0.58 s), holds, then clears from the same
+   edge it started at. */
+@keyframes radioRing {
+  0%       { stroke-dashoffset: 1; }
+  22%, 66% { stroke-dashoffset: 0; }
+  88%      { stroke-dashoffset: -1; }
+  88.1%    { stroke-dashoffset: 1; }
+  100%     { stroke-dashoffset: 1; }
+}
+/* Lands at 11%, holds to 30%, gone by 38%. */
+@keyframes radioDot {
+  0%, 11%   { transform: scale(0); }
+  20%, 30%  { transform: scale(1); }
+  38%, 100% { transform: scale(0); }
+}
+
+/* 07 — ranking. The labels resolve one after another. */
+/* 07 — ranking. Each label squashes, overshoots and settles, so it lands
+   rather than sliding in. The curve is the supplied one. */
+.chip-stack .label {
+  animation: chipPop 6.1s cubic-bezier(.34, 1.56, .64, 1) infinite;
+}
+.chip-stack .label:nth-child(2) { animation-delay: .55s; }
+@keyframes chipPop {
+  0%, 8%    { opacity: 0;   transform: scale(.7); }
+  12%       { opacity: .85; transform: scale(.9); }
+  16%       { opacity: 1;   transform: scale(1.08); }
+  20%, 80%  { opacity: 1;   transform: scale(1); }
+  95%, 100% { opacity: 0;   transform: scale(.7); }
+}
+
+/* 08 — cannot edit. The tool dims and settles back while a slash draws
+   across it, then both release. Motion taken from the supplied icon: the
+   group fades to 0.4 and scales to 0.92 while the slash strokes on from
+   nothing. Read-only is a claim about writing, so a struck-through pencil
+   states it more directly than a shield. */
+.an-noedit { color: var(--confirmed); }
+.an-noedit .tool {
+  transform-box: fill-box; transform-origin: center;
+  animation: noEditTool 4.6s ease-out infinite;
+}
+@keyframes noEditTool {
+  0%, 20%   { opacity: 1; transform: scale(1); }
+  32%, 76%  { opacity: .4; transform: scale(.92); }
+  90%, 100% { opacity: 1; transform: scale(1); }
+}
+.an-noedit .slash {
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+  animation: noEditSlash 4.6s ease-out infinite;
+}
+@keyframes noEditSlash {
+  0%, 20%   { stroke-dashoffset: 1; opacity: .6; }
+  34%, 76%  { stroke-dashoffset: 0; opacity: 1; }
+  88%, 100% { stroke-dashoffset: 1; opacity: .6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draw path, .draw circle, .draw rect, .draw line, .draw polyline,
+  .an-send, .an-atom, .an-bar i,
+  .an-radio .ring, .an-radio .dot,
+  .an-noedit .tool, .an-noedit .slash,
+  .chip-stack .label, .mini-row .hi { animation: none; }
+  .an-radio .ring { stroke-dashoffset: 0; }
+  .an-radio .dot { transform: scale(1); }
+  .an-noedit .tool { opacity: .4; transform: scale(.92); }
+  .an-noedit .slash { stroke-dashoffset: 0; }
+  /* Left drawn and readable rather than frozen part-way through. */
+  .draw path, .draw circle, .draw rect, .draw line, .draw polyline {
+    stroke-dashoffset: 0; opacity: .8;
+  }
+  .an-bar i { transform: scaleX(.65); }
+}
+
+
+/* 09 — verified. The first tick strokes on, swelling to 1.2 and settling; the
+   second arrives a beat later, sliding in from the left. Both timings are the
+   supplied ones, mapped onto a 5.2s loop so the pair rests between passes. */
+.an-check { color: var(--confirmed); }
+.an-check path { stroke-dasharray: 1; transform-box: fill-box; transform-origin: center; }
+.an-check .t1 { animation: checkOne 5.2s ease-in-out infinite; }
+@keyframes checkOne {
+  0%          { stroke-dashoffset: 1; opacity: .5; transform: scale(1); }
+  6.7%        { transform: scale(1.2); }
+  13.5%, 86%  { stroke-dashoffset: 0; opacity: 1; transform: scale(1); }
+  100%        { stroke-dashoffset: 1; opacity: .5; transform: scale(1); }
+}
+.an-check .t2 { animation: checkTwo 5.2s ease-out infinite; }
+@keyframes checkTwo {
+  0%, 6.7%    { stroke-dashoffset: 1; opacity: 0; transform: translateX(-6px); }
+  16.3%, 86%  { stroke-dashoffset: 0; opacity: 1; transform: translateX(0); }
+  100%        { stroke-dashoffset: 1; opacity: 0; transform: translateX(-6px); }
+}
+
+/* 10 — a finding surfaced. The bell swings on the supplied rotation track,
+   hinged at the top; the clapper follows the same rhythm slightly behind, and
+   the waves pulse out either side. 1.3s of ring inside a 5.6s loop. */
+.an-bell { color: var(--likely); transform-origin: top center; animation: bellSwing 5.6s ease-in-out infinite; }
+@keyframes bellSwing {
+  0%     { rotate: 0deg; }
+  2.1%   { rotate: 7deg; }
+  6%     { rotate: -18deg; }
+  10.4%  { rotate: 14deg; }
+  14.4%  { rotate: -9deg; }
+  18.1%  { rotate: 5deg; }
+  20.9%  { rotate: -2deg; }
+  23.2%, 100% { rotate: 0deg; }
+}
+.an-bell .clapper { transform-box: fill-box; transform-origin: center; animation: bellClapper 5.6s ease-in-out infinite; }
+@keyframes bellClapper {
+  0%, 1.4% { transform: translateX(0); }
+  3.5%     { transform: translateX(1.5px); }
+  7.4%     { transform: translateX(-5px); }
+  11.8%    { transform: translateX(4px); }
+  15.8%    { transform: translateX(-2.5px); }
+  19.5%    { transform: translateX(1.5px); }
+  22.3%    { transform: translateX(-1px); }
+  24.6%, 100% { transform: translateX(0); }
+}
+.an-bell .wave { transform-box: fill-box; animation: bellWave 5.6s ease-out infinite; }
+.an-bell .wave.left  { transform-origin: 100% 100%; }
+.an-bell .wave.right { transform-origin: 0% 100%; }
+@keyframes bellWave {
+  0%, 1.4%    { opacity: 1;   scale: 1; }
+  7.2%        { opacity: 1;   scale: 1.15; }
+  13%         { opacity: .25; scale: .7; }
+  18.8%       { opacity: 1;   scale: 1.15; }
+  24.6%, 100% { opacity: 1;   scale: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .an-check path, .an-bell, .an-bell .clapper, .an-bell .wave { animation: none; }
+  /* Left in the state each one ends on, so both still read. */
+  .an-check path { stroke-dashoffset: 0; opacity: 1; transform: none; }
+  .an-bell .wave { opacity: 1; scale: 1; }
+}
+
+.section-head.centred {
+  margin-left: auto; margin-right: auto; text-align: center;
+  max-width: 52rem;
+}
+/* Scoped to this one heading rather than to every h2: the other section
+   headings keep the site's rhythm, and only the features heading opens the
+   gallery beneath it. Each stop is the shared h2 scale plus 40px. */
+.section-head.centred h2 { font-size: clamp(4rem, 5.8vw, 4.8rem); }
+.section-head.centred h2 + p { margin-left: auto; margin-right: auto; }
+
+/* ── feature gallery ─────────────────────────────────────────
+   The WebGL canvas is decorative: the same four features are written out
+   underneath in the panel, which is what a screen reader and a crawler
+   actually read. Hidden until the first frame lands, so a failed context
+   leaves a gap rather than a black band. */
+#feature-gallery {
+  position: relative;
+  height: clamp(24rem, 46vw, 36rem);
+  margin-top: 2.75rem;
+  overflow: hidden;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+#feature-gallery[data-ready="true"] { opacity: 1; }
+#feature-gallery:active { cursor: grabbing; }
+#feature-gallery:focus-visible { outline: 3px solid var(--brand-light); outline-offset: 4px; }
+#feature-gallery canvas { display: block; width: 100%; height: 100%; }
+.gallery-hint {
+  margin-top: 1rem; text-align: center;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: .7rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--on-ink-faint);
 }
 
 /* ── panels: the hero's frame, reused down the page ──────── */
@@ -460,7 +937,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .faq details:first-child { border-top: 0; }
 .faq summary {
   cursor: pointer; list-style: none; padding: 1.4rem 3.5rem 1.4rem 1.9rem;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-weight: 500; font-size: 1rem; letter-spacing: -.02em; position: relative;
 }
 .faq summary::-webkit-details-marker { display: none; }
@@ -476,11 +952,37 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 
 /* ── closing CTA ─────────────────────────────────────────── */
 .close-cta { padding: 5rem 0 6rem; }
-.close-cta .panel { margin-top: 0; padding: clamp(2.6rem, 5vw, 4.2rem); text-align: center; }
-.close-cta h2 { max-width: 22ch; margin: 0 auto; }
-.close-cta p { margin: 1.3rem auto 0; max-width: 48ch; color: var(--on-ink-muted); font-size: 1.06rem; }
-.close-cta .hero-cta { justify-content: center; }
-.close-cta .cta-note { text-align: center; }
+.close-cta .panel {
+  margin-top: 0; position: relative; isolation: isolate; overflow: hidden;
+  padding: clamp(2.4rem, 4.5vw, 3.6rem);
+  background: var(--hero-bg); border-color: var(--hero-border);
+}
+/* The mound sits behind the copy, anchored to the bottom-right corner. It is
+   a field of records — the pile you are handing over — with the few that rank
+   picked out brighter. */
+#waves {
+  position: absolute; z-index: -1; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  /* Shown only once the first frame is drawn, so a failed context leaves the
+     panel's own background rather than a black rectangle. */
+  opacity: 0; transition: opacity .6s ease;
+}
+#waves[data-ready="true"] { opacity: 1; }
+/* The copy sits over the right-hand end of the field, so it needs a floor of
+   contrast that does not depend on where a crest happens to be. */
+.close-cta .panel::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(100deg, var(--hero-bg) 30%, rgba(10, 16, 48, .82) 52%, rgba(10, 16, 48, .35) 76%, transparent 92%);
+}
+.close-cta h2 {
+  max-width: 46ch; line-height: 1.3;
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+}
+/* The sentence continues in the same line, dropped back so the claim leads. */
+.close-cta h2 .rest { color: var(--on-ink-muted); }
+.close-cta .hero-cta { margin-top: 2.2rem; justify-content: flex-start; }
+.close-cta .cta-note { text-align: left; }
 
 /* ── prose (privacy, terms) ──────────────────────────────── */
 .prose { max-width: 46rem; padding: 4.5rem 0 5.5rem; }
@@ -516,6 +1018,29 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 .oops h1 { margin-top: 1.2rem; max-width: 14ch; }
 .oops p { margin-top: 1.4rem; max-width: 44ch; color: var(--on-ink-muted); font-size: 1.05rem; }
 .oops .links { margin-top: 2.4rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+
+/* The numerals stretch downward and retract, staggered across the three
+   glyphs — timing from the supplied Lottie: 2.75 s a cycle, roughly a quarter
+   of a second between one glyph and the next. transform-origin sits at the top
+   so they extend rather than grow from the middle. */
+.oops-digits {
+  display: flex; gap: .1em; margin-bottom: 1.6rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: clamp(4.5rem, 14vw, 9rem); font-weight: 500;
+  line-height: 1; letter-spacing: -.04em; color: var(--accent-orange);
+}
+.oops-digits span {
+  display: block; transform-origin: top center;
+  animation: digitStretch 2.75s cubic-bezier(.45, 0, .2, 1) infinite;
+  animation-delay: calc(var(--i) * .25s);
+}
+@keyframes digitStretch {
+  0%, 100% { transform: scaleY(1); }
+  45%      { transform: scaleY(1.42); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oops-digits span { animation: none; }
+}
 
 /* ── footer: wide, many columns ──────────────────────────── */
 footer { padding: 4.5rem 0 2.5rem; border-top: 1px solid var(--line-dark); }
